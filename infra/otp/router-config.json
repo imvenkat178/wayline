@@ -1,0 +1,7 @@
+{
+  "updaters": [],
+  "routingDefaults": {
+    "walkSpeed": 1.33,
+    "transferSlack": "2m"
+  }
+}

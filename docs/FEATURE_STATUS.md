@@ -1,0 +1,113 @@
+# Feature implementation status
+
+Checkpoint: 8 September 2026. Every row maps to the supplied requirements. **Local** means local code exists, not that all browser interactions or production behavior have been certified. **Sample** uses illustrative assumptions. **Partial** has meaningful unfinished work. **Integration** requires configured services and validation. **Provider required** and **Deferred** are not completed features.
+
+Read [README.md](../README.md) for setup and limitations and [ORIGINAL_REQUIREMENTS.md](ORIGINAL_REQUIREMENTS.md) for the full original request.
+
+| # | Requested feature | Status | Implementation / remaining work |
+| --- | --- | --- | --- |
+| 1 | AI trip planning and multimodal search | Partial | Rules-based search/preferences and sample multimodal planning; optional OTP adapter needs deployment validation. |
+| 2 | Smart route comparison | Local | Comparison and ranking of sample routes. |
+| 3 | Real total journey cost | Sample | Integer-cent group costs; real provider fares and fees are not verified. |
+| 4 | Reliability scoring | Sample | Illustrative reliability values; no observed reliability dataset. |
+| 5 | Arrival confidence | Sample | Modeled arrival time; no calibrated confidence interval. |
+| 6 | Transfer-risk scoring | Sample | Connection buffers, detours and heuristic risk. |
+| 7 | Journey Guardian | Partial | Persisted server-side alerts; no continuous provider-to-journey refresh. |
+| 8 | Connection protection | Partial | Connection warnings; no carrier protection guarantee. |
+| 9 | Prepared trip recovery | Partial | Prepared alternatives; no reserved inventory. |
+| 10 | Automatic recovery architecture | Partial | Recovery states and user choice; no provider transaction or automatic purchase. |
+| 11 | Tracking provenance | Local | Source labels and freshness logic; provider mappings need integration validation. |
+| 12 | Ghost-bus detection | Partial | Stale/missing GPS flags, never proof of cancellation. |
+| 13 | Live vehicle tracking | Integration | MBTA and configured GTFS-RT adapters; complete journey matching remains. |
+| 14 | Live map | Partial | MapLibre endpoints and separate vehicle view; no complete live route geometry. |
+| 15 | Exact boarding location | Deferred | Generic boarding guidance; no verified precise boarding dataset. |
+| 16 | Vehicle identity confidence | Deferred | Manual sign comparison; no calibrated identity confidence. |
+| 17 | “Is this my bus?” feature | Partial | Manual sign entry/camera checklist; OCR assets still need bundling. |
+| 18 | Ticket wallet | Partial | Manual ticket records and passes; no barcode import or issuance. |
+| 19 | Offline ticket access | Partial | Encrypted journey packs; offline shell and complete ticket artifacts remain. |
+| 20 | Single journey timeline | Local | Saved states and events in one journey timeline. |
+| 21 | Unified disruption inbox | Partial | Persisted app alerts and separate provider alerts; full normalization remains. |
+| 22 | AI disruption summaries | Partial | Rules-based summaries; optional model intent extraction. |
+| 23 | Crowding information | Sample | Illustrative occupancy; no complete validated live crowding mapping. |
+| 24 | Crowding-aware routing | Sample | Less-crowded preference uses sample assumptions. |
+| 25 | Accessibility | Partial | Accessibility preferences/filtering; real route evidence remains unverified. |
+| 26 | Dynamic accessibility disruptions | Sample | Outage scenarios and detour rules; no complete live elevator dataset. |
+| 27 | Personal routing preferences | Partial | Preferences persist; some require unavailable provider evidence. |
+| 28 | Live journey sharing | Partial | Expiring/revocable links; location scope only exposes available vehicle positions. |
+| 29 | Refund eligibility | Partial | Draft refund workflow; no authoritative provider eligibility engine. |
+| 30 | Journey Receipt | Partial | JSON estimate receipt; not proof of purchase. |
+| 31 | Automatic refund claims | Deferred | Drafts can be exported; submission and money recovery are unconnected. |
+| 32 | Open Transit Lab | Partial | Discovery seed, adapter status and optional live-data tools. |
+| 33 | Free/open-data architecture | Partial | Open stack adapters; routing datasets/services must be supplied. |
+| 34 | Universal booking | Provider required | No unified purchase or ticket issuance. |
+| 35 | Real Amtrak ticket issuance | Provider required | Official operator link; no issuance. |
+| 36 | Greyhound ticket issuance | Provider required | Official operator link; no issuance. |
+| 37 | FlixBus ticket issuance | Provider required | Official operator link; no issuance. |
+| 38 | Megabus / OurBus / Peter Pan / other operators | Provider required | Operator discovery/links; no issuance. |
+| 39 | Seat inventory | Provider required | No seat inventory integration. |
+| 40 | Universal payment | Provider required | No payment processing or stored payment methods. |
+| 41 | True automatic rebooking | Provider required | No automatic ticket cancellation/rebooking. |
+| 42 | National agency coverage system | Partial | Curated seed spanning 50 states and DC, not comprehensive coverage. |
+| 43 | Automatic agency discovery | Partial | Lookup from curated cities/agencies; no automated nationwide ingestion. |
+| 44 | Transport Knowledge Graph | Partial | In-memory catalogs and journey connections; no full transport graph store. |
+| 45 | Journey state engine | Local | Guarded persisted states, event history and optimistic concurrency. |
+| 46 | AI Transportation Agent | Partial | Grounded assistant, saved context and preference actions; no autonomous provider operations. |
+| 47 | Proactive AI | Partial | Server-generated journey/commute/pass reminders; no predictive service model. |
+| 48 | “Leave now” intelligence | Sample | Itinerary walk/boarding allowances; no rider-location intelligence. |
+| 49 | Destination-deadline mode | Local | Arrival-deadline filters over available sample results. |
+| 50 | Importance-aware routing | Sample | Importance affects heuristic route filtering. |
+| 51 | Risk tolerance | Sample | Risk tolerance controls heuristic acceptance. |
+| 52 | “How likely will I make it?” prediction | Sample | Logistic heuristic explicitly uncalibrated. |
+| 53 | Platform/gate prediction | Deferred | Unknown gates/platforms remain unknown. |
+| 54 | Station intelligence | Partial | Generic station guides; facilities unverified. |
+| 55 | Station indoor navigation | Deferred | No indoor mapping graph or verified paths. |
+| 56 | AR boarding guidance | Deferred | Camera checklist exists; no AR localization. |
+| 57 | Camera-assisted bus recognition | Partial | Manual signs and photo UI; OCR assets missing. |
+| 58 | Safety-aware routing | Partial | Walking/night preferences; no verified safety dataset and timezone scoring needs work. |
+| 59 | Weather-aware routing | Partial | Weather endpoint and explicit scenarios; no complete automatic journey-weather pipeline. |
+| 60 | Airport connection mode | Partial | Configurable airport arrival allowances; no live security/terminal forecasts. |
+| 61 | Flight + ground transportation integration | Provider required | No live flight data or booking integration. |
+| 62 | Ferry integration | Sample | Ferry sample corridors; no complete live ferry timetable integration. |
+| 63 | Bikeshare integration | Integration | GBFS availability adapter and sample first mile; live validation remains. |
+| 64 | Scooter integration | Integration | GBFS/sample support; no rental unlock or checkout. |
+| 65 | Rideshare fallback | Sample | Rideshare allowance; no quote or dispatch integration. |
+| 66 | Park-and-ride | Sample | Parking allowance and route variant; no live space inventory. |
+| 67 | EV-aware park-and-ride | Deferred | No charging availability or EV route planning. |
+| 68 | Group journeys | Partial | Traveler records and group pricing; no shared multi-account itinerary. |
+| 69 | Split-origin journeys | Sample | Approximate split-origin meetup calculator; no network-optimal routing. |
+| 70 | Family tracking mode | Deferred | Contact records/share links only; no live family location service. |
+| 71 | Emergency contact automation | Partial | In-app overdue/check-in prompts; no external emergency notification. |
+| 72 | Commute mode | Partial | Recurring commutes/reminders; no learned live commute recommendations. |
+| 73 | Recurring route intelligence | Partial | Timezone-aware schedules; no learned recurring delay patterns. |
+| 74 | Favorite journey shortcuts | Local | Saved favorite route shortcuts. |
+| 75 | Fare optimization | Partial | Entered-fare comparisons; no complete operator tariff engine. |
+| 76 | Fare-cap awareness | Partial | User-entered caps and eligible-period assumptions. |
+| 77 | Pass comparison | Partial | Entered single/week/month prices and savings. |
+| 78 | Student/senior/military/accessibility fares | Partial | Traveler profiles; no verified discount fare integration. |
+| 79 | Subscription management | Partial | Manual pass records and renewal reminders; no billing management. |
+| 80 | Carbon impact | Sample | Illustrative emissions factors, not audited accounting. |
+| 81 | Journey history | Local | Owned saved-journey history, retention and deletion. |
+| 82 | Personal travel analytics | Partial | Saved-trip totals; purchased spend and measured on-time rates unavailable. |
+| 83 | Operator reliability analytics | Deferred | No validated operator performance observations. |
+| 84 | Real-time system health | Partial | Adapter/circuit status; no full monitoring or alerting platform. |
+| 85 | Data freshness | Partial | Timestamp-based freshness; cached provider-label behavior needs review. |
+| 86 | Confidence everywhere | Partial | Provenance/missing-data notices; no calibrated confidence across providers. |
+| 87 | Offline journey mode | Partial | Encrypted local packs; no service worker for offline startup. |
+| 88 | Poor-connectivity mode | Partial | Request timeouts and error UI; cold-start offline/retry queue unfinished. |
+| 89 | Push notifications | Partial | Browser notifications while app is open; no remote push delivery. |
+| 90 | Smart notification prioritization | Partial | Severity, preferences, quiet hours and deduplication. |
+| 91 | Apple Watch / Wear OS | Deferred | Compact web view only; no Apple Watch or Wear OS application. |
+| 92 | Voice assistant | Partial | Browser speech input/output; browser support and vendor processing vary. |
+| 93 | Multilingual support | Partial | English UI, translated navigation and limited phrasebook; not full localization. |
+| 94 | Visitor mode | Partial | Visitor preference and phrasebook; city guidance remains limited. |
+| 95 | Account/profile | Partial | Registration/login/profile; no email verification, recovery, MFA or SSO. |
+| 96 | Secure journey state | Partial | Encrypted owner-scoped records, CSRF and version checks; no formal security certification. |
+| 97 | Privacy mode | Partial | Export/deletion, private retention and share revocation; device cache lifecycle needs more review. |
+| 98 | Operator dashboard | Partial | Role-gated minimal aggregate endpoint; trusted role provisioning and full dashboard unfinished. |
+| 99 | Data-quality feedback | Partial | Consent-based persisted reports; no moderation or agency delivery pipeline. |
+| 100 | Crowdsourced vehicle confirmation | Partial | Unverified rider reports; no authenticated vehicle confirmation network. |
+| 101 | Trip community intelligence | Partial | Station report aggregation requires five distinct users; no trust/moderation system. |
+| 102 | Predictive disruption engine | Sample | Heuristic delay scenarios; no trained or validated disruption model. |
+| 103 | Upstream vehicle tracking | Partial | Configured feed positions; no complete upstream dependency tracking. |
+| 104 | Connection graph | Local | Journey-specific transfer graph with delays and required buffers. |
+| 105 | Journey digital twin | Sample | What-if journey state/arrival/connection snapshot; no continuous calibrated digital twin. |
