@@ -239,6 +239,7 @@ export interface Agency {
   name: string;
   state: string;
   city: string;
+  modes: string[];
   staticFeed: string;
   vehiclePositions: string;
   tripUpdates: string;

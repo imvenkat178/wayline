@@ -11,3 +11,4 @@ here), as part of Phase 10's "CI and dev workflow" pass.
 4. [A keyed i18n resource catalog, deliberately partial coverage](0004-i18n-keyed-catalog.md)
 5. [Distinct-contributor aggregation thresholds for community/operator reporting](0005-aggregation-threshold-privacy.md)
 6. [ESLint scope, and pinning TypeScript to 6.x for tooling compatibility](0006-eslint-scope-and-ts7-compat.md)
+7. [A real relationship graph over catalog data, not a user-record schema split](0007-catalog-knowledge-graph.md)

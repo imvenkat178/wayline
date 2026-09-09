@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { cities, corridors, defaultPreferences } from "../catalog.mjs";
+import { cities, corridors, defaultPreferences, operatorForCorridor } from "../catalog.mjs";
 
 export class DomainError extends Error {
   constructor(message, status = 400, code = "INVALID_INPUT") {
@@ -342,13 +342,22 @@ export function sampleSearch(input) {
     const firstDuration = Math.min(25, Math.round(duration * 0.1));
     const arrive = start + duration * 60000;
     const mainMode = v.mode;
-    const mainOperator = water
-      ? "Washington State Ferries"
-      : mainMode === "train"
-        ? "Amtrak"
-        : index === 1
-          ? "Greyhound"
-          : "FlixBus";
+    // Ground the sample operator in this corridor's real agency graph (roadmap feature 44,
+    // Phase 11 -- see server/catalog.mjs's agenciesForCorridor/operatorForCorridor) when it has
+    // one for this mode; otherwise fall back to the original generic guess. The graph currently
+    // covers every water/"train"-mode variant for all six sample corridors (Amtrak for the
+    // three long-distance ones, BART/LA Metro/Washington State Ferries for the three short/
+    // local ones) but not the short local corridors' "bus"-mode variants, which keep the
+    // original fallback since no real regional coach operator is seeded for them.
+    const mainOperator =
+      operatorForCorridor(corridor, mainMode)?.name ??
+      (water
+        ? "Washington State Ferries"
+        : mainMode === "train"
+          ? "Amtrak"
+          : index === 1
+            ? "Greyhound"
+            : "FlixBus");
     const feederMode =
       index === 3
         ? water

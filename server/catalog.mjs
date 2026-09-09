@@ -106,6 +106,7 @@ const seed = [
   ["VA", "Richmond", "GRTC"],
   ["WA", "Seattle", "King County Metro"],
   ["WA", "Seattle", "Sound Transit"],
+  ["WA", "Bainbridge Island", "Washington State Ferries"],
   ["WV", "Charleston", "Kanawha Valley Regional Transportation Authority"],
   ["WI", "Milwaukee", "MCTS"],
   ["WY", "Cheyenne", "Cheyenne Transit Program"],
@@ -116,11 +117,29 @@ const seed = [
   ["US", "National", "Megabus"],
   ["US", "Northeast", "Peter Pan"],
 ];
+// Known, real transport modes for the specific agencies this catalog's sample corridors and
+// station guide can actually name with confidence -- see agenciesForCorridor()/
+// operatorForCorridor() below. Not populated for the rest of the 50-state seed; see the comment
+// on `agencies` for why.
+const modesByAgencyName = {
+  Amtrak: ["train"],
+  Greyhound: ["bus"],
+  FlixBus: ["bus"],
+  OurBus: ["bus"],
+  Megabus: ["bus"],
+  "Peter Pan": ["bus"],
+  "LA Metro": ["train", "bus"],
+  VTA: ["train", "bus"],
+  BART: ["train"],
+  MBTA: ["train", "bus"],
+  "Washington State Ferries": ["ferry"],
+};
 export const agencies = seed.map(([state, city, name], i) => ({
   id: `agency-${i + 1}`,
   name,
   state,
   city,
+  modes: modesByAgencyName[name] ?? [],
   coverage: "discovery-seed",
   staticFeed: "unverified",
   vehiclePositions: name === "MBTA" ? "adapter available" : "not configured",
@@ -195,6 +214,23 @@ export const cities = [
   timezone,
   station,
 }));
+// Real agencies plausibly serving each sample corridor, by name -- resolved to ids just below
+// once `agencies` exists, rather than hardcoded ids (which would silently drift if the seed
+// list above is ever reordered). This is the actual "relationships let Wayline reason across
+// operators" piece of roadmap feature 44 (Transport Knowledge Graph): previously nothing in
+// this catalog linked a corridor to who might run it at all, and journeys.mjs's sample search
+// picked an operator name from a hardcoded mode/index guess with no connection to this data.
+// Still illustrative/unverified like every other sample in this file (see dataMode:
+// "illustrative" on sampleSearch's output) -- this only grounds the *choice* of plausible
+// operator in a real relationship, not a claim that these are the only or definitive carriers.
+const corridorAgencyNames = {
+  "la-sj": ["Amtrak", "Greyhound", "FlixBus"],
+  "bos-nyc": ["Amtrak", "Greyhound", "FlixBus"],
+  "ind-chi": ["Amtrak", "Megabus", "Greyhound"],
+  "sf-oak": ["BART"],
+  "sea-bai": ["Washington State Ferries"],
+  "la-lax": ["LA Metro"],
+};
 export const corridors = [
   { from: "la", to: "sj", minutes: 470, km: 550 },
   { from: "bos", to: "nyc", minutes: 260, km: 345 },
@@ -202,7 +238,7 @@ export const corridors = [
   { from: "sf", to: "oak", minutes: 37, km: 17 },
   { from: "sea", to: "bai", minutes: 48, km: 14 },
   { from: "la", to: "lax", minutes: 85, km: 29 },
-];
+].map((corridor) => ({ ...corridor, id: `${corridor.from}-${corridor.to}` }));
 export const operatorLinks = {
   Amtrak: "https://www.amtrak.com/",
   Greyhound: "https://www.greyhound.com/",
@@ -256,21 +292,89 @@ export const defaultPreferences = {
   recoveryLimitCents: 1000,
   emergencyMinutes: 45,
 };
-export function discoverAgencies(from, to) {
-  const names = new Set(
-    [from, to].filter(Boolean).map((id) => cities.find((c) => c.id === id)?.name),
-  );
-  return agencies.filter((a) => names.has(a.city) || a.state === "US");
+// Real ID-based graph edges (Phase 11, roadmap feature 44): a corridor's `agencyIds` names
+// exactly which seeded agencies plausibly serve it, resolved once here rather than re-scanning
+// `agencies` by name on every call.
+const corridorAgencyIds = Object.fromEntries(
+  Object.entries(corridorAgencyNames).map(([corridorId, names]) => [
+    corridorId,
+    names.map((name) => agencies.find((a) => a.name === name)?.id).filter(Boolean),
+  ]),
+);
+for (const corridor of corridors) corridor.agencyIds = corridorAgencyIds[corridor.id] ?? [];
+
+/** Real agencies linked to a corridor by id, not by matching strings. */
+export function agenciesForCorridor(corridor) {
+  const ids = new Set(corridor?.agencyIds ?? []);
+  return agencies.filter((a) => ids.has(a.id));
 }
+
+/**
+ * The most plausible real operator for a corridor + mode, using the corridor's own agency
+ * graph edges. Returns null (never a guess) when the graph has no agency for that corridor/mode
+ * combination -- callers decide their own fallback, same as they did before this function
+ * existed.
+ */
+export function operatorForCorridor(corridor, mode) {
+  return agenciesForCorridor(corridor).find((a) => (a.modes ?? []).includes(mode)) ?? null;
+}
+
+/** Cities directly connected to `cityId` by a known sample corridor. */
+export function connectedCities(cityId) {
+  return corridors
+    .filter((c) => c.from === cityId || c.to === cityId)
+    .map((c) => cities.find((city) => city.id === (c.from === cityId ? c.to : c.from)))
+    .filter(Boolean);
+}
+
+export function discoverAgencies(from, to) {
+  const endpoints = [from, to].filter(Boolean).map((id) => cities.find((c) => c.id === id));
+  // Where a real sample corridor connects these two cities, prefer its actual graph edges (a
+  // real relationship) over guessing from city-name substrings.
+  const corridor =
+    endpoints.length === 2 &&
+    corridors.find(
+      (c) =>
+        (c.from === endpoints[0]?.id && c.to === endpoints[1]?.id) ||
+        (c.to === endpoints[0]?.id && c.from === endpoints[1]?.id),
+    );
+  const graphAgencies = corridor ? agenciesForCorridor(corridor) : [];
+  // Fall back to the original name-substring match for the other ~44 states that have no
+  // sample corridor at all -- the broad 50-state discovery seed was never meant to have a real
+  // corridor edge for every city, so this fallback stays the only way to surface anything for
+  // most of it.
+  const names = new Set(endpoints.map((c) => c?.name));
+  const fallbackAgencies = agencies.filter((a) => names.has(a.city));
+  const national = agencies.filter((a) => a.state === "US");
+  const byId = new Map();
+  for (const a of [...graphAgencies, ...fallbackAgencies, ...national]) byId.set(a.id, a);
+  return [...byId.values()];
+}
+// A Station as its own entity (Phase 11, roadmap feature 44), not just an inline field on City.
+// Each sample city models exactly one station today (matching this project's actual sample
+// data -- a real city can have several, but this catalog has no verified data for that, so it
+// isn't invented here), linked to the agencies known to serve that city by the same
+// name-matching `discoverAgencies` already used for the broader 50-state seed.
+export const stations = cities.map((city) => ({
+  id: city.id,
+  cityId: city.id,
+  name: city.station,
+  lat: city.lat,
+  lon: city.lon,
+  agencyIds: agencies.filter((a) => a.city === city.name).map((a) => a.id),
+}));
+
 export function stationGuide(cityId) {
   const city = cities.find((c) => c.id === cityId);
-  if (!city) return null;
+  const station = stations.find((s) => s.id === cityId);
+  if (!city || !station) return null;
   return {
     id: city.id,
     name: city.station,
     city: city.name,
     lat: city.lat,
     lon: city.lon,
+    agencyIds: station.agencyIds,
     source: "sample guide — verify signs with station staff",
     official: false,
     facilities: [
