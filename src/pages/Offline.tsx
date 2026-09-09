@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { listOffline, unlockOffline, deleteOffline, type OfflinePack } from "../offline";
 import { Button, Field, Notice, Empty, Section, useAsync } from "../components/ui";
-import { time, dateLabel, download } from "../api";
+import { time, dateLabel } from "../api";
 import { JourneyMap } from "../components/JourneyMap";
 export default function Offline() {
   const [packs, setPacks] = useState<Awaited<ReturnType<typeof listOffline>>>([]),

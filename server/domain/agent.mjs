@@ -1,5 +1,5 @@
 import { cities } from "../catalog.mjs";
-import { digitalTwin, text, integer } from "./journeys.mjs";
+import { digitalTwin, text } from "./journeys.mjs";
 import { fetchBounded } from "../adapters/providers.mjs";
 const intents = [
   "plan",

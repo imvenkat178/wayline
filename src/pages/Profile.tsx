@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../context";
-import { api, download, readable, dateLabel } from "../api";
+import { api, readable, download } from "../api";
 import type { SavedItem, User, Session } from "../types";
 import { clearOffline } from "../offline";
 import { resetPasswordToken } from "../routes";

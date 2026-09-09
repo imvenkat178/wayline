@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../context";
-import { api, readable, copyText } from "../api";
+import { api } from "../api";
 import type { AgentResult } from "../types";
 import { Modal, Icon, Button, Badge, Notice, useAsync } from "./ui";
 export function Agent({ initialPrompt, close }: { initialPrompt: string; close: () => void }) {

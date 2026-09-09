@@ -1,0 +1,46 @@
+name: CI
+
+# Phase 10 ("CI and dev workflow", roadmap Maintainability section). Runs the same checks this
+# project's own checkpoint discipline already required by hand before every commit: install from
+# the lockfile (not a fresh resolve), typecheck, test, lint, and build. This does not run any
+# browser-interaction, integration, or live-provider tests -- see README.md's "Known gaps" for
+# what those would need.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      # npm ci installs exactly what package-lock.json records -- the same reproducibility
+      # requirement this project's own checkpoint workflow already followed by hand.
+      - run: npm ci
+
+      # tsc -b (both the app and node tsconfig projects) with no test/build side effects yet, so
+      # a type error fails fast before spending time on the rest of the pipeline.
+      - run: npx tsc -b
+
+      - run: npm run lint
+
+      - run: npm test
+
+      - run: npm run build
+
+      # The repository ships a pre-built `standalone/` bundle checked into git (documented in
+      # README.md as "a compiled checkpoint; rebuild after frontend changes"). CI rebuilds it
+      # above as part of `npm run build`, but doesn't commit the result back -- verifying it
+      # builds cleanly is the point here, not keeping the committed copy perpetually in sync;
+      # that remains a manual step when frontend changes ship, same as it is today.

@@ -11,7 +11,6 @@ import {
 import {
   DomainError,
   text,
-  integer,
   preferences,
   sampleSearch,
   fareCompare,

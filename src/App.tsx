@@ -10,7 +10,7 @@ import type {
 } from "./types";
 import { AppContext, defaultPreferences } from "./context";
 import { nav, resolveHash } from "./routes";
-import { api, setCsrf, time, dateLabel, readable } from "./api";
+import { api, setCsrf, time, readable } from "./api";
 import { Icon, Button, Badge, Notice, Empty, Section } from "./components/ui";
 import { useT } from "./useT";
 import { t as translate, type Locale } from "./i18n";

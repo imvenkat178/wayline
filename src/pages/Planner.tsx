@@ -30,7 +30,7 @@ export default function Planner() {
     notify,
     openAgent,
   } = useApp();
-  const { t, locale, localeTag } = useT();
+  const { t, localeTag } = useT();
   const { busy, error, run } = useAsync();
   const [filters, setFilters] = useState(false),
     [special, setSpecial] = useState<"airport" | "group" | null>(null);
