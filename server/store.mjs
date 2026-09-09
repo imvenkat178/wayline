@@ -13,6 +13,13 @@ import { promisify } from "node:util";
 import { mkdirSync, readFileSync, writeFileSync, chmodSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { DomainError } from "./domain/journeys.mjs";
+import {
+  generateSecret,
+  verifyTotp,
+  otpauthUrl,
+  generateRecoveryCodes,
+  normalizeRecoveryCode,
+} from "./totp.mjs";
 const derive = promisify(scrypt);
 export const hashToken = (v) => createHash("sha256").update(v).digest("hex");
 export class Store {
@@ -38,9 +45,14 @@ export class Store {
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;
    CREATE TABLE IF NOT EXISTS schema_version(version INTEGER PRIMARY KEY,applied_at TEXT NOT NULL) STRICT;
    CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,email_hash TEXT UNIQUE,password_hash TEXT,profile TEXT NOT NULL,created_at INTEGER NOT NULL) STRICT;
-   CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,csrf TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT;
+   CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,csrf TEXT NOT NULL,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL DEFAULT 0,user_agent TEXT,last_seen_at INTEGER NOT NULL DEFAULT 0) STRICT;
    CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
    CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
+   CREATE TABLE IF NOT EXISTS mfa(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,secret TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 0,recovery_codes TEXT,created_at INTEGER NOT NULL,confirmed_at INTEGER) STRICT;
+   CREATE TABLE IF NOT EXISTS pending_logins(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,expires_at INTEGER NOT NULL) STRICT;
+   CREATE INDEX IF NOT EXISTS idx_pending_logins_user ON pending_logins(user_id);
+   CREATE TABLE IF NOT EXISTS recovery_tokens(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,expires_at INTEGER NOT NULL,used_at INTEGER) STRICT;
+   CREATE INDEX IF NOT EXISTS idx_recovery_tokens_user ON recovery_tokens(user_id);
    CREATE TABLE IF NOT EXISTS records(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,kind TEXT NOT NULL,payload TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,expires_at INTEGER) STRICT;
    CREATE INDEX IF NOT EXISTS idx_records_user_kind_time ON records(user_id,kind,updated_at DESC);
    CREATE INDEX IF NOT EXISTS idx_records_expiry ON records(expires_at) WHERE expires_at IS NOT NULL;
@@ -52,6 +64,23 @@ export class Store {
    CREATE INDEX IF NOT EXISTS idx_jobs_status_run ON jobs(status,run_at);
    CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_recurring_kind ON jobs(kind) WHERE interval_ms IS NOT NULL;
    INSERT OR IGNORE INTO schema_version VALUES(1,datetime('now')); PRAGMA optimize;`);
+    this.migrateSessionColumns();
+  }
+  // A database created before session device-management existed (feature 95/96, Phase 3) has a
+  // 4-column sessions table; a fresh one already has the 7-column version from the CREATE TABLE
+  // above, making this a no-op there. ALTER TABLE ADD COLUMN is safe to run against a live,
+  // already-populated table -- SQLite backfills the DEFAULT for every existing row.
+  migrateSessionColumns() {
+    const columns = this.db
+      .prepare("PRAGMA table_info(sessions)")
+      .all()
+      .map((c) => c.name);
+    if (!columns.includes("created_at"))
+      this.db.exec("ALTER TABLE sessions ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0");
+    if (!columns.includes("user_agent"))
+      this.db.exec("ALTER TABLE sessions ADD COLUMN user_agent TEXT");
+    if (!columns.includes("last_seen_at"))
+      this.db.exec("ALTER TABLE sessions ADD COLUMN last_seen_at INTEGER NOT NULL DEFAULT 0");
   }
   encrypt(value) {
     const iv = randomBytes(12);
@@ -147,27 +176,214 @@ export class Store {
     this.audit(row.id, "SIGNED_IN", row.id);
     return this.user(row.id);
   }
-  session(userId) {
+  session(userId, { userAgent } = {}) {
     const token = randomBytes(32).toString("base64url"),
       csrf = randomBytes(24).toString("base64url");
     const days = Math.max(1, Math.min(30, Number(process.env.SESSION_DAYS) || 14));
+    const now = Date.now();
     this.db
-      .prepare("INSERT INTO sessions VALUES(?,?,?,?)")
-      .run(hashToken(token), userId, csrf, Date.now() + days * 86400000);
+      .prepare(
+        "INSERT INTO sessions(token_hash,user_id,csrf,expires_at,created_at,user_agent,last_seen_at) VALUES(?,?,?,?,?,?,?)",
+      )
+      .run(
+        hashToken(token),
+        userId,
+        csrf,
+        now + days * 86400000,
+        now,
+        String(userAgent ?? "").slice(0, 200),
+        now,
+      );
     return { token, csrf, userId };
   }
   findSession(token) {
     if (!token) return null;
-    return (
+    const hash = hashToken(token);
+    const row =
       this.db
         .prepare(
           "SELECT user_id AS userId,csrf,expires_at FROM sessions WHERE token_hash=? AND expires_at>?",
         )
-        .get(hashToken(token), Date.now()) ?? null
-    );
+        .get(hash, Date.now()) ?? null;
+    if (row)
+      this.db
+        .prepare("UPDATE sessions SET last_seen_at=? WHERE token_hash=?")
+        .run(Date.now(), hash);
+    return row;
   }
   logout(token) {
     this.db.prepare("DELETE FROM sessions WHERE token_hash=?").run(hashToken(token));
+  }
+  // Lists a user's active sessions (newest-active-first) for a "where you're signed in" screen,
+  // marking which one is the caller's own current session so the UI can label/protect it.
+  sessions(userId, currentToken) {
+    const currentHash = currentToken ? hashToken(currentToken) : null;
+    return this.db
+      .prepare(
+        "SELECT token_hash AS id,created_at AS createdAt,user_agent AS userAgent,last_seen_at AS lastSeenAt,expires_at AS expiresAt FROM sessions WHERE user_id=? AND expires_at>? ORDER BY last_seen_at DESC",
+      )
+      .all(userId, Date.now())
+      .map((row) => ({ ...row, current: row.id === currentHash }));
+  }
+  // Revokes one specific session by id (its token hash) -- e.g. "sign out that device." Scoped to
+  // userId so one account can never revoke another account's session by guessing an id.
+  revokeSession(userId, id) {
+    const row = this.db
+      .prepare("SELECT token_hash FROM sessions WHERE token_hash=? AND user_id=?")
+      .get(id, userId);
+    if (!row) throw new DomainError("Session not found.", 404);
+    this.db.prepare("DELETE FROM sessions WHERE token_hash=?").run(id);
+    this.audit(userId, "SESSION_REVOKED", id);
+  }
+  // "Sign out everywhere else" -- keeps the caller's own current session, drops every other one.
+  revokeOtherSessions(userId, currentToken) {
+    const currentHash = currentToken ? hashToken(currentToken) : "";
+    this.db
+      .prepare("DELETE FROM sessions WHERE user_id=? AND token_hash<>?")
+      .run(userId, currentHash);
+    this.audit(userId, "OTHER_SESSIONS_REVOKED", userId);
+  }
+  // -- TOTP-based multi-factor authentication (roadmap feature 95) --
+  mfaStatus(userId) {
+    const row = this.db.prepare("SELECT enabled FROM mfa WHERE user_id=?").get(userId);
+    return { enabled: Boolean(row?.enabled) };
+  }
+  // Starts (or restarts) MFA enrollment: generates a fresh TOTP secret and returns it plus a
+  // scannable otpauth:// URL. Not enabled yet -- enabled flips to true only once mfaConfirm()
+  // proves the user actually has the secret loaded in an authenticator app.
+  mfaSetup(userId) {
+    const user = this.user(userId);
+    if (!user) throw new DomainError("Account not found.", 404);
+    const secret = generateSecret();
+    const now = Date.now();
+    this.db
+      .prepare(
+        `INSERT INTO mfa(user_id,secret,enabled,recovery_codes,created_at,confirmed_at) VALUES(?,?,0,NULL,?,NULL)
+         ON CONFLICT(user_id) DO UPDATE SET secret=excluded.secret,enabled=0,recovery_codes=NULL,created_at=excluded.created_at,confirmed_at=NULL`,
+      )
+      .run(userId, this.encrypt(secret), now);
+    return { secret, otpauthUrl: otpauthUrl(secret, { accountName: user.email ?? user.id }) };
+  }
+  // Confirms enrollment with a real code from the app, flips MFA on, and mints one-time recovery
+  // codes (shown to the user exactly once here -- only their hashes are ever persisted).
+  mfaConfirm(userId, code) {
+    const row = this.db.prepare("SELECT secret FROM mfa WHERE user_id=?").get(userId);
+    if (!row) throw new DomainError("Start MFA setup first.", 409);
+    if (!verifyTotp(this.decrypt(row.secret), code)) throw new DomainError("Incorrect code.", 401);
+    const codes = generateRecoveryCodes();
+    const hashed = codes.map((c) => hashToken(normalizeRecoveryCode(c)));
+    this.db
+      .prepare("UPDATE mfa SET enabled=1,confirmed_at=?,recovery_codes=? WHERE user_id=?")
+      .run(Date.now(), this.encrypt(hashed), userId);
+    this.audit(userId, "MFA_ENABLED", userId);
+    return codes;
+  }
+  // Verifies either a live TOTP code or an unused recovery code (consuming it on success -- each
+  // recovery code works exactly once). Used both by the login MFA challenge and by mfaDisable().
+  mfaVerifyCode(userId, code) {
+    const row = this.db
+      .prepare("SELECT secret,recovery_codes FROM mfa WHERE user_id=? AND enabled=1")
+      .get(userId);
+    if (!row) throw new DomainError("MFA is not enabled on this account.", 409);
+    if (
+      typeof code === "string" &&
+      /^\d{6}$/.test(code) &&
+      verifyTotp(this.decrypt(row.secret), code)
+    )
+      return true;
+    const normalized = normalizeRecoveryCode(code);
+    if (!normalized) throw new DomainError("Incorrect code.", 401);
+    const hash = hashToken(normalized);
+    const codes = row.recovery_codes ? this.decrypt(row.recovery_codes) : [];
+    const index = codes.indexOf(hash);
+    if (index === -1) throw new DomainError("Incorrect code.", 401);
+    codes.splice(index, 1);
+    this.db
+      .prepare("UPDATE mfa SET recovery_codes=? WHERE user_id=?")
+      .run(this.encrypt(codes), userId);
+    this.audit(userId, "MFA_RECOVERY_CODE_USED", userId);
+    return true;
+  }
+  // Turns MFA off -- requires proving possession of a valid code or recovery code first, so a
+  // stolen session cookie alone can't downgrade account security.
+  mfaDisable(userId, code) {
+    this.mfaVerifyCode(userId, code);
+    this.db.prepare("DELETE FROM mfa WHERE user_id=?").run(userId);
+    this.audit(userId, "MFA_DISABLED", userId);
+  }
+  // -- MFA login challenge (a short-lived, single-use, non-session token) --
+  // Issued after password verification succeeds but before a valid second factor is supplied.
+  // Deliberately not a session: it grants no access beyond attempting the second factor, and
+  // expires in 5 minutes.
+  pendingLogin(userId) {
+    const token = randomBytes(32).toString("base64url");
+    this.db
+      .prepare("INSERT INTO pending_logins VALUES(?,?,?)")
+      .run(hashToken(token), userId, Date.now() + 5 * 60000);
+    return token;
+  }
+  // Looks up (without consuming) the account a login challenge belongs to, so a wrong code can
+  // be retried within the same 5-minute window instead of burning the challenge on one typo.
+  peekPendingLogin(token) {
+    const row = this.db
+      .prepare("SELECT user_id AS userId FROM pending_logins WHERE token_hash=? AND expires_at>?")
+      .get(hashToken(token), Date.now());
+    if (!row) throw new DomainError("This sign-in attempt has expired. Start again.", 401);
+    return row.userId;
+  }
+  // Consumes (deletes) a login challenge -- call only once the second factor has actually been
+  // verified, so a failed attempt never spends the user's one shot at this token.
+  consumePendingLogin(token) {
+    const userId = this.peekPendingLogin(token);
+    this.db.prepare("DELETE FROM pending_logins WHERE token_hash=?").run(hashToken(token));
+    return userId;
+  }
+  // -- Password recovery (roadmap feature 95's other half) --
+  // Returns null (silently) when no account matches the email -- the caller must respond
+  // identically either way so an attacker can't use this to enumerate registered emails. Actual
+  // delivery of the reset link is the router's job, via a pluggable EmailProvider (server/email.mjs).
+  createRecoveryToken(email) {
+    if (typeof email !== "string" || !email.trim()) return null;
+    const row = this.db
+      .prepare("SELECT id FROM users WHERE email_hash=?")
+      .get(this.emailHash(email));
+    if (!row) return null;
+    const token = randomBytes(32).toString("base64url");
+    this.db
+      .prepare(
+        "INSERT INTO recovery_tokens(token_hash,user_id,expires_at,used_at) VALUES(?,?,?,NULL)",
+      )
+      .run(hashToken(token), row.id, Date.now() + 3600000);
+    this.audit(row.id, "PASSWORD_RESET_REQUESTED", row.id);
+    return token;
+  }
+  // Consumes a single-use reset token, sets a new password, and -- as a security practice, in
+  // case the reset was itself triggered by an attacker who already had transient access -- signs
+  // the account out everywhere.
+  async resetPassword(rawToken, newPassword) {
+    if (typeof rawToken !== "string" || !rawToken)
+      throw new DomainError("Invalid or expired reset link.", 401);
+    const hash = hashToken(rawToken);
+    const row = this.db
+      .prepare(
+        "SELECT user_id AS userId FROM recovery_tokens WHERE token_hash=? AND used_at IS NULL AND expires_at>?",
+      )
+      .get(hash, Date.now());
+    if (!row) throw new DomainError("Invalid or expired reset link.", 401);
+    if (typeof newPassword !== "string" || newPassword.length < 12 || newPassword.length > 128)
+      throw new DomainError("Password must be 12-128 characters.");
+    const salt = randomBytes(16).toString("hex");
+    const result = await derive(newPassword, salt, 64, { N: 16384, r: 8, p: 1 });
+    this.transaction(() => {
+      this.db
+        .prepare("UPDATE users SET password_hash=? WHERE id=?")
+        .run(`${salt}:${result.toString("hex")}`, row.userId);
+      this.db
+        .prepare("UPDATE recovery_tokens SET used_at=? WHERE token_hash=?")
+        .run(Date.now(), hash);
+      this.db.prepare("DELETE FROM sessions WHERE user_id=?").run(row.userId);
+      this.audit(row.userId, "PASSWORD_RESET", row.userId);
+    });
   }
   list(userId, kind) {
     return this.db
@@ -354,6 +570,15 @@ export class Store {
     this.db
       .prepare("DELETE FROM jobs WHERE status IN ('done','dead') AND updated_at<?")
       .run(now - 14 * 86400000);
+    this.db.prepare("DELETE FROM pending_logins WHERE expires_at<=?").run(now);
+    // Used or expired recovery tokens are kept briefly (not deleted the instant they're consumed)
+    // so a support investigation into a disputed reset has something to look at; unused ones
+    // still expire on schedule via the second clause.
+    this.db
+      .prepare(
+        "DELETE FROM recovery_tokens WHERE (used_at IS NOT NULL AND used_at<?) OR expires_at<=?",
+      )
+      .run(now - 7 * 86400000, now);
   }
   close() {
     this.db.close();

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../context";
 import { api, download, readable, dateLabel } from "../api";
-import type { SavedItem, User } from "../types";
+import type { SavedItem, User, Session } from "../types";
 import { clearOffline } from "../offline";
+import { resetPasswordToken } from "../routes";
 import {
   Button,
   Icon,
@@ -34,9 +35,31 @@ export default function Profile() {
     [audit, setAudit] = useState<{ action: string; at: number }[]>([]),
     // null while the initial check (does this browser already have a live subscription?) is
     // still in flight, so the toggle doesn't briefly flash "off" before settling.
-    [pushSubscribed, setPushSubscribed] = useState<boolean | null>(null);
+    [pushSubscribed, setPushSubscribed] = useState<boolean | null>(null),
+    [sessions, setSessions] = useState<Session[]>([]),
+    // Set once the login form gets back { mfaRequired: true, pendingToken } instead of a
+    // completed session -- switches the same "login" modal to a second, code-entry step
+    // without ever handing out a real session until that code verifies (server/router.mjs's
+    // /api/auth/mfa-verify). Cleared on modal close so a cancelled attempt doesn't linger.
+    [loginMfa, setLoginMfa] = useState<{ pendingToken: string } | null>(null),
+    // Freshly issued TOTP secret + QR code from POST /mfa/setup, shown once while the user scans
+    // it and enters a confirming code. Never persisted beyond this component's state.
+    [mfaSetup, setMfaSetup] = useState<{ secret: string; qrCode: string } | null>(null),
+    // The one-time recovery codes returned by a successful /mfa/confirm -- shown exactly once,
+    // matching how the server only ever returns them at that moment (only their hashes are kept).
+    [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null),
+    // Pre-fills the reset-password form when the user arrived via a real reset link
+    // (#reset-password?token=...); empty when they pasted a token in manually instead.
+    [resetToken, setResetToken] = useState("");
   const { busy, error, run } = useAsync();
   const update = (key: string, value: unknown) => setP((s) => ({ ...s, [key]: value }));
+  useEffect(() => {
+    const token = resetPasswordToken(location.hash.slice(1));
+    if (token) {
+      setResetToken(token);
+      setModal("reset-password");
+    }
+  }, []);
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       setPushSubscribed(false);
@@ -103,6 +126,7 @@ export default function Profile() {
       setShares(await api("/shares"));
       setAudit(await api("/audit"));
     }
+    if (tab === "security") setSessions(await api("/sessions"));
   };
   useEffect(() => {
     void run(load);
@@ -167,6 +191,7 @@ export default function Profile() {
           ["contact", "Contacts"],
           ["favorite", "Shortcuts"],
           ["notifications", "Notifications"],
+          ["security", "Security"],
           ["privacy", "Privacy"],
           ["payments", "Payments"],
         ].map(([k, v]) => (
@@ -466,6 +491,91 @@ export default function Profile() {
           </div>
         </Section>
       )}
+      {tab === "security" && (
+        <div className="stack">
+          <Section title="Two-factor authentication">
+            {boot.mfaEnabled ? (
+              <>
+                <Notice tone="mint">
+                  Two-factor authentication is on. Signing in also requires a code from your
+                  authenticator app (or a recovery code).
+                </Notice>
+                <div className="button-row">
+                  <Button kind="danger" onClick={() => setModal("mfa-disable")}>
+                    Turn off two-factor authentication
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p>
+                  Add a second step to sign-in using any TOTP authenticator app (Google
+                  Authenticator, Authy, 1Password, Apple's built-in one, and similar).
+                </p>
+                <div className="button-row">
+                  <Button
+                    kind="primary"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        const setup = await api<{ secret: string; qrCode: string }>(
+                          "/mfa/setup",
+                          "POST",
+                        );
+                        setMfaSetup(setup);
+                        setModal("mfa-setup");
+                      })
+                    }
+                  >
+                    Set up two-factor authentication
+                  </Button>
+                </div>
+              </>
+            )}
+          </Section>
+          <Section title="Where you're signed in">
+            <div className="button-row">
+              <Button
+                disabled={busy || sessions.length < 2}
+                onClick={() =>
+                  void run(async () => {
+                    await api("/sessions/revoke-others", "POST");
+                    await load();
+                    notify("Signed out everywhere else.");
+                  })
+                }
+              >
+                Sign out other devices
+              </Button>
+            </div>
+            {sessions.map((s) => (
+              <div className="saved-item" key={s.id}>
+                <div>
+                  <b>{s.userAgent || "Unknown device"}</b>
+                  <p>Last active {new Date(s.lastSeenAt).toLocaleString()}</p>
+                </div>
+                {s.current ? (
+                  <Badge tone="mint">This device</Badge>
+                ) : (
+                  <Button
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        await api(`/sessions/${encodeURIComponent(s.id)}`, "DELETE");
+                        await load();
+                        notify("Signed out that device.");
+                      })
+                    }
+                  >
+                    Sign out
+                  </Button>
+                )}
+              </div>
+            ))}
+            {!sessions.length && <Empty icon="lock" title="Loading your sessions..." />}
+          </Section>
+        </div>
+      )}
       {tab === "privacy" && (
         <div className="stack">
           <Section title="You control your travel history">
@@ -584,59 +694,283 @@ export default function Profile() {
       )}
       {["register", "login"].includes(modal ?? "") && (
         <Modal
-          title={modal === "register" ? "Create your Wayline account" : "Welcome back"}
-          onClose={() => setModal(null)}
+          title={
+            loginMfa
+              ? "Enter your two-factor code"
+              : modal === "register"
+                ? "Create your Wayline account"
+                : "Welcome back"
+          }
+          onClose={() => {
+            setModal(null);
+            setLoginMfa(null);
+          }}
         >
+          {loginMfa ? (
+            <form
+              className="stack"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const code = String(new FormData(e.currentTarget).get("code") ?? "");
+                void run(async () => {
+                  const out = await api<{ user: User; csrf: string }>("/auth/mfa-verify", "POST", {
+                    pendingToken: loginMfa.pendingToken,
+                    code,
+                  });
+                  await clearOffline();
+                  switchIdentity(out);
+                  setP(out.user.preferences);
+                  setName(out.user.name);
+                  await refresh();
+                  setModal(null);
+                  setLoginMfa(null);
+                  notify("Signed in.");
+                });
+              }}
+            >
+              <Field
+                label="Authenticator code or recovery code"
+                hint="From your authenticator app, or one of the recovery codes you saved when you turned this on."
+              >
+                <input name="code" required autoComplete="one-time-code" autoFocus />
+              </Field>
+              {error && <Notice tone="error">{error}</Notice>}
+              <Button type="submit" kind="primary" disabled={busy}>
+                Verify and sign in
+              </Button>
+            </form>
+          ) : (
+            <form
+              className="stack"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const d = Object.fromEntries(new FormData(e.currentTarget));
+                void run(async () => {
+                  const out = await api<
+                    { user: User; csrf: string } | { mfaRequired: true; pendingToken: string }
+                  >(`/auth/${modal}`, "POST", d);
+                  if ("mfaRequired" in out) {
+                    setLoginMfa({ pendingToken: out.pendingToken });
+                    return;
+                  }
+                  // Clear any offline packs saved under the previous identity (guest or another
+                  // account) before applying the new one -- they must not be reachable or mixed
+                  // in once a different account is signed in on this device.
+                  await clearOffline();
+                  switchIdentity(out);
+                  setP(out.user.preferences);
+                  setName(out.user.name);
+                  await refresh();
+                  setModal(null);
+                  notify("Signed in.");
+                });
+              }}
+            >
+              {modal === "register" && (
+                <Field label="Your name">
+                  <input
+                    required
+                    name="name"
+                    maxLength={100}
+                    autoComplete="name"
+                    defaultValue={boot.user.name === "Traveler" ? "" : boot.user.name}
+                  />
+                </Field>
+              )}
+              <Field label="Email">
+                <input name="email" required type="email" maxLength={254} autoComplete="email" />
+              </Field>
+              <Field
+                label="Password"
+                hint={modal === "register" ? "At least 12 characters." : undefined}
+              >
+                <input
+                  name="password"
+                  type="password"
+                  required
+                  minLength={modal === "register" ? 12 : 1}
+                  maxLength={128}
+                  autoComplete={modal === "register" ? "new-password" : "current-password"}
+                />
+              </Field>
+              {error && <Notice tone="error">{error}</Notice>}
+              <Button type="submit" kind="primary" disabled={busy}>
+                {modal === "register" ? "Create account" : "Sign in"}
+              </Button>
+              {modal === "login" && (
+                <button
+                  type="button"
+                  className="text-link"
+                  onClick={() => setModal("forgot-password")}
+                >
+                  Forgot your password?
+                </button>
+              )}
+            </form>
+          )}
+        </Modal>
+      )}
+      {modal === "forgot-password" && (
+        <Modal title="Reset your password" onClose={() => setModal(null)}>
+          <form
+            className="stack"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const email = String(new FormData(e.currentTarget).get("email") ?? "");
+              void run(async () => {
+                await api("/auth/recovery/request", "POST", { email });
+                setModal(null);
+                notify("If that email has an account, a reset link has been sent to it.");
+              });
+            }}
+          >
+            <Field label="Email">
+              <input name="email" required type="email" maxLength={254} autoComplete="email" />
+            </Field>
+            {error && <Notice tone="error">{error}</Notice>}
+            <Button type="submit" kind="primary" disabled={busy}>
+              Send reset link
+            </Button>
+            <button
+              type="button"
+              className="text-link"
+              onClick={() => {
+                setResetToken("");
+                setModal("reset-password");
+              }}
+            >
+              Already have a reset code?
+            </button>
+          </form>
+        </Modal>
+      )}
+      {modal === "reset-password" && (
+        <Modal title="Choose a new password" onClose={() => setModal(null)}>
           <form
             className="stack"
             onSubmit={(e) => {
               e.preventDefault();
               const d = Object.fromEntries(new FormData(e.currentTarget));
               void run(async () => {
-                const out = await api<{ user: User; csrf: string }>(`/auth/${modal}`, "POST", d);
-                // Clear any offline packs saved under the previous identity (guest or another
-                // account) before applying the new one -- they must not be reachable or mixed
-                // in once a different account is signed in on this device.
-                await clearOffline();
-                switchIdentity(out);
-                setP(out.user.preferences);
-                setName(out.user.name);
-                await refresh();
+                await api("/auth/recovery/reset", "POST", d);
                 setModal(null);
-                notify("Signed in.");
+                notify("Password changed. Sign in with your new password.");
               });
             }}
           >
-            {modal === "register" && (
-              <Field label="Your name">
-                <input
-                  required
-                  name="name"
-                  maxLength={100}
-                  autoComplete="name"
-                  defaultValue={boot.user.name === "Traveler" ? "" : boot.user.name}
-                />
-              </Field>
-            )}
-            <Field label="Email">
-              <input name="email" required type="email" maxLength={254} autoComplete="email" />
+            <Field label="Reset code" hint="From the link or message you were sent.">
+              <input
+                name="token"
+                required
+                value={resetToken}
+                onChange={(e) => setResetToken(e.target.value)}
+                autoComplete="off"
+              />
             </Field>
-            <Field
-              label="Password"
-              hint={modal === "register" ? "At least 12 characters." : undefined}
-            >
+            <Field label="New password" hint="At least 12 characters.">
               <input
                 name="password"
                 type="password"
                 required
-                minLength={modal === "register" ? 12 : 1}
+                minLength={12}
                 maxLength={128}
-                autoComplete={modal === "register" ? "new-password" : "current-password"}
+                autoComplete="new-password"
               />
             </Field>
             {error && <Notice tone="error">{error}</Notice>}
             <Button type="submit" kind="primary" disabled={busy}>
-              {modal === "register" ? "Create account" : "Sign in"}
+              Change password
+            </Button>
+          </form>
+        </Modal>
+      )}
+      {modal === "mfa-setup" && mfaSetup && (
+        <Modal title="Set up two-factor authentication" onClose={() => setModal(null)}>
+          <p>Scan this code with your authenticator app, or enter the key manually.</p>
+          <img
+            className="qr-code"
+            src={mfaSetup.qrCode}
+            alt="Authenticator QR code"
+            width={200}
+            height={200}
+          />
+          <p className="mono-secret">{mfaSetup.secret}</p>
+          <form
+            className="stack"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const code = String(new FormData(e.currentTarget).get("code") ?? "");
+              void run(async () => {
+                const codes = await api<{ recoveryCodes: string[] }>("/mfa/confirm", "POST", {
+                  code,
+                });
+                setMfaSetup(null);
+                setRecoveryCodes(codes.recoveryCodes);
+                setModal("mfa-recovery-codes");
+                setBoot((b) => (b ? { ...b, mfaEnabled: true } : b));
+              });
+            }}
+          >
+            <Field label="Code from your authenticator app">
+              <input name="code" required autoComplete="one-time-code" autoFocus />
+            </Field>
+            {error && <Notice tone="error">{error}</Notice>}
+            <Button type="submit" kind="primary" disabled={busy}>
+              Confirm and turn on
+            </Button>
+          </form>
+        </Modal>
+      )}
+      {modal === "mfa-recovery-codes" && recoveryCodes && (
+        <Modal title="Save your recovery codes" onClose={() => setModal(null)}>
+          <Notice tone="amber">
+            Each code works once, if you ever lose access to your authenticator app. They're shown
+            only this one time -- save them somewhere safe now.
+          </Notice>
+          <div className="recovery-codes">
+            {recoveryCodes.map((code) => (
+              <code key={code}>{code}</code>
+            ))}
+          </div>
+          <div className="button-row">
+            <Button onClick={() => void navigator.clipboard.writeText(recoveryCodes.join("\n"))}>
+              Copy codes
+            </Button>
+            <Button
+              kind="primary"
+              onClick={() => {
+                setRecoveryCodes(null);
+                setModal(null);
+                notify("Two-factor authentication is on.");
+              }}
+            >
+              I've saved these
+            </Button>
+          </div>
+        </Modal>
+      )}
+      {modal === "mfa-disable" && (
+        <Modal title="Turn off two-factor authentication" onClose={() => setModal(null)}>
+          <p>Enter a current code from your authenticator app, or a recovery code, to confirm.</p>
+          <form
+            className="stack"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const code = String(new FormData(e.currentTarget).get("code") ?? "");
+              void run(async () => {
+                await api("/mfa/disable", "POST", { code });
+                setModal(null);
+                setBoot((b) => (b ? { ...b, mfaEnabled: false } : b));
+                notify("Two-factor authentication is off.");
+              });
+            }}
+          >
+            <Field label="Code">
+              <input name="code" required autoComplete="one-time-code" autoFocus />
+            </Field>
+            {error && <Notice tone="error">{error}</Notice>}
+            <Button type="submit" kind="danger" disabled={busy}>
+              Turn off
             </Button>
           </form>
         </Modal>

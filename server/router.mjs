@@ -37,9 +37,24 @@ import { validateRecord } from "./records.mjs";
 import { journeyRoutes } from "./journey-routes.mjs";
 import { runGuardian } from "./guardian.mjs";
 import { pushPublicKey } from "./push.mjs";
+import QRCode from "qrcode";
 export async function handleApi(ctx) {
-  const { req, res, url, b, store, session, token, production, rateLimit, send, addCookie } = ctx;
+  const {
+    req,
+    res,
+    url,
+    b,
+    store,
+    session,
+    token,
+    production,
+    rateLimit,
+    send,
+    addCookie,
+    emailProvider,
+  } = ctx;
   const userId = session.userId;
+  const userAgent = String(req.headers["user-agent"] ?? "").slice(0, 200);
   if (url.pathname === "/api/bootstrap") {
     const user = store.user(userId);
     return send(res, 200, {
@@ -54,13 +69,14 @@ export async function handleApi(ctx) {
       // applicationServerKey (see server/push.mjs and src/pages/Profile.tsx). Null until
       // configureWebPush() has run in this process, which server.mjs does at startup.
       pushPublicKey: pushPublicKey(),
+      mfaEnabled: store.mfaStatus(userId).enabled,
     });
   }
   if (url.pathname === "/api/auth/register" && req.method === "POST") {
     rateLimit(`auth:${req.socket.remoteAddress}`, 10, 900000);
     const user = await store.register(userId, b);
     store.logout(token);
-    const next = store.session(user.id);
+    const next = store.session(user.id, { userAgent });
     addCookie(res, next.token, production);
     return send(res, 201, {
       user: { ...user, preferences: preferences(user.preferences) },
@@ -70,9 +86,32 @@ export async function handleApi(ctx) {
   if (url.pathname === "/api/auth/login" && req.method === "POST") {
     rateLimit(`auth:${req.socket.remoteAddress}`, 10, 900000);
     const user = await store.login(b.email, b.password);
+    // If this account has MFA enabled, don't finish switching the session over yet -- issue a
+    // short-lived, single-use challenge token instead and require /api/auth/mfa-verify to
+    // supply a valid code before any session actually changes hands.
+    if (store.mfaStatus(user.id).enabled) {
+      const pendingToken = store.pendingLogin(user.id);
+      return send(res, 200, { mfaRequired: true, pendingToken });
+    }
     store.logout(token);
-    const next = store.session(user.id);
+    const next = store.session(user.id, { userAgent });
     addCookie(res, next.token, production);
+    return send(res, 200, {
+      user: { ...user, preferences: preferences(user.preferences) },
+      csrf: next.csrf,
+    });
+  }
+  if (url.pathname === "/api/auth/mfa-verify" && req.method === "POST") {
+    rateLimit(`mfa-verify:${req.socket.remoteAddress}`, 10, 900000);
+    // Peek (don't consume) so a wrong code leaves the challenge intact for a retry within its
+    // 5-minute window -- only a verified code actually spends it (see consumePendingLogin).
+    const pendingUserId = store.peekPendingLogin(b.pendingToken);
+    store.mfaVerifyCode(pendingUserId, b.code);
+    store.consumePendingLogin(b.pendingToken);
+    store.logout(token);
+    const next = store.session(pendingUserId, { userAgent });
+    addCookie(res, next.token, production);
+    const user = store.user(pendingUserId);
     return send(res, 200, {
       user: { ...user, preferences: preferences(user.preferences) },
       csrf: next.csrf,
@@ -81,6 +120,60 @@ export async function handleApi(ctx) {
   if (url.pathname === "/api/auth/logout" && req.method === "POST") {
     store.logout(token);
     addCookie(res, "", production);
+    return send(res, 200, { ok: true });
+  }
+  // -- Password recovery (server/email.mjs's LogEmailProvider until a real provider is wired
+  // in -- see docs/FEATURE_STATUS.md and README.md for that gap). The response is identical
+  // whether or not the email matches an account, so this endpoint can't be used to enumerate
+  // registered emails.
+  if (url.pathname === "/api/auth/recovery/request" && req.method === "POST") {
+    rateLimit(`recovery:${req.socket.remoteAddress}`, 5, 900000);
+    const resetToken = store.createRecoveryToken(b.email);
+    if (resetToken) {
+      const link = `${url.origin}/#reset-password?token=${resetToken}`;
+      await emailProvider.send({
+        to: b.email,
+        subject: "Reset your Wayline password",
+        text: `Use this link within the next hour to reset your password: ${link}
+
+If you didn't request this, you can ignore this email.`,
+      });
+    }
+    return send(res, 200, {
+      ok: true,
+      message: "If that email has an account, a reset link has been sent to it.",
+    });
+  }
+  if (url.pathname === "/api/auth/recovery/reset" && req.method === "POST") {
+    rateLimit(`recovery-reset:${req.socket.remoteAddress}`, 10, 900000);
+    await store.resetPassword(b.token, b.password);
+    return send(res, 200, { ok: true });
+  }
+  // -- Session/device management (roadmap feature 95) --
+  if (url.pathname === "/api/sessions" && req.method === "GET")
+    return send(res, 200, store.sessions(userId, token));
+  if (url.pathname === "/api/sessions/revoke-others" && req.method === "POST") {
+    store.revokeOtherSessions(userId, token);
+    return send(res, 200, { ok: true });
+  }
+  if (url.pathname.startsWith("/api/sessions/") && req.method === "DELETE") {
+    store.revokeSession(userId, url.pathname.slice("/api/sessions/".length));
+    return send(res, 200, { ok: true });
+  }
+  // -- TOTP multi-factor authentication (roadmap feature 95) --
+  if (url.pathname === "/api/mfa/setup" && req.method === "POST") {
+    const setup = store.mfaSetup(userId);
+    const qrCode = await QRCode.toDataURL(setup.otpauthUrl);
+    return send(res, 200, { ...setup, qrCode });
+  }
+  if (url.pathname === "/api/mfa/confirm" && req.method === "POST") {
+    rateLimit(`mfa-confirm:${userId}`, 10, 900000);
+    const recoveryCodes = store.mfaConfirm(userId, b.code);
+    return send(res, 200, { recoveryCodes });
+  }
+  if (url.pathname === "/api/mfa/disable" && req.method === "POST") {
+    rateLimit(`mfa-disable:${userId}`, 10, 900000);
+    store.mfaDisable(userId, b.code);
     return send(res, 200, { ok: true });
   }
   if (url.pathname === "/api/profile" && req.method === "PUT")

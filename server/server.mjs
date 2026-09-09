@@ -10,6 +10,7 @@ import { providerHealth } from "./adapters/providers.mjs";
 import { runGuardian } from "./guardian.mjs";
 import { processJobs, ensureRecurringJob } from "./jobs.mjs";
 import { configureWebPush, deliverPush } from "./push.mjs";
+import { LogEmailProvider } from "./email.mjs";
 const ROOT = resolve(fileURLToPath(new URL("../standalone/", import.meta.url)));
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -83,6 +84,11 @@ export function createApplication({
   store = new Store(),
   production = process.env.NODE_ENV === "production",
   quiet = false,
+  // No real email provider is configured in this codebase yet (see server/email.mjs) -- this
+  // default logs instead of sending, and is clearly labeled as such in every user-visible
+  // response that depends on it (the recovery/request endpoint's message, FEATURE_STATUS.md,
+  // README.md). Passing a real provider here is the only change needed once one exists.
+  emailProvider = new LogEmailProvider({ quiet }),
 } = {}) {
   if (production && !process.env.PUBLIC_ORIGIN)
     throw new Error("PUBLIC_ORIGIN is required in production.");
@@ -133,7 +139,7 @@ export function createApplication({
           if (!session) {
             rateLimit(`guest:${req.socket.remoteAddress}`, 20, 3600000);
             const u = store.createGuest();
-            session = store.session(u.id);
+            session = store.session(u.id, { userAgent: req.headers["user-agent"] });
             token = session.token;
             addCookie(res, token, production);
           }
@@ -164,6 +170,7 @@ export function createApplication({
           rateLimit,
           send,
           addCookie,
+          emailProvider,
         });
       }
       if (!["GET", "HEAD"].includes(req.method)) throw new DomainError("Method not allowed.", 405);

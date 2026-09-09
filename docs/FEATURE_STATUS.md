@@ -1,6 +1,6 @@
 # Feature implementation status
 
-Checkpoint: 8 September 2026, with a Stage A code-stabilization pass and a Stage B durable-jobs/web-push pass applied 9 September 2026 (see the rows noting it below and [README.md](../README.md) for the full list). Every row maps to the supplied requirements. **Local** means local code exists, not that all browser interactions or production behavior have been certified. **Sample** uses illustrative assumptions. **Partial** has meaningful unfinished work. **Integration** requires configured services and validation. **Provider required** and **Deferred** are not completed features.
+Checkpoint: 8 September 2026, with a Stage A code-stabilization pass, a durable-jobs/web-push pass, and an account-security pass (TOTP MFA, session/device management, password recovery) all applied 9 September 2026 (see the rows noting it below and [README.md](../README.md) for the full list). Every row maps to the supplied requirements. **Local** means local code exists, not that all browser interactions or production behavior have been certified. **Sample** uses illustrative assumptions. **Partial** has meaningful unfinished work. **Integration** requires configured services and validation. **Provider required** and **Deferred** are not completed features.
 
 Read [README.md](../README.md) for setup and limitations and [ORIGINAL_REQUIREMENTS.md](ORIGINAL_REQUIREMENTS.md) for the full original request.
 
@@ -100,8 +100,8 @@ Read [README.md](../README.md) for setup and limitations and [ORIGINAL_REQUIREME
 | 92 | Voice assistant | Partial | Browser speech input/output; browser support and vendor processing vary. |
 | 93 | Multilingual support | Partial | English UI, translated navigation and limited phrasebook; not full localization. |
 | 94 | Visitor mode | Partial | Visitor preference and phrasebook; city guidance remains limited. |
-| 95 | Account/profile | Partial | Registration/login/profile; no email verification, recovery, MFA or SSO. |
-| 96 | Secure journey state | Partial | Encrypted owner-scoped records, CSRF and version checks; no formal security certification. |
+| 95 | Account/profile | Partial | Registration/login/profile, plus TOTP MFA (server/totp.mjs) with recovery codes, a session/device list with revocation (server/store.mjs's sessions()/revokeSession()), and a password-recovery token flow. Recovery emails are log-only (server/email.mjs's LogEmailProvider) until a real provider account is configured -- no email verification or SSO yet. |
+| 96 | Secure journey state | Partial | Encrypted owner-scoped records, CSRF and version checks, TOTP MFA and session revocation (feature 95); no formal external security certification (OWASP ASVS). |
 | 97 | Privacy mode | Partial | Export/deletion, private retention and share revocation; device cache lifecycle needs more review. |
 | 98 | Operator dashboard | Partial | Role-gated minimal aggregate endpoint; trusted role provisioning and full dashboard unfinished. |
 | 99 | Data-quality feedback | Partial | Consent-based persisted reports; no moderation or agency delivery pipeline. |

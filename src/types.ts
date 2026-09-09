@@ -86,6 +86,19 @@ export interface Bootstrap {
   // Null only if the server process has not finished startup configuration yet, which in
   // practice never happens by the time a browser can reach this endpoint.
   pushPublicKey: string | null;
+  // Whether TOTP multi-factor authentication (server/totp.mjs) is currently enabled on this
+  // account. Always false for a guest.
+  mfaEnabled: boolean;
+}
+// One active login session for the signed-in account (server/store.mjs's sessions()), shown on
+// the Security tab so a user can see and revoke access from a device they no longer have.
+export interface Session {
+  id: string;
+  createdAt: number;
+  userAgent: string | null;
+  lastSeenAt: number;
+  expiresAt: number;
+  current: boolean;
 }
 export interface Tracking {
   source: string;
