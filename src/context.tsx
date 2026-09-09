@@ -17,6 +17,10 @@ export interface AppContextValue {
   refresh: () => Promise<void>;
   active: Journey | null;
   setActive: (j: Journey | null) => void;
+  // Applies a login/register response and clears every piece of state that belonged to the
+  // previously active identity (guest or another account). Always use this instead of calling
+  // setBoot directly for a login/register/switch -- see its implementation in App.tsx.
+  switchIdentity: (next: { user: Bootstrap["user"]; csrf: string }) => void;
   result: SearchResult | null;
   setResult: Dispatch<SetStateAction<SearchResult | null>>;
   searchInput: SearchInput;

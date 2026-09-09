@@ -91,6 +91,11 @@ export default function App() {
   const notificationSeen = useRef(new Set<string>());
   const initial = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Bumped on every identity change (login, register, or switching from guest to an account).
+  // Any in-flight request captures this value before it awaits and discards its result if the
+  // identity has since changed, so a slow response for the PREVIOUS user can never land on top
+  // of the new user's freshly loaded state.
+  const sessionEpoch = useRef(0);
   const notify = useCallback((s: string) => {
     setToast(s);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -104,11 +109,33 @@ export default function App() {
     requestAnimationFrame(() => document.getElementById("main-content")?.focus());
   }, []);
   const refresh = useCallback(async () => {
+    const epoch = sessionEpoch.current;
     const data = await api<Journey[]>("/journeys");
+    if (sessionEpoch.current !== epoch) return; // identity changed while this was in flight
     setJourneys(data);
     setActive((prior) =>
       prior?.version ? (data.find((j) => j.id === prior.id) ?? data[0] ?? null) : prior,
     );
+  }, []);
+  // Applies a login/register response and clears every piece of state that belongs to whichever
+  // account was previously active: the last search result, the currently viewed journey (it may
+  // be a transient, never-saved sample preview with no `version`, which refresh()'s own merge
+  // logic would otherwise leave in place), search preferences (reset to the new user's saved
+  // preferences so a fresh search never silently applies someone else's budget/accessibility
+  // requirements), the notification de-dup set, and the assistant panel (it may still be open
+  // and rendered with the previous user's conversation on screen). Also bumps sessionEpoch so
+  // any request already in flight for the previous identity is discarded rather than applied.
+  const switchIdentity = useCallback((next: { user: Bootstrap["user"]; csrf: string }) => {
+    sessionEpoch.current += 1;
+    setCsrf(next.csrf);
+    setBoot((prev) => (prev ? { ...prev, user: next.user } : prev));
+    setSearchInput((s) => ({ ...s, preferences: next.user.preferences }));
+    setResult(null);
+    setActive(null);
+    setAgentOpen(false);
+    setPrompt("");
+    notificationSeen.current.clear();
+    setError("");
   }, []);
   useEffect(() => {
     if (initial.current) return;
@@ -298,6 +325,7 @@ export default function App() {
         refresh,
         active,
         setActive,
+        switchIdentity,
         result,
         setResult,
         searchInput,

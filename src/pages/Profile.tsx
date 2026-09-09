@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../context";
-import { api, setCsrf, download, readable, dateLabel } from "../api";
+import { api, download, readable, dateLabel } from "../api";
 import type { SavedItem, User } from "../types";
 import { clearOffline } from "../offline";
 import {
@@ -16,7 +16,7 @@ import {
   useAsync,
 } from "../components/ui";
 export default function Profile() {
-  const { boot, setBoot, notify, navigate, refresh } = useApp();
+  const { boot, setBoot, switchIdentity, notify, navigate, refresh } = useApp();
   const [tab, setTab] = useState("preferences"),
     [p, setP] = useState(boot.user.preferences),
     [name, setName] = useState(boot.user.name),
@@ -499,10 +499,12 @@ export default function Profile() {
               const d = Object.fromEntries(new FormData(e.currentTarget));
               void run(async () => {
                 const out = await api<{ user: User; csrf: string }>(`/auth/${modal}`, "POST", d);
-                setCsrf(out.csrf);
+                // Clear any offline packs saved under the previous identity (guest or another
+                // account) before applying the new one -- they must not be reachable or mixed
+                // in once a different account is signed in on this device.
                 await clearOffline();
-                setBoot((prev) => (prev ? { ...prev, ...out } : prev));
-                setP({ ...p, ...out.user.preferences });
+                switchIdentity(out);
+                setP(out.user.preferences);
                 setName(out.user.name);
                 await refresh();
                 setModal(null);
