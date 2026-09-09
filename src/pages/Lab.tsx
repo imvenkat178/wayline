@@ -27,6 +27,7 @@ export default function Lab() {
     [health, setHealth] = useState<Health[]>([]),
     [vehicles, setVehicles] = useState<FeedVehicle[]>([]),
     [lastFetch, setLastFetch] = useState(""),
+    [vehiclesCoverageLimited, setVehiclesCoverageLimited] = useState(false),
     [feedAlerts, setFeedAlerts] = useState<
       { id: string; header: string; description: string; effect: string; updatedAt: string }[]
     >([]),
@@ -178,9 +179,11 @@ export default function Lab() {
                     vehicles: FeedVehicle[];
                     fetchedAt: string;
                     warning?: string;
+                    coverageLimited?: boolean;
                   }>("/mbta/vehicles");
                   setVehicles(d.vehicles);
                   setLastFetch(d.fetchedAt);
+                  setVehiclesCoverageLimited(Boolean(d.coverageLimited));
                   if (d.warning) throw new Error(d.warning);
                 })
               }
@@ -190,6 +193,11 @@ export default function Lab() {
           </div>
           <JourneyMap vehicles={vehicles} />
           {lastFetch && <p>Last successful fetch: {new Date(lastFetch).toLocaleString()}</p>}
+          {vehiclesCoverageLimited && (
+            <Notice tone="amber">
+              This feed hit its page limit; some active vehicles may be missing from the list below.
+            </Notice>
+          )}
           <div className="table-wrap">
             <table>
               <thead>

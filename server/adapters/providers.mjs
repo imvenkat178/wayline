@@ -103,13 +103,47 @@ export function providerHealth() {
     ...health.values(),
   ];
 }
-export async function mbtaVehicles() {
-  return cached("MBTA vehicles", 15000, async () => {
-    const d = await json("https://api-v3.mbta.com/vehicles?page%5Blimit%5D=100&sort=-updated_at", {
+// The maximum number of pages a single mbtaPaginated() call will fetch. MBTA's v3 API is
+// JSON:API and supports page[offset]/page[limit] pagination (documented, stable contract); the
+// previous code fetched exactly one bounded page (page[limit]=100 for vehicles, 40 for alerts)
+// and silently returned only that page as if it were the whole feed. A busy system-wide feed
+// (subway + bus + commuter rail at peak) can exceed 100 concurrently active vehicles, so results
+// were being dropped with no signal to the caller (feature 13, "Feed completeness"). This paginates
+// up to MBTA_MAX_PAGES pages and reports `coverageLimited: true` when that cap is hit, so a caller
+// can tell complete data from a truncated page instead of the two looking identical. The page cap
+// itself is a deliberate ceiling (a feed cannot force an unbounded number of requests here), not a
+// guess at real MBTA volumes -- confirming real-world page counts requires testing against the
+// live feed, which this environment cannot reach; see the roadmap's "Feed completeness" row.
+const MBTA_MAX_PAGES = 6;
+const MBTA_PAGE_LIMIT = 100;
+export async function mbtaPaginated(path, { limit = MBTA_PAGE_LIMIT, maxPages = MBTA_MAX_PAGES } = {}) {
+  const rows = [];
+  let coverageLimited = false;
+  for (let page = 0; page < maxPages; page++) {
+    const separator = path.includes("?") ? "&" : "?";
+    const url = `https://api-v3.mbta.com${path}${separator}page%5Blimit%5D=${limit}&page%5Boffset%5D=${page * limit}`;
+    const d = await json(url, {
       headers: process.env.MBTA_API_KEY ? { "x-api-key": process.env.MBTA_API_KEY } : {},
     });
+    const batch = d.data ?? [];
+    rows.push(...batch);
+    if (batch.length < limit) break;
+    if (page === maxPages - 1) coverageLimited = true;
+  }
+  return { rows, coverageLimited };
+}
+export async function mbtaVehicles() {
+  return cached("MBTA vehicles", 15000, async () => {
+    // Sorted by id (a stable key), not updated_at: updated_at changes as vehicles report new
+    // positions, and paginating by offset against a sort key that keeps shifting between page
+    // fetches can skip or duplicate rows across pages. Completeness (feature 13) requires a
+    // stable sort; "most recently updated first" made sense only when a single page was ever
+    // going to be read.
+    const { rows, coverageLimited } = await mbtaPaginated("/vehicles?sort=id");
+    const d = { data: rows };
     return {
       source: "MBTA V3",
+      coverageLimited,
       vehicles: (d.data ?? [])
         .map((v) => ({
           id: v.id,
@@ -142,12 +176,11 @@ export async function mbtaVehicles() {
 }
 export async function mbtaAlerts() {
   return cached("MBTA alerts", 30000, async () => {
-    const d = await json("https://api-v3.mbta.com/alerts?page%5Blimit%5D=40", {
-      headers: process.env.MBTA_API_KEY ? { "x-api-key": process.env.MBTA_API_KEY } : {},
-    });
+    const { rows, coverageLimited } = await mbtaPaginated("/alerts", { limit: 40 });
     return {
       source: "MBTA V3",
-      alerts: (d.data ?? []).map((a) => ({
+      coverageLimited,
+      alerts: rows.map((a) => ({
         id: a.id,
         header: a.attributes.header,
         description: a.attributes.description,
