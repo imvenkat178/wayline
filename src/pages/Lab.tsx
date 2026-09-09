@@ -394,6 +394,7 @@ export default function Lab() {
                   <tr>
                     <th>Capability</th>
                     <th>Status</th>
+                    <th>Why</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -402,6 +403,9 @@ export default function Lab() {
                       <td>{readable(c.id)}</td>
                       <td>
                         <Badge>{c.status}</Badge>
+                      </td>
+                      <td>
+                        <small>{c.reason}</small>
                       </td>
                     </tr>
                   ))}

@@ -500,22 +500,77 @@ export async function otpSearch(input) {
       "Fare and accessibility details are not returned by this adapter. A budget cannot be verified; confirm prices and access with the operator.",
   };
 }
-export const commercialCapabilities = [
-  "unified-checkout",
-  "ticket-issuance",
-  "seat-inventory",
-  "payment-tokenization",
-  "automatic-rebooking",
-  "refund-submission",
-  "native-watch",
-  "flight-inventory",
-  "indoor-ar",
-  "ev-live-availability",
-  "remote-push",
-  "sms-email",
-].map((id) => ({
+// A capability's status should say why it isn't available, not just that it isn't (feature 12,
+// "Integration capabilities"). This previously reported every entry as "not connected" with one
+// shared reason implying all twelve need a configured, authorized provider -- which is not true.
+// Two honest groups exist in this codebase today:
+//   - "provider required": genuinely needs a commercial or contracted third party (a payment
+//     processor, a carrier's ticketing/inventory API, an SMS/email vendor, a GDS). No amount of
+//     local code closes that gap.
+//   - "unsupported": no implementation exists in this codebase at all yet -- distinct from
+//     "provider required" because closing the gap does not inherently require a paid contract.
+//     Standards-based web push (remote-push), for instance, needs only a subscription endpoint
+//     and VAPID keys once built, not a commercial relationship; native-watch, indoor-ar and
+//     ev-live-availability need platform-specific engineering and/or a data partnership, which is
+//     a different kind of gap than "needs a signed contract."
+// Nothing here is reported "healthy" or "authorized": those states require a real, checkable
+// connection, and none of these twelve have one. When one gets a real adapter, compute its status
+// the same way providerHealth() above does -- configured via env var, then verified by an actual
+// check -- rather than adding another hardcoded string.
+const CAPABILITY_INFO = {
+  "unified-checkout": {
+    status: "provider required",
+    reason: "Requires an authorized payment provider and carrier checkout contract.",
+  },
+  "ticket-issuance": {
+    status: "provider required",
+    reason: "Requires an authorized carrier ticketing contract.",
+  },
+  "seat-inventory": {
+    status: "provider required",
+    reason: "Requires a carrier inventory/reservation API agreement.",
+  },
+  "payment-tokenization": {
+    status: "provider required",
+    reason: "Requires an authorized payment processor.",
+  },
+  "automatic-rebooking": {
+    status: "provider required",
+    reason: "Requires ticket-issuance and exchange/refund rules from an authorized carrier.",
+  },
+  "refund-submission": {
+    status: "provider required",
+    reason: "Requires an authorized carrier or payment provider refund API.",
+  },
+  "native-watch": {
+    status: "unsupported",
+    reason: "Not implemented in this codebase yet. Needs a native companion app.",
+  },
+  "flight-inventory": {
+    status: "provider required",
+    reason: "Requires an authorized flight-data or GDS provider.",
+  },
+  "indoor-ar": {
+    status: "unsupported",
+    reason: "Not implemented in this codebase yet. Needs indoor maps and AR platform support.",
+  },
+  "ev-live-availability": {
+    status: "unsupported",
+    reason: "Not implemented in this codebase yet. Needs an authorized EV charging-network feed.",
+  },
+  "remote-push": {
+    status: "unsupported",
+    reason:
+      "Not implemented in this codebase yet. Standards-based web push needs no commercial contract, only a push subscription endpoint and VAPID keys, neither of which exist here today.",
+  },
+  "sms-email": {
+    status: "provider required",
+    reason: "Requires a contracted SMS/email delivery provider.",
+  },
+};
+export const commercialCapabilities = Object.entries(CAPABILITY_INFO).map(([id, info]) => ({
   id,
-  status: "not connected",
+  status: info.status,
   enabled: false,
-  reason: "Requires a configured, authorized provider or native platform integration.",
+  reason: info.reason,
 }));
