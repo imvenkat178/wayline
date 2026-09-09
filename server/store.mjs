@@ -22,6 +22,7 @@ export class Store {
     production = process.env.NODE_ENV === "production",
   } = {}) {
     mkdirSync(directory, { recursive: true, mode: 0o700 });
+    this.directory = directory;
     if (!key) {
       if (production) throw new Error("DATA_ENCRYPTION_KEY is required in production.");
       const path = join(directory, ".encryption-key");

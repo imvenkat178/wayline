@@ -1,4 +1,5 @@
 import { digitalTwin, preferences } from "./domain/journeys.mjs";
+import { fanOutPush } from "./push.mjs";
 
 // A single in-process 30s timer sweeping every account (see server.mjs) is an accepted
 // pilot-scale constraint -- it is not leased or distributed across workers, and a crash
@@ -45,7 +46,7 @@ export function runGuardian(
     const prior = new Set(store.list(userId, "alert").map((a) => a.dedupeKey));
     const add = (key, alert) => {
       if (prior.has(key)) return;
-      store.put(
+      const created = store.put(
         userId,
         "alert",
         {
@@ -58,6 +59,11 @@ export function runGuardian(
         { expiresAt: now + 7 * 86400000 },
       );
       prior.add(key);
+      // Fan out a durable push-delivery job (see push.mjs) to every device this account has
+      // subscribed, for every alert this function actually creates -- never for one that was
+      // filtered out above (e.g. an info-severity twin alert with notifyInfo off). A user with
+      // no push subscriptions enqueues nothing here.
+      fanOutPush(store, userId, created.id);
     };
     for (const j of store.list(userId, "journey")) {
       if (["ARRIVED", "CANCELLED"].includes(j.state)) continue;

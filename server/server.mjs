@@ -9,6 +9,7 @@ import { handleApi } from "./router.mjs";
 import { providerHealth } from "./adapters/providers.mjs";
 import { runGuardian } from "./guardian.mjs";
 import { processJobs, ensureRecurringJob } from "./jobs.mjs";
+import { configureWebPush, deliverPush } from "./push.mjs";
 const ROOT = resolve(fileURLToPath(new URL("../standalone/", import.meta.url)));
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -88,8 +89,13 @@ export function createApplication({
   // The periodic sweep is itself a durable job now (see server/jobs.mjs), not a bare function
   // call from the timer below -- seeding it is idempotent, so this is safe on every startup.
   ensureRecurringJob(store, "guardian-sweep", {}, 30000);
+  // Generates (on first boot) or loads the persisted VAPID keypair and sets it process-wide --
+  // see push.mjs. Must run before any request can read bootstrap's pushPublicKey field, and
+  // before the "push-deliver" jobs below can actually send anything.
+  configureWebPush(store.directory);
   const jobHandlers = {
     "guardian-sweep": (jobStore) => runGuardian(jobStore),
+    "push-deliver": (jobStore, payload) => deliverPush(jobStore, payload),
   };
   const server = http.createServer(async (req, res) => {
     const requestId = randomUUID();

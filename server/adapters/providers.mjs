@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { DomainError, connectionGraph, leaveNow } from "../domain/journeys.mjs";
 import { cities } from "../catalog.mjs";
+import { pushPublicKey } from "../push.mjs";
 const cache = new Map(),
   inflight = new Map(),
   health = new Map();
@@ -595,18 +596,34 @@ const CAPABILITY_INFO = {
     reason: "Not implemented in this codebase yet. Needs an authorized EV charging-network feed.",
   },
   "remote-push": {
-    status: "unsupported",
-    reason:
-      "Not implemented in this codebase yet. Standards-based web push needs no commercial contract, only a push subscription endpoint and VAPID keys, neither of which exist here today.",
+    // Now genuinely implemented (server/push.mjs): a push-subscription record kind, a durable
+    // "push-deliver" job per alert (see guardian.mjs and jobs.mjs), and a real VAPID keypair
+    // generated on first boot -- no commercial contract, matching the note this entry used to
+    // carry. Status is computed below, not hardcoded, since it now depends on whether
+    // configureWebPush() has actually run in this process (server.mjs calls it at startup).
+    status: "computed",
+    reason: "Standards-based web push (RFC 8030/8291), self-issued VAPID identity.",
   },
   "sms-email": {
     status: "provider required",
     reason: "Requires a contracted SMS/email delivery provider.",
   },
 };
-export const commercialCapabilities = Object.entries(CAPABILITY_INFO).map(([id, info]) => ({
-  id,
-  status: info.status,
-  enabled: false,
-  reason: info.reason,
-}));
+// A function, not a static export: remote-push's status depends on whether configureWebPush()
+// has run in this process (see server.mjs), which is not known at module-load time.
+export function commercialCapabilities() {
+  return Object.entries(CAPABILITY_INFO).map(([id, info]) => {
+    if (id === "remote-push") {
+      const configured = Boolean(pushPublicKey());
+      return {
+        id,
+        status: configured ? "configured, not checked" : "not configured",
+        enabled: configured,
+        reason: configured
+          ? 'VAPID keys are generated and web push delivery is wired to the alert pipeline. "Not checked" because no push service has actually been confirmed reachable from this deployment yet.'
+          : "Implemented, but configureWebPush() has not run in this process yet.",
+      };
+    }
+    return { id, status: info.status, enabled: false, reason: info.reason };
+  });
+}

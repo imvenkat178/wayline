@@ -39,6 +39,9 @@ export interface Preferences {
   visitor: boolean;
   notifyCritical: boolean;
   notifyInfo: boolean;
+  // Whether a push notification shows the real alert title/body, or a generic phrase (see
+  // server/push.mjs's GENERIC_BODY). Defaults off: push can surface on a locked screen.
+  pushDetails: boolean;
   quietStart: string;
   quietEnd: string;
   historyDays: number;
@@ -79,6 +82,10 @@ export interface Bootstrap {
   capabilities: Capability[];
   transitions: Record<string, string[]>;
   operatorLinks: Record<string, string>;
+  // The VAPID public key for PushManager.subscribe's applicationServerKey (see server/push.mjs).
+  // Null only if the server process has not finished startup configuration yet, which in
+  // practice never happens by the time a browser can reach this endpoint.
+  pushPublicKey: string | null;
 }
 export interface Tracking {
   source: string;

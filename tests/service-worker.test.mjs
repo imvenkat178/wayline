@@ -52,3 +52,31 @@ test("main.tsx only registers the service worker outside vite dev mode", () => {
   assert.match(main, /!import\.meta\.env\.DEV/);
   assert.match(main, /register\("\/sw\.js"\)/);
 });
+
+test("public/sw.js registers push and notificationclick handlers at the top level, not nested inside fetch's handler", () => {
+  // Regression guard: these two listeners were briefly (mid-edit) registered as statements
+  // inside the fetch handler's own callback body -- syntactically valid, since it's just a
+  // function call, but semantically wrong: self.addEventListener("push", ...) would then only
+  // run the first time a fetch event fired, not once at worker startup. The fetch handler's own
+  // isStaticAsset branch is the last thing inside its body, so both new listeners must be
+  // registered textually after it.
+  const fetchBodyMarker = sw.indexOf("if (isStaticAsset(url))");
+  const pushIndex = sw.indexOf('addEventListener("push"');
+  const clickIndex = sw.indexOf('addEventListener("notificationclick"');
+  assert.notEqual(fetchBodyMarker, -1);
+  assert.notEqual(pushIndex, -1);
+  assert.notEqual(clickIndex, -1);
+  assert.ok(pushIndex > fetchBodyMarker, "push listener must be registered after fetch's body");
+  assert.ok(
+    clickIndex > fetchBodyMarker,
+    "notificationclick listener must be registered after fetch's body",
+  );
+});
+
+test("public/sw.js's push handler shows a notification and its click handler focuses or opens the app", () => {
+  assert.match(sw, /addEventListener\(\s*"push"/);
+  assert.match(sw, /registration\.showNotification/);
+  assert.match(sw, /addEventListener\(\s*"notificationclick"/);
+  assert.match(sw, /notification\.close\(\)/);
+  assert.match(sw, /clients\.openWindow/);
+});

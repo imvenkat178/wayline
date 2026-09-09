@@ -63,6 +63,7 @@ export const defaultPreferences: Preferences = {
   visitor: false,
   notifyCritical: true,
   notifyInfo: false,
+  pushDetails: false,
   quietStart: "22:00",
   quietEnd: "07:00",
   historyDays: 90,

@@ -1,6 +1,6 @@
 # Feature implementation status
 
-Checkpoint: 8 September 2026, with a Stage A code-stabilization pass applied 9 September 2026 (see the rows noting it below and [README.md](../README.md) for the full list). Every row maps to the supplied requirements. **Local** means local code exists, not that all browser interactions or production behavior have been certified. **Sample** uses illustrative assumptions. **Partial** has meaningful unfinished work. **Integration** requires configured services and validation. **Provider required** and **Deferred** are not completed features.
+Checkpoint: 8 September 2026, with a Stage A code-stabilization pass and a Stage B durable-jobs/web-push pass applied 9 September 2026 (see the rows noting it below and [README.md](../README.md) for the full list). Every row maps to the supplied requirements. **Local** means local code exists, not that all browser interactions or production behavior have been certified. **Sample** uses illustrative assumptions. **Partial** has meaningful unfinished work. **Integration** requires configured services and validation. **Provider required** and **Deferred** are not completed features.
 
 Read [README.md](../README.md) for setup and limitations and [ORIGINAL_REQUIREMENTS.md](ORIGINAL_REQUIREMENTS.md) for the full original request.
 
@@ -12,7 +12,7 @@ Read [README.md](../README.md) for setup and limitations and [ORIGINAL_REQUIREME
 | 4 | Reliability scoring | Sample | Illustrative reliability values; no observed reliability dataset. |
 | 5 | Arrival confidence | Sample | Modeled arrival time; no calibrated confidence interval. |
 | 6 | Transfer-risk scoring | Sample | Connection buffers, detours and heuristic risk. |
-| 7 | Journey Guardian | Partial | Persisted server-side alerts; periodic scan now paginates through every account with a relevant record instead of capping at 1,000, but remains a single in-process timer, not a durable leased job system; no continuous provider-to-journey refresh. |
+| 7 | Journey Guardian | Partial | Persisted server-side alerts; periodic scan paginates through every account with a relevant record instead of capping at 1,000, and the sweep itself is now a durable, leased, SQLite-backed job (`server/jobs.mjs`) that survives a process restart and backs off on repeated failure instead of a bare `setInterval` -- still single-process, not distributed across workers, and still no continuous provider-to-journey refresh. |
 | 8 | Connection protection | Partial | Connection warnings; no carrier protection guarantee. |
 | 9 | Prepared trip recovery | Partial | Prepared alternatives now checked against a stop and time the traveler could actually reach, not just a shared destination and future arrival; no reserved inventory. |
 | 10 | Automatic recovery architecture | Partial | Recovery states and user choice; cost is now an incremental estimate (retained legs netted out, self-reported paid ticket used as baseline when on file) instead of a whole-itinerary subtraction; no provider transaction, exchange/refund-rule data, or automatic purchase. |
@@ -94,7 +94,7 @@ Read [README.md](../README.md) for setup and limitations and [ORIGINAL_REQUIREME
 | 86 | Confidence everywhere | Partial | Provenance/missing-data notices; no calibrated confidence across providers. |
 | 87 | Offline journey mode | Partial | Encrypted local packs; an app-shell service worker now caches the shell for offline startup (untested in a real browser). |
 | 88 | Poor-connectivity mode | Partial | Request timeouts and error UI; cold-start offline/retry queue unfinished. |
-| 89 | Push notifications | Partial | Browser notifications while app is open; no remote push delivery. |
+| 89 | Push notifications | Local | Real Web Push (RFC 8030/8291): a self-issued VAPID identity generated on first boot, a subscribe/unsubscribe control in Profile using the real `PushManager` API, and delivery routed through the durable job queue with per-subscription cleanup on a 404/410 "gone" response. Defaults to a generic, non-identifying notification body; a `pushDetails` preference opts into the real alert text. Not a carrier or payment integration -- unit/integration-tested against a mocked push service only, not yet verified end-to-end against a live browser push service. |
 | 90 | Smart notification prioritization | Partial | Severity, preferences, quiet hours and deduplication. |
 | 91 | Apple Watch / Wear OS | Deferred | Compact web view only; no Apple Watch or Wear OS application. |
 | 92 | Voice assistant | Partial | Browser speech input/output; browser support and vendor processing vary. |

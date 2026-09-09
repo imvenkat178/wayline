@@ -243,6 +243,10 @@ export const defaultPreferences = {
   visitor: false,
   notifyCritical: true,
   notifyInfo: false,
+  // Whether a push notification (see server/push.mjs) shows the real alert title/body, or a
+  // generic phrase. Push can surface on a locked screen, a materially wider exposure than the
+  // in-app alert list, so this defaults off even though notifyCritical/notifyInfo are on.
+  pushDetails: false,
   quietStart: "22:00",
   quietEnd: "07:00",
   historyDays: 90,

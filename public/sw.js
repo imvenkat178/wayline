@@ -40,7 +40,9 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((names) => Promise.all(names.filter((n) => n !== CACHE_VERSION).map((n) => caches.delete(n))))
+      .then((names) =>
+        Promise.all(names.filter((n) => n !== CACHE_VERSION).map((n) => caches.delete(n))),
+      )
       .then(() => self.clients.claim()),
   );
 });
@@ -67,8 +69,8 @@ self.addEventListener("fetch", (event) => {
     // Only fall back to the cached shell -- which boots the SPA and lets its own offline/error
     // screen take over -- when the network is genuinely unreachable.
     event.respondWith(
-      fetch(request).catch(
-        () => caches.match("/index.html").then((cached) => cached ?? caches.match("/")),
+      fetch(request).catch(() =>
+        caches.match("/index.html").then((cached) => cached ?? caches.match("/")),
       ),
     );
     return;
@@ -91,4 +93,50 @@ self.addEventListener("fetch", (event) => {
       ),
     );
   }
+});
+// Push notifications (feature 89; see server/push.mjs). The payload arrives as plain JSON at
+// this layer -- Web Push's own transport encryption (RFC 8291) already protects it in transit,
+// and by design the server sends only a generic phrase unless the account has opted into
+// pushDetails (see push.mjs's GENERIC_BODY), so there is little left to protect at rest even in
+// a notification the OS itself is about to display on screen.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    // Not JSON, or no payload at all -- fall through to the generic defaults below instead of
+    // showing nothing, which some browsers penalize a subscription for repeatedly doing.
+  }
+  const title = typeof data.title === "string" && data.title ? data.title : "Wayline alert";
+  const body = typeof data.body === "string" && data.body ? data.body : "Open Wayline for details.";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: "/icon.svg",
+      badge: "/icon.svg",
+      // Collapses repeat pushes about the same alert into one notification instead of stacking
+      // duplicates (e.g. a retried delivery after a transient failure).
+      tag: typeof data.alertId === "string" ? data.alertId : undefined,
+      data,
+    }),
+  );
+});
+
+// The app is a single-page, hash-routed SPA (see src/routes.ts) with no per-alert deep link, so
+// a click always focuses (or opens) the app at its inbox, where the alert that triggered this
+// notification is listed -- not a URL parsed from the notification payload.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = "/#inbox";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.startsWith(self.location.origin) && "focus" in client) {
+          if ("navigate" in client) client.navigate(target);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(target);
+    }),
+  );
 });

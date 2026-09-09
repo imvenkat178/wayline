@@ -15,6 +15,14 @@ import {
   Section,
   useAsync,
 } from "../components/ui";
+// Converts the URL-safe base64 VAPID public key (server/push.mjs) into the raw byte array
+// PushManager.subscribe's applicationServerKey requires. Standard, unavoidable boilerplate for
+// this browser API -- there is no built-in decoder for this specific base64 variant.
+function urlBase64ToUint8Array(base64: string) {
+  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+  const raw = atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
 export default function Profile() {
   const { boot, setBoot, switchIdentity, notify, navigate, refresh } = useApp();
   const [tab, setTab] = useState("preferences"),
@@ -23,9 +31,72 @@ export default function Profile() {
     [modal, setModal] = useState<string | null>(null),
     [items, setItems] = useState<SavedItem[]>([]),
     [shares, setShares] = useState<{ id: string; journeyId: string; expiresAt: number }[]>([]),
-    [audit, setAudit] = useState<{ action: string; at: number }[]>([]);
+    [audit, setAudit] = useState<{ action: string; at: number }[]>([]),
+    // null while the initial check (does this browser already have a live subscription?) is
+    // still in flight, so the toggle doesn't briefly flash "off" before settling.
+    [pushSubscribed, setPushSubscribed] = useState<boolean | null>(null);
   const { busy, error, run } = useAsync();
   const update = (key: string, value: unknown) => setP((s) => ({ ...s, [key]: value }));
+  useEffect(() => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setPushSubscribed(false);
+      return;
+    }
+    navigator.serviceWorker.ready
+      .then((registration) => registration.pushManager.getSubscription())
+      .then((subscription) => setPushSubscribed(Boolean(subscription)))
+      .catch(() => setPushSubscribed(false));
+  }, []);
+  // Turns real Web Push (feature 89, server/push.mjs) on or off for this browser. Distinct from
+  // the "Enable browser notifications" button below, which only grants permission to display a
+  // notification while the tab is open -- this registers a subscription with the push service
+  // so alerts can arrive even when Wayline is closed, and tells the server about it.
+  const togglePush = (subscribe: boolean) =>
+    run(async () => {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window))
+        throw new Error("Push notifications are unavailable in this browser.");
+      const registration = await navigator.serviceWorker.ready;
+      if (subscribe) {
+        if (!boot.pushPublicKey) throw new Error("Push is not configured on this server yet.");
+        if ("Notification" in window && Notification.permission === "default")
+          await Notification.requestPermission();
+        const existing = await registration.pushManager.getSubscription();
+        const subscription =
+          existing ??
+          (await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(boot.pushPublicKey),
+          }));
+        const json = subscription.toJSON();
+        await api("/records/push-subscription", "POST", {
+          endpoint: json.endpoint,
+          keys: json.keys,
+          userAgent: navigator.userAgent,
+        });
+        setPushSubscribed(true);
+        notify("Push notifications are on for this device.");
+      } else {
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+          // Best-effort: remove the matching server-side record by endpoint before tearing down
+          // the browser subscription, so a stray record isn't left to be delivered to nowhere
+          // until its next delivery attempt discovers it's gone (see push.mjs's deliverPush).
+          try {
+            const existingRecords = await api<{ id: string; endpoint: string }[]>(
+              "/records/push-subscription",
+            );
+            const match = existingRecords.find((r) => r.endpoint === subscription.endpoint);
+            if (match) await api(`/records/push-subscription/${match.id}`, "DELETE");
+          } catch {
+            // Not fatal -- the browser-side unsubscribe below still stops delivery to this
+            // device, and a stale server record self-corrects the next time it's used.
+          }
+          await subscription.unsubscribe();
+        }
+        setPushSubscribed(false);
+        notify("Push notifications are off for this device.");
+      }
+    });
   const load = async () => {
     if (["traveler", "contact", "favorite"].includes(tab)) setItems(await api(`/records/${tab}`));
     if (tab === "privacy") {
@@ -367,6 +438,30 @@ export default function Profile() {
             </Button>
             <Button kind="primary" disabled={busy} onClick={() => void save()}>
               Save notification preferences
+            </Button>
+          </div>
+        </Section>
+      )}
+      {tab === "notifications" && (
+        <Section title="Real push notifications">
+          <Toggle
+            label="Send push notifications to this device"
+            description="Delivers alerts even when Wayline isn't open, using your browser's push service."
+            checked={pushSubscribed === true}
+            onChange={(v) => void togglePush(v)}
+          />
+          <Toggle
+            label="Show trip details in push notifications"
+            description="Off by default: a push notification can appear on a locked screen, so it shows a generic phrase unless you turn this on."
+            checked={p.pushDetails}
+            onChange={(v) => update("pushDetails", v)}
+          />
+          {!boot.pushPublicKey && (
+            <Notice tone="amber">Push is not configured on this server yet.</Notice>
+          )}
+          <div className="button-row">
+            <Button kind="primary" disabled={busy} onClick={() => void save()}>
+              Save push preference
             </Button>
           </div>
         </Section>

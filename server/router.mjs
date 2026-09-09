@@ -36,6 +36,7 @@ import {
 import { validateRecord } from "./records.mjs";
 import { journeyRoutes } from "./journey-routes.mjs";
 import { runGuardian } from "./guardian.mjs";
+import { pushPublicKey } from "./push.mjs";
 export async function handleApi(ctx) {
   const { req, res, url, b, store, session, token, production, rateLimit, send, addCookie } = ctx;
   const userId = session.userId;
@@ -46,9 +47,13 @@ export async function handleApi(ctx) {
       csrf: session.csrf,
       cities,
       states,
-      capabilities: commercialCapabilities,
+      capabilities: commercialCapabilities(),
       transitions,
       operatorLinks,
+      // The VAPID public key the frontend needs for PushManager.subscribe's
+      // applicationServerKey (see server/push.mjs and src/pages/Profile.tsx). Null until
+      // configureWebPush() has run in this process, which server.mjs does at startup.
+      pushPublicKey: pushPublicKey(),
     });
   }
   if (url.pathname === "/api/auth/register" && req.method === "POST") {
@@ -184,7 +189,7 @@ export async function handleApi(ctx) {
     return send(res, 200, { ok: true });
   }
   const recordMatch = url.pathname.match(
-    /^\/api\/records\/(favorite|traveler|contact|commute|pass|ticket|report|claim|recovery|alert)(?:\/([^/]+))?$/,
+    /^\/api\/records\/(favorite|traveler|contact|commute|pass|ticket|report|claim|recovery|alert|push-subscription)(?:\/([^/]+))?$/,
   );
   if (recordMatch) {
     const [, kind, id] = recordMatch;
@@ -200,6 +205,24 @@ export async function handleApi(ctx) {
       )
         throw new DomainError("Choose different supported endpoints.");
       if (kind === "ticket" && value.journeyId) store.get(userId, value.journeyId, "journey");
+      if (kind === "push-subscription") {
+        // Re-subscribing the same device/browser (a token refresh, a service-worker update)
+        // yields the same endpoint URL -- upsert on it so that produces one updated record, not
+        // an ever-growing pile of stale duplicates that would each get their own delivery job.
+        const existing = store
+          .list(userId, "push-subscription")
+          .find((s) => s.endpoint === value.endpoint);
+        return send(
+          res,
+          201,
+          store.put(
+            userId,
+            kind,
+            value,
+            existing ? { id: existing.id, expectedVersion: existing.version } : {},
+          ),
+        );
+      }
       return send(
         res,
         201,

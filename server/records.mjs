@@ -111,6 +111,18 @@ export function validateRecord(kind, b) {
       observedAt: new Date().toISOString(),
     };
   }
+  if (kind === "push-subscription")
+    return {
+      // A Web Push subscription (see server/push.mjs): the push service endpoint URL plus the
+      // two keys PushManager.subscribe() returns, needed to encrypt each message per RFC 8291.
+      // Stored via the same encrypted, owner-scoped `records` table every other kind uses, keyed
+      // by endpoint (server/router.mjs upserts on endpoint so re-subscribing the same device
+      // updates in place instead of accumulating duplicates).
+      endpoint: text(b.endpoint, "Push endpoint", 500),
+      p256dh: text(b.keys?.p256dh ?? b.p256dh, "Push key", 200),
+      auth: text(b.keys?.auth ?? b.auth, "Push auth secret", 200),
+      userAgent: String(b.userAgent ?? "").slice(0, 200),
+    };
   throw new DomainError("Unsupported record type.");
 }
 export function receipt(j) {
