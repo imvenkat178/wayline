@@ -643,6 +643,48 @@ export function assertRecoverable(journey, alternative, now = Date.now()) {
   if (Date.parse(alternative.arrival) < now)
     throw new DomainError("This alternative is in the past. Run a fresh search.");
 }
+
+// Two legs are the "same" leg for retention purposes: same mode, same named endpoints and same
+// scheduled departure. This is a conservative, exact match -- it will not fire across different
+// sample-search variants (their times differ by design), but it is correct wherever it does fire,
+// and becomes meaningful once journeys are built from a real, shared leg/trip-instance model
+// (Stage B) rather than five independently generated whole-corridor variants.
+function sameLeg(a, b) {
+  return a.mode === b.mode && a.from === b.from && a.to === b.to && a.departure === b.departure;
+}
+
+// What a recovery alternative would actually cost the traveler to switch to, instead of the
+// previous whole-itinerary subtraction (feature 27, "Recovery economics"). Two corrections over
+// that: (1) any leg identical between the original and the alternative has already been paid for
+// and boarded, or will be regardless, so it is excluded from the cost of the CHANGE; (2) when a
+// self-reported ticket with an actual paid amount exists for this journey, that paid amount --
+// not the abstract itinerary estimate -- is the baseline for "what was already spent."
+//
+// This codebase has no payment integration (bookingConfirmed is never set true anywhere), no
+// exchange/refund-rule data, and no nonrefundable-amount data -- none of that exists to calculate
+// with yet (Stage D/E work per the roadmap). `basis` says plainly which baseline was used so a
+// caller cannot present an estimate as a real quote, and nonrefundableCents is always null rather
+// than a guessed number.
+export function recoveryCost(journey, alternative, paidCentsForJourney = null) {
+  const retainedLegCents = journey.legs
+    .filter((leg) => (alternative.legs ?? []).some((other) => sameLeg(leg, other)))
+    .reduce((sum, leg) => sum + (leg.priceCents ?? 0), 0);
+  const baselineCents = paidCentsForJourney ?? journey.price.totalCents;
+  const alternativeCents = alternative.price.totalCents;
+  if (baselineCents === null || alternativeCents === null)
+    return {
+      incrementalCents: null,
+      basis: "unknown",
+      retainedLegCents,
+      nonrefundableCents: null,
+    };
+  return {
+    incrementalCents: alternativeCents - baselineCents - retainedLegCents,
+    basis: paidCentsForJourney === null ? "estimate" : "paid",
+    retainedLegCents,
+    nonrefundableCents: null,
+  };
+}
 // Returns the journey with every leg's `tracking` recomputed by freshness() against `now`,
 // instead of whatever derived age/stale/label happened to be stored. Measurement time
 // (observedAt) is the only part of tracking that is ever persisted; everything else is a

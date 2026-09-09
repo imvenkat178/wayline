@@ -77,6 +77,14 @@ export function validateRecord(kind, b) {
       coach: String(b.coach ?? "").slice(0, 40),
       platform: String(b.platform ?? "").slice(0, 40),
       journeyId: String(b.journeyId ?? "").slice(0, 100),
+      // Optional, self-reported: what the traveler says they actually paid. There is no
+      // payment integration anywhere in this codebase (bookingConfirmed is never set true),
+      // so this is the only amount-paid data available at all; recovery economics uses it,
+      // when present, in place of the abstract itinerary estimate (see recoveryCost()).
+      paidCents:
+        b.paidCents === undefined || b.paidCents === null
+          ? null
+          : integer(b.paidCents, "Paid amount", 0, 1000000),
       validity: "self-reported",
       source: "manual import; not verified by operator",
       barcode: null,

@@ -710,6 +710,12 @@ function RecoveryModal({
                 ? "Price unknown"
                 : `${alt.price.totalCents - j.price.totalCents >= 0 ? "+" : ""}${money(alt.price.totalCents - j.price.totalCents)}`}
             </b>
+            {alt.price.totalCents != null && j.price.totalCents != null && (
+              <p className="fine-print">
+                Rough estimate comparing full itinerary prices. Preparing a backup calculates the
+                actual incremental cost, using any paid ticket on file and legs you'd keep.
+              </p>
+            )}
             <Button
               disabled={busy}
               onClick={() =>

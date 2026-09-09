@@ -8,6 +8,7 @@ import {
   matchLiveTracking,
   withFreshTracking,
   assertRecoverable,
+  recoveryCost,
 } from "./domain/journeys.mjs";
 import { mbtaVehicles } from "./adapters/providers.mjs";
 import { receipt } from "./records.mjs";
@@ -115,17 +116,20 @@ export async function journeyRoutes({ req, res, url, b, store, session, send }) 
     const alt = search.result.journeys.find((x) => x.id === b.journeyId);
     if (!alt) throw new DomainError("Choose an alternative from your search.");
     assertRecoverable(j, alt, Date.now());
-    const delta =
-      alt.price.totalCents === null || j.price.totalCents === null
-        ? null
-        : alt.price.totalCents - j.price.totalCents;
+    const paidCents =
+      store.list(userId, "ticket").find((t) => t.journeyId === id && t.paidCents !== null)
+        ?.paidCents ?? null;
+    const cost = recoveryCost(j, alt, paidCents);
     return send(
       res,
       201,
       store.put(userId, "recovery", {
         journeyId: id,
         alternative: alt,
-        fareDifferenceCents: delta,
+        incrementalCostCents: cost.incrementalCents,
+        costBasis: cost.basis,
+        retainedLegCents: cost.retainedLegCents,
+        nonrefundableCents: cost.nonrefundableCents,
         state: "prepared",
         inventoryHeld: false,
         booked: false,
