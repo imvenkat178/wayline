@@ -22,6 +22,13 @@ import {
 } from "./totp.mjs";
 const derive = promisify(scrypt);
 export const hashToken = (v) => createHash("sha256").update(v).digest("hex");
+// Phase 8 (roadmap features 98/99, hardens 100/101): the minimum number of DISTINCT
+// contributing accounts before an aggregate report signal is shown at all -- shared by
+// /api/operator's per-type breakdown and /api/community's per-station view so both apply the
+// exact same anonymization rule instead of two independently hardcoded "5"s.
+export const MIN_REPORT_COHORT = 5;
+export const REPORT_STATUSES = ["open", "reviewing", "resolved", "dismissed"];
+
 export class Store {
   constructor({
     directory = process.env.DATA_DIR || resolve("data"),
@@ -483,6 +490,91 @@ export class Store {
     this.get(userId, id);
     this.db.prepare("DELETE FROM records WHERE id=? AND user_id=?").run(id, userId);
     this.audit(userId, "RECORD_DELETED", id);
+  }
+  // How many OTHER distinct accounts reported the same {station,type} recently -- real
+  // confidence weighting for feature 99 (previously `confidence` was always null) computed at
+  // report-creation time in router.mjs, and the same lookup pattern /api/community already used
+  // for its own distinct-rider count, now shared instead of duplicated.
+  reportConfirmations(station, type, { sinceMs = Date.now() - 3600000, excludeUserId } = {}) {
+    const rows = this.db
+      .prepare("SELECT user_id,payload FROM records WHERE kind='report' AND created_at>?")
+      .all(sinceMs);
+    const users = new Set();
+    for (const r of rows) {
+      if (r.user_id === excludeUserId) continue;
+      const v = this.decrypt(r.payload);
+      if (v.station.toLowerCase() === station.toLowerCase() && v.type === type)
+        users.add(r.user_id);
+    }
+    return users.size;
+  }
+  // Replaces the old "one global COUNT(*), one threshold" /api/operator behavior with a real
+  // per-type breakdown: each report type is only surfaced once at least MIN_REPORT_COHORT
+  // *distinct* accounts (not just report rows -- one account filing five reports must not read
+  // as five contributors) have reported it inside the window; everything below that is named in
+  // `suppressedTypes` with no count attached, so a rare report at a low-ridership stop can't be
+  // used to infer who filed it.
+  operatorReportBreakdown({
+    sinceMs = Date.now() - 24 * 3600000,
+    minimumCohort = MIN_REPORT_COHORT,
+  } = {}) {
+    const rows = this.db
+      .prepare("SELECT user_id,payload FROM records WHERE kind='report' AND created_at>?")
+      .all(sinceMs);
+    const stats = new Map();
+    for (const r of rows) {
+      const v = this.decrypt(r.payload);
+      const s = stats.get(v.type) ?? { count: 0, users: new Set() };
+      s.count += 1;
+      s.users.add(r.user_id);
+      stats.set(v.type, s);
+    }
+    const breakdown = [],
+      suppressedTypes = [];
+    for (const [type, s] of stats)
+      if (s.users.size >= minimumCohort)
+        breakdown.push({ type, reports: s.count, distinctContributors: s.users.size });
+      else suppressedTypes.push(type);
+    breakdown.sort((a, b) => b.reports - a.reports);
+    return {
+      breakdown,
+      suppressedTypes: suppressedTypes.sort(),
+      minimumCohort,
+      windowHours: Math.round((Date.now() - sinceMs) / 3600000),
+    };
+  }
+  // An operator's moderation worklist. Deliberately NOT run through get()/list() (both scope by
+  // user_id) -- moderating "the elevator at this stop is broken" is an operational ticket, not a
+  // demographic signal, so it is not withheld by MIN_REPORT_COHORT the way the aggregate
+  // breakdown above is. It still protects reporter identity: decode() never includes user_id, so
+  // an operator sees the report's own fields and never who filed it.
+  listAllReports({ statuses } = {}) {
+    return this.db
+      .prepare("SELECT * FROM records WHERE kind='report' ORDER BY created_at DESC LIMIT 500")
+      .all()
+      .map((row) => this.decode(row))
+      .filter((r) => !statuses || statuses.includes(r.status ?? "open"));
+  }
+  // The one deliberate, narrowly-scoped exception to "records are only ever read/written by
+  // their owner" (see systemGetOrder in commerce for the same pattern applied to webhook
+  // reconciliation): an operator resolving a data-quality report has to update a record they
+  // don't own. It only ever touches status/resolutionNote/moderatedAt -- never the reporter's
+  // own fields -- and the change is audited under the REPORTER's user id (so it still shows up
+  // in their own history/export) rather than the moderator's, since nothing here currently
+  // tracks moderator identity as a first-class actor.
+  moderateReport(id, { status, resolutionNote } = {}) {
+    if (!REPORT_STATUSES.includes(status)) throw new DomainError("Choose a valid report status.");
+    const row = this.db.prepare("SELECT * FROM records WHERE id=? AND kind='report'").get(id);
+    if (!row) throw new DomainError("Report not found.", 404, "NOT_FOUND");
+    const value = this.decrypt(row.payload);
+    value.status = status;
+    value.resolutionNote = resolutionNote ? String(resolutionNote).slice(0, 500) : null;
+    value.moderatedAt = new Date().toISOString();
+    this.db
+      .prepare("UPDATE records SET payload=?,version=version+1,updated_at=? WHERE id=?")
+      .run(this.encrypt(value), Date.now(), id);
+    this.audit(row.user_id, "REPORT_MODERATED", id);
+    return this.decode(this.db.prepare("SELECT * FROM records WHERE id=?").get(id));
   }
   audit(userId, action, resourceId = null) {
     this.db

@@ -133,7 +133,18 @@ export function validateRecord(kind, b) {
       note: String(b.note ?? "").slice(0, 1000),
       consent: true,
       source: "unverified rider report",
+      // confidence/confirmations start at their honest defaults here (pure validation has no
+      // database access); router.mjs's report-creation handler immediately overwrites both with
+      // a real distinct-contributor count via store.reportConfirmations() before this ever
+      // reaches storage -- see server/store.mjs for what "confidence weighting" means in
+      // practice (roadmap feature 99). status/resolutionNote/moderatedAt are the report
+      // lifecycle fields moderateReport() updates; every new report starts "open" and
+      // unresolved.
       confidence: null,
+      confirmations: 0,
+      status: "open",
+      resolutionNote: null,
+      moderatedAt: null,
       observedAt: new Date().toISOString(),
     };
   }

@@ -749,12 +749,59 @@ function ReportModal({ journey: j, close }: { journey: Journey; close: () => voi
   const { busy, error, run } = useAsync();
   const { notify } = useApp();
   const leg = j.legs.find((l) => l.mode !== "walk")!;
+  // Phase 8 (roadmap feature 99, "resolution visible to the reporter"): a report used to be
+  // write-only from the submitter's point of view -- there was no way to see whether anyone had
+  // looked at it. GET /api/records/report already only returns this user's own reports, so
+  // listing them here just surfaces status/resolutionNote that were already being stored.
+  const [mine, setMine] = useState<
+    {
+      id: string;
+      type: string;
+      station: string;
+      status: string;
+      confirmations: number;
+      resolutionNote: string | null;
+    }[]
+  >([]);
+  useEffect(() => {
+    void api<typeof mine>("/records/report")
+      .then(setMine)
+      .catch(() => {});
+  }, []);
   return (
     <Modal title="Share what you see" onClose={close}>
       <p>
         Your report is unverified evidence. It does not overwrite an official location or
         accessibility notice.
       </p>
+      {mine.length > 0 && (
+        <div className="stack">
+          <h3>Your recent reports</h3>
+          {mine.slice(0, 5).map((r) => (
+            <div key={r.id} className="option-card">
+              <div>
+                <Badge
+                  tone={
+                    r.status === "resolved"
+                      ? "mint"
+                      : r.status === "dismissed"
+                        ? undefined
+                        : "amber"
+                  }
+                >
+                  {readable(r.status)}
+                </Badge>
+                <p>
+                  {readable(r.type)} · {r.station}
+                  {r.confirmations > 0 &&
+                    ` · confirmed by ${r.confirmations} other rider${r.confirmations === 1 ? "" : "s"}`}
+                </p>
+                {r.resolutionNote && <small>{r.resolutionNote}</small>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       <form
         className="stack"
         onSubmit={(e) => {

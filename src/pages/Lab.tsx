@@ -46,11 +46,35 @@ export default function Lab() {
       source: string;
     } | null>(null),
     [operator, setOperator] = useState<{
-      dataQualityReports: number | null;
-      suppressed: boolean;
+      dataQualityReports: { type: string; reports: number; distinctContributors: number }[];
+      suppressedTypes: string[];
+      minimumCohort: number;
+      windowHours: number;
       notice: string;
-    } | null>(null);
+    } | null>(null),
+    [operatorReports, setOperatorReports] = useState<
+      {
+        id: string;
+        type: string;
+        station: string;
+        service: string;
+        note: string;
+        status: string;
+        confirmations: number;
+        observedAt: string;
+      }[]
+    >([]),
+    [moderating, setModerating] = useState<Record<string, string>>({});
   const { busy, error, run } = useAsync();
+  const loadOperatorReports = async () => setOperatorReports(await api("/operator/reports"));
+  const moderate = (id: string, status: string) =>
+    run(async () => {
+      await api(`/operator/reports/${id}`, "PATCH", {
+        status,
+        resolutionNote: moderating[id] ?? null,
+      });
+      await loadOperatorReports();
+    });
   const load = async () => {
     const d = await api<{ agencies: Agency[]; health: Health[] }>(
       `/registry?state=${encodeURIComponent(state)}&q=${encodeURIComponent(q)}`,
@@ -426,24 +450,94 @@ export default function Lab() {
       {tab === "operator" && (
         <Section title="Operator overview">
           <Notice>
-            Requires an operator account configured by the deployment owner. Small cohorts are
-            suppressed.
+            Requires an operator account configured by the deployment owner. Each report type below
+            is only shown once at least {operator?.minimumCohort ?? 5} distinct accounts have filed
+            it in the window -- not a single blanket count, and not just a raw report tally that one
+            account could inflate.
           </Notice>
           <Button
             disabled={busy}
-            onClick={() => void run(async () => setOperator(await api("/operator")))}
+            onClick={() =>
+              void run(async () => {
+                setOperator(await api("/operator"));
+                await loadOperatorReports();
+              })
+            }
           >
             Load operator overview
           </Button>
           {operator && (
             <>
               <div className="stats-grid compact-stats">
-                <div>
-                  <strong>{operator.dataQualityReports ?? "Suppressed"}</strong>
-                  <span>data quality reports</span>
-                </div>
+                {operator.dataQualityReports.length === 0 && (
+                  <div>
+                    <strong>Suppressed</strong>
+                    <span>no report type has reached the cohort threshold yet</span>
+                  </div>
+                )}
+                {operator.dataQualityReports.map((r) => (
+                  <div key={r.type}>
+                    <strong>{r.reports}</strong>
+                    <span>
+                      {readable(r.type)} · {r.distinctContributors} distinct contributors
+                    </span>
+                  </div>
+                ))}
               </div>
+              {operator.suppressedTypes.length > 0 && (
+                <p className="fine-print">
+                  Also reported, but below the cohort threshold to disclose a count:{" "}
+                  {operator.suppressedTypes.map(readable).join(", ")}.
+                </p>
+              )}
               <p>{operator.notice}</p>
+              <h3>Open moderation worklist</h3>
+              <p className="fine-print">
+                Every open/reviewing report is actionable here regardless of cohort size -- an
+                elevator report from one rider is still a real maintenance ticket. The reporter's
+                identity is never included.
+              </p>
+              {!operatorReports.length && (
+                <Empty title="Nothing to moderate">No open or in-review reports right now.</Empty>
+              )}
+              {operatorReports.map((r) => (
+                <div key={r.id} className="option-card">
+                  <div>
+                    <Badge>{readable(r.type)}</Badge>
+                    <h3>{r.station}</h3>
+                    <p>
+                      {r.service ? `${r.service} · ` : ""}
+                      {r.note || "No additional detail provided."}
+                    </p>
+                    <small>
+                      {r.confirmations} other rider{r.confirmations === 1 ? "" : "s"} reported the
+                      same thing recently · status: {r.status}
+                    </small>
+                  </div>
+                  <Field label="Resolution note (optional)">
+                    <textarea
+                      maxLength={500}
+                      value={moderating[r.id] ?? ""}
+                      onChange={(e) => setModerating((m) => ({ ...m, [r.id]: e.target.value }))}
+                    />
+                  </Field>
+                  <div className="button-row">
+                    <Button disabled={busy} onClick={() => void moderate(r.id, "reviewing")}>
+                      Mark reviewing
+                    </Button>
+                    <Button
+                      kind="primary"
+                      disabled={busy}
+                      onClick={() => void moderate(r.id, "resolved")}
+                    >
+                      Resolve
+                    </Button>
+                    <Button disabled={busy} onClick={() => void moderate(r.id, "dismissed")}>
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </>
           )}
         </Section>

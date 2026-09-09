@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { hashToken } from "./store.mjs";
+import { hashToken, MIN_REPORT_COHORT } from "./store.mjs";
 import {
   cities,
   states,
@@ -300,6 +300,16 @@ If you didn't request this, you can ignore this email.`,
       )
         throw new DomainError("Choose different supported endpoints.");
       if (kind === "ticket" && value.journeyId) store.get(userId, value.journeyId, "journey");
+      if (kind === "report") {
+        // Real confidence weighting (roadmap feature 99) -- how many OTHER distinct accounts
+        // reported the same station+type in the last hour, not the always-null placeholder
+        // this used to be. Capped at 1 so a busy stop can't produce a confidence above 100%.
+        const confirmations = store.reportConfirmations(value.station, value.type, {
+          excludeUserId: userId,
+        });
+        value.confirmations = confirmations;
+        value.confidence = Math.min(1, (confirmations + 1) / MIN_REPORT_COHORT);
+      }
       if (kind === "push-subscription") {
         // Re-subscribing the same device/browser (a token refresh, a service-worker update)
         // yields the same endpoint URL -- upsert on it so that produces one updated record, not
@@ -322,7 +332,10 @@ If you didn't request this, you can ignore this email.`,
         res,
         201,
         store.put(userId, kind, value, {
-          expiresAt: kind === "report" ? Date.now() + 24 * 3600000 : undefined,
+          // Was 24h; a real moderation lifecycle (open -> reviewing -> resolved/dismissed, see
+          // store.moderateReport) needs more than a day to actually happen, so this now matches
+          // the same 7-day window most other short-lived records elsewhere in this codebase use.
+          expiresAt: kind === "report" ? Date.now() + 7 * 24 * 3600000 : undefined,
         }),
       );
     }
@@ -453,14 +466,36 @@ If you didn't request this, you can ignore this email.`,
   if (url.pathname === "/api/operator" && req.method === "GET") {
     if (store.user(userId).role !== "operator")
       throw new DomainError("Operator access is required.", 403);
-    const n = store.db.prepare("SELECT COUNT(*) AS n FROM records WHERE kind='report'").get().n;
+    // Phase 8 (roadmap feature 98, hardens 99-101): replaces the old single global
+    // COUNT(*)-and-one-threshold response with a genuine per-type aggregation-threshold
+    // breakdown -- see store.operatorReportBreakdown for what changed and why.
+    const { breakdown, suppressedTypes, minimumCohort, windowHours } =
+      store.operatorReportBreakdown();
     return send(res, 200, {
-      dataQualityReports: n >= 5 ? n : null,
-      suppressed: n < 5,
-      minimumCohort: 5,
+      dataQualityReports: breakdown,
+      suppressedTypes,
+      minimumCohort,
+      windowHours,
       health: providerHealth(),
       notice: "No individual routes, identities or precise locations are disclosed.",
     });
+  }
+  // An operator's moderation worklist (roadmap feature 99's "use reports carefully"): every
+  // open/reviewing report, regardless of how few distinct accounts filed it -- unlike the
+  // aggregate breakdown above, this is a ticket queue for something operationally actionable
+  // (an elevator really is broken), not a demographic signal, so it is deliberately NOT
+  // withheld by minimumCohort. The reporter's identity still never appears (store.decode()
+  // never includes user_id).
+  if (url.pathname === "/api/operator/reports" && req.method === "GET") {
+    if (store.user(userId).role !== "operator")
+      throw new DomainError("Operator access is required.", 403);
+    return send(res, 200, store.listAllReports({ statuses: ["open", "reviewing"] }));
+  }
+  const moderateMatch = url.pathname.match(/^\/api\/operator\/reports\/([^/]+)$/);
+  if (moderateMatch && req.method === "PATCH") {
+    if (store.user(userId).role !== "operator")
+      throw new DomainError("Operator access is required.", 403);
+    return send(res, 200, store.moderateReport(moderateMatch[1], b));
   }
   if (url.pathname === "/api/community" && req.method === "GET") {
     const station = text(url.searchParams.get("station"), "Station", 160);
@@ -473,9 +508,9 @@ If you didn't request this, you can ignore this email.`,
     const riders = new Set(matched.map((r) => r.user)).size;
     return send(res, 200, {
       station,
-      riders: riders >= 5 ? riders : null,
-      threshold: 5,
-      reports: riders >= 5 ? [...new Set(matched.map((r) => r.type))] : [],
+      riders: riders >= MIN_REPORT_COHORT ? riders : null,
+      threshold: MIN_REPORT_COHORT,
+      reports: riders >= MIN_REPORT_COHORT ? [...new Set(matched.map((r) => r.type))] : [],
       source: "Unverified reports in the last hour",
     });
   }
