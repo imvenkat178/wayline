@@ -1,9 +1,43 @@
 import { digitalTwin, preferences } from "./domain/journeys.mjs";
+
+// A single in-process 30s timer sweeping every account (see server.mjs) is an accepted
+// pilot-scale constraint -- it is not leased or distributed across workers, and a crash
+// mid-sweep simply picks back up next tick because `add()` below is idempotent on
+// `dedupeKey`. Building a persisted, leased job queue is later-stage architectural work,
+// not a pilot fix. What must not happen at ANY scale, though, is silently dropping
+// accounts past a fixed page size: that was the previous bug (`LIMIT 1000`, no
+// continuation, so the 1001st account was never evaluated by the periodic sweep, ever).
+// This scans by keyset pagination over `records.user_id` instead, so a full sweep always
+// reaches every account that has a journey, commute, or pass on file, however many there
+// are, and skips accounts with nothing to evaluate rather than loading every registered
+// user up front.
+export const GUARDIAN_SCAN_BATCH_SIZE = 500;
+
+function* scanOwners(store, batchSize) {
+  let cursor = "";
+  for (;;) {
+    const rows = store.db
+      .prepare(
+        `SELECT DISTINCT user_id AS id FROM records
+         WHERE kind IN ('journey','commute','pass') AND user_id > ?
+         ORDER BY user_id LIMIT ?`,
+      )
+      .all(cursor, batchSize);
+    if (rows.length === 0) return;
+    for (const row of rows) yield row;
+    if (rows.length < batchSize) return;
+    cursor = rows[rows.length - 1].id;
+  }
+}
+
 /** Restart-safe, per-recipient deduplication. It never buys, rebooks, or sends external messages. */
-export function runGuardian(store, onlyUser, now = Date.now()) {
-  const owners = onlyUser
-    ? [{ id: onlyUser }]
-    : store.db.prepare("SELECT id FROM users LIMIT 1000").all();
+export function runGuardian(
+  store,
+  onlyUser,
+  now = Date.now(),
+  batchSize = GUARDIAN_SCAN_BATCH_SIZE,
+) {
+  const owners = onlyUser ? [{ id: onlyUser }] : scanOwners(store, batchSize);
   for (const { id: userId } of owners) {
     const user = store.user(userId);
     if (!user) continue;
