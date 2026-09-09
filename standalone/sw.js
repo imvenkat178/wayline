@@ -46,7 +46,7 @@ self.addEventListener("activate", (event) => {
 });
 
 function isStaticAsset(url) {
-  return /\.(?:js|css|svg|png|jpg|jpeg|webp|woff2?|ttf|ico|webmanifest)$/.test(url.pathname);
+  return /\.(?:js|css|svg|png|jpg|jpeg|webp|woff2?|ttf|ico|webmanifest|wasm)$/.test(url.pathname);
 }
 
 self.addEventListener("fetch", (event) => {

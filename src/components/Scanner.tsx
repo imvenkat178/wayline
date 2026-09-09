@@ -9,6 +9,11 @@ export function Scanner({ journey, close }: { journey: Journey; close: () => voi
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const worker = useRef<import("tesseract.js").Worker | null>(null);
+  // Set on unmount so an OCR worker still being created (createWorker() is async and can take
+  // a moment on first use, while it downloads/instantiates the WASM core) is terminated the
+  // instant it becomes available instead of leaking indefinitely -- the cleanup effect below
+  // can only terminate `worker.current`, which is still null while creation is in flight.
+  const cancelled = useRef(false);
   const { busy, error, run } = useAsync();
   const leg = journey.legs.find((l) => l.vehicleId) ?? journey.legs.find((l) => l.mode !== "walk")!;
   const expected = (leg.vehicleId ?? leg.service).match(/[\d]+/)?.[0];
@@ -20,6 +25,12 @@ export function Scanner({ journey, close }: { journey: Journey; close: () => voi
       if (preview) URL.revokeObjectURL(preview);
     },
     [preview],
+  );
+  useEffect(
+    () => () => {
+      cancelled.current = true;
+    },
+    [],
   );
   return (
     <Modal title="Is this your vehicle?" onClose={close}>
@@ -45,13 +56,32 @@ export function Scanner({ journey, close }: { journey: Journey; close: () => voi
                 setPreview(URL.createObjectURL(f));
                 setProgress("Loading local text recognition…");
                 const { createWorker } = await import("tesseract.js");
-                worker.current = await createWorker("eng", 1, {
+                const created = await createWorker("eng", 1, {
+                  // Served locally (public/ocr/, bundled from the tesseract.js/tesseract.js-core
+                  // packages this project already depends on) so recognition works without a
+                  // third-party worker/core host and matches "processed in this browser, not
+                  // uploaded" below. Only the SIMD and plain WASM core variants are bundled
+                  // (not relaxed-SIMD) to keep the OCR asset bundle a reasonable size; both
+                  // support LSTM-only mode, which is all this worker uses (oem=1 below).
                   workerPath: "/ocr/worker.min.js",
                   corePath: "/ocr/",
                   langPath: "https://tessdata.projectnaptha.com/4.0.0",
-                  logger: (m) => setProgress(`${m.status} ${Math.round((m.progress ?? 0) * 100)}%`),
+                  logger: (m) => {
+                    if (!cancelled.current)
+                      setProgress(`${m.status} ${Math.round((m.progress ?? 0) * 100)}%`);
+                  },
                 });
+                if (cancelled.current) {
+                  // The modal was closed while the worker was still being created (this can
+                  // take a moment on first use, downloading/instantiating the WASM core). It
+                  // was never assigned to worker.current, so the unmount cleanup effect could
+                  // not terminate it -- do that now, immediately, instead of leaking it.
+                  await created.terminate();
+                  return;
+                }
+                worker.current = created;
                 const { data } = await worker.current.recognize(f);
+                if (cancelled.current) return;
                 setRecognized(data.text);
                 await worker.current.terminate();
                 worker.current = null;

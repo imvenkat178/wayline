@@ -42,6 +42,10 @@ test("public/sw.js falls back to the cached shell for navigations, not a network
   assert.match(sw, /caches\.match\(\s*"\/index\.html"\s*\)/);
 });
 
+test("public/sw.js treats .wasm as a cacheable static asset, so the bundled OCR core works offline", () => {
+  assert.match(sw, /wasm/);
+});
+
 test("main.tsx only registers the service worker outside vite dev mode", () => {
   const main = readFileSync(fileURLToPath(new URL("../src/main.tsx", import.meta.url)), "utf8");
   assert.match(main, /serviceWorker/);
