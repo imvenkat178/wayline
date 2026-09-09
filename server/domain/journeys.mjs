@@ -577,8 +577,24 @@ export function transition(journey, next, now = Date.now()) {
     ],
   };
 }
-export function digitalTwin(journey, options = {}) {
+// Returns the journey with every leg's `tracking` recomputed by freshness() against `now`,
+// instead of whatever derived age/stale/label happened to be stored. Measurement time
+// (observedAt) is the only part of tracking that is ever persisted; everything else is a
+// function of "now" and must be recomputed at the moment of response or render, not baked in
+// when the provider data was fetched or when /tracking was last refreshed. Apply this at every
+// place a journey (or list of journeys) is about to be sent as a response.
+export function withFreshTracking(journey, now = Date.now()) {
+  return {
+    ...journey,
+    legs: journey.legs.map((leg) => ({
+      ...leg,
+      tracking: freshness(leg.tracking ?? { source: "schedule" }, now),
+    })),
+  };
+}
+export function digitalTwin(journey, options = {}, now = Date.now()) {
   const graph = connectionGraph(journey, options);
+  const fresh = withFreshTracking(journey, now);
   const alerts = [];
   for (const c of graph.connections) {
     if (c.risk === "high")
@@ -598,8 +614,8 @@ export function digitalTwin(journey, options = {}) {
         kind: "accessibility",
       });
   }
-  for (const leg of journey.legs) {
-    const f = freshness(leg.tracking ?? { source: "schedule" });
+  for (const leg of fresh.legs) {
+    const f = leg.tracking;
     if (f.ghost)
       alerts.push({
         id: `ghost:${leg.id}`,
@@ -616,9 +632,9 @@ export function digitalTwin(journey, options = {}) {
     alerts,
     leave: leaveNow(journey, options.preferences),
     arrival: iso(Date.parse(journey.arrival) + graph.arrivalDelayMinutes * 60000),
-    tracking: journey.legs.map((l) => ({
+    tracking: fresh.legs.map((l) => ({
       legId: l.id,
-      ...freshness(l.tracking ?? { source: "schedule" }),
+      ...l.tracking,
     })),
     financial: { totalCents: journey.price.totalCents, refundableCents: null },
     updatedAt: iso(Date.now()),

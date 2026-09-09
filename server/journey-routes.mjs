@@ -6,6 +6,7 @@ import {
   transition,
   preferences,
   matchLiveTracking,
+  withFreshTracking,
 } from "./domain/journeys.mjs";
 import { mbtaVehicles } from "./adapters/providers.mjs";
 import { receipt } from "./records.mjs";
@@ -17,7 +18,9 @@ export async function journeyRoutes({ req, res, url, b, store, session, send }) 
   if (!m) throw new DomainError("Endpoint not found.", 404);
   const [, id, action] = m,
     j = store.get(userId, id, "journey");
-  if (!action && req.method === "GET") return send(res, 200, j);
+  // Recompute each leg's tracking age/label against "now" rather than serving whatever was
+  // last persisted -- see withFreshTracking.
+  if (!action && req.method === "GET") return send(res, 200, withFreshTracking(j));
   if (!action && req.method === "DELETE") {
     store.transaction(() => {
       for (const kind of ["ticket", "claim", "alert", "agent", "recovery"])

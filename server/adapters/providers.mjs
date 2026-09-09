@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { DomainError, freshness, connectionGraph, leaveNow } from "../domain/journeys.mjs";
+import { DomainError, connectionGraph, leaveNow } from "../domain/journeys.mjs";
 import { cities } from "../catalog.mjs";
 const cache = new Map(),
   inflight = new Map(),
@@ -122,12 +122,19 @@ export async function mbtaVehicles() {
           bearing: v.attributes.bearing,
           status: v.attributes.current_status,
           occupancy: v.attributes.occupancy_status ?? "unknown",
-          tracking: freshness({
+          // Store the RAW measurement only -- source, observedAt (the true measurement time),
+          // confidence and position. Do NOT call freshness() here: this object is cached for
+          // up to 15s (see `cached` above) and then persisted onto journeys, so a derived
+          // age/stale/label computed at fetch time would keep answering "how fresh was this
+          // when we fetched it" forever, instead of "how fresh is this right now". Every
+          // consumer must call freshness(tracking, now) itself, at the actual moment of
+          // response or render (see withFreshTracking in domain/journeys.mjs).
+          tracking: {
             source: "live-gps",
             observedAt: v.attributes.updated_at,
             confidence: null,
             position: [v.attributes.longitude, v.attributes.latitude],
-          }),
+          },
         }))
         .filter((v) => Number.isFinite(v.lat) && Number.isFinite(v.lon)),
     };

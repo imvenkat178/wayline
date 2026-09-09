@@ -17,6 +17,7 @@ import {
   fareCompare,
   airportDeadline,
   transitions,
+  withFreshTracking,
 } from "./domain/journeys.mjs";
 import { agentReply } from "./domain/agent.mjs";
 import {
@@ -121,7 +122,11 @@ export async function handleApi(ctx) {
     });
   }
   if (url.pathname === "/api/journeys" && req.method === "GET")
-    return send(res, 200, store.list(userId, "journey"));
+    return send(
+      res,
+      200,
+      store.list(userId, "journey").map((j) => withFreshTracking(j)),
+    );
   if (url.pathname === "/api/journeys" && req.method === "POST") {
     const key = text(req.headers["idempotency-key"], "Idempotency key", 100);
     const requestHash = hashToken(
