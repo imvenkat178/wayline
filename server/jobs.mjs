@@ -25,15 +25,15 @@ export function enqueueJob(
   store,
   kind,
   payload = {},
-  { runAt, maxAttempts = 8, id = randomUUID() } = {},
+  { runAt, maxAttempts = 8, id = randomUUID(), userId = null } = {},
 ) {
   const now = Date.now();
   store.db
     .prepare(
-      `INSERT INTO jobs(id,kind,payload,status,attempts,max_attempts,interval_ms,run_at,created_at,updated_at)
-       VALUES(?,?,?,'pending',0,?,NULL,?,?,?)`,
+      `INSERT INTO jobs(id,kind,payload,status,attempts,max_attempts,interval_ms,run_at,created_at,updated_at,user_id)
+       VALUES(?,?,?,'pending',0,?,NULL,?,?,?,?)`,
     )
-    .run(id, kind, JSON.stringify(payload), maxAttempts, runAt ?? now, now, now);
+    .run(id, kind, JSON.stringify(payload), maxAttempts, runAt ?? now, now, now, userId);
   return id;
 }
 

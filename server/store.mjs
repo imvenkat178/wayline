@@ -60,11 +60,12 @@ export class Store {
    CREATE INDEX IF NOT EXISTS idx_shares_user ON shares(user_id);
    CREATE TABLE IF NOT EXISTS audit(id TEXT PRIMARY KEY,user_id TEXT,action TEXT NOT NULL,resource_id TEXT,at INTEGER NOT NULL) STRICT;
    CREATE INDEX IF NOT EXISTS idx_audit_user_time ON audit(user_id,at DESC);
-   CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,kind TEXT NOT NULL,payload TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,max_attempts INTEGER NOT NULL DEFAULT 8,interval_ms INTEGER,run_at INTEGER NOT NULL,leased_until INTEGER,leased_by TEXT,last_error TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL) STRICT;
+   CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,kind TEXT NOT NULL,payload TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,max_attempts INTEGER NOT NULL DEFAULT 8,interval_ms INTEGER,run_at INTEGER NOT NULL,leased_until INTEGER,leased_by TEXT,last_error TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,user_id TEXT REFERENCES users(id) ON DELETE CASCADE) STRICT;
    CREATE INDEX IF NOT EXISTS idx_jobs_status_run ON jobs(status,run_at);
    CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_recurring_kind ON jobs(kind) WHERE interval_ms IS NOT NULL;
    INSERT OR IGNORE INTO schema_version VALUES(1,datetime('now')); PRAGMA optimize;`);
     this.migrateSessionColumns();
+    this.migrateJobsColumns();
   }
   // A database created before session device-management existed (feature 95/96, Phase 3) has a
   // 4-column sessions table; a fresh one already has the 7-column version from the CREATE TABLE
@@ -81,6 +82,34 @@ export class Store {
       this.db.exec("ALTER TABLE sessions ADD COLUMN user_agent TEXT");
     if (!columns.includes("last_seen_at"))
       this.db.exec("ALTER TABLE sessions ADD COLUMN last_seen_at INTEGER NOT NULL DEFAULT 0");
+  }
+  // A database created before this phase's job/user linkage existed has a jobs table with no
+  // user_id column -- a "push-deliver" job's user was only findable inside its JSON payload, so
+  // deleteAccount's FK cascades (every other per-user table already has one) never reached it: a
+  // deleted account's id could linger in a job row until the unrelated 14-day cleanup() sweep
+  // happened to run. The backfill below recovers user_id for jobs whose referenced user still
+  // exists; one already orphaned by a user deleted under the old schema is left to cleanup().
+  migrateJobsColumns() {
+    const columns = this.db
+      .prepare("PRAGMA table_info(jobs)")
+      .all()
+      .map((c) => c.name);
+    if (!columns.includes("user_id")) {
+      this.db.exec(
+        "ALTER TABLE jobs ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE CASCADE",
+      );
+      this.db.exec(
+        `UPDATE jobs SET user_id=json_extract(payload,'$.userId')
+         WHERE user_id IS NULL AND json_extract(payload,'$.userId') IN (SELECT id FROM users)`,
+      );
+    }
+    // Created here (not in the main DDL block) because a legacy jobs table -- one that exists
+    // already, just without user_id -- must get the column added above BEFORE an index on that
+    // column can be created; a fresh install's jobs table already has the column from CREATE
+    // TABLE, so this is simply always safe to run once the branch above (if it ran) is done.
+    this.db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(user_id) WHERE user_id IS NOT NULL",
+    );
   }
   encrypt(value) {
     const iv = randomBytes(12);
@@ -527,6 +556,9 @@ export class Store {
         : undefined,
     };
   }
+  // Sessions, MFA enrollment state and share links are just as much "my data" as records
+  // and audit history -- none of the three expose a raw credential (sessions/shares carry a
+  // hashed token id, mfa is only the enrolled boolean, never the secret or recovery hashes).
   export(userId) {
     const rows = this.db
       .prepare("SELECT * FROM records WHERE user_id=? ORDER BY created_at")
@@ -535,6 +567,9 @@ export class Store {
       exportedAt: new Date().toISOString(),
       profile: this.user(userId),
       records: rows.map((r) => ({ kind: r.kind, ...this.decode(r) })),
+      sessions: this.sessions(userId, null),
+      mfa: this.mfaStatus(userId),
+      shares: this.shares(userId),
       audit: this.audits(userId),
     };
   }
@@ -545,9 +580,23 @@ export class Store {
           "DELETE FROM records WHERE user_id=? AND kind IN ('journey','ticket','claim','alert','agent','report','search','recovery','idempotency')",
         )
         .run(userId);
+      // Deleting 'alert' rows above can orphan a still-pending push-deliver job queued for
+      // one of them (see push.mjs's fanOutPush) -- it would otherwise no-op at delivery time
+      // and only physically disappear via cleanup()'s unrelated 14-day sweep. This is the
+      // "derived data too, not just the primary record" half of history deletion.
+      this.db
+        .prepare(
+          `DELETE FROM jobs WHERE kind='push-deliver' AND user_id=? AND status='pending'
+           AND NOT EXISTS(SELECT 1 FROM records WHERE id=json_extract(jobs.payload,'$.alertId') AND kind='alert')`,
+        )
+        .run(userId);
       this.audit(userId, "HISTORY_DELETED");
     });
   }
+  // Every per-user table besides `audit` (kept deliberately, for a forensic trail that can
+  // outlive one deletion) has a real FK to users with ON DELETE CASCADE -- sessions, mfa,
+  // pending_logins, recovery_tokens, records (every kind, including push-subscription),
+  // shares, and now jobs (Phase 4). Deleting the user row alone propagates to all of them.
   deleteAccount(userId) {
     this.transaction(() => {
       this.db.prepare("DELETE FROM users WHERE id=?").run(userId);

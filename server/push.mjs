@@ -102,7 +102,7 @@ export async function sendPush(subscription, payload) {
 // subscriptions (push was never enabled on any device) enqueues nothing, which is the common case.
 export function fanOutPush(store, userId, alertId) {
   for (const sub of store.list(userId, "push-subscription"))
-    enqueueJob(store, "push-deliver", { userId, alertId, subscriptionId: sub.id });
+    enqueueJob(store, "push-deliver", { userId, alertId, subscriptionId: sub.id }, { userId });
 }
 
 // The "push-deliver" job handler, registered in server.mjs's jobHandlers map under the
