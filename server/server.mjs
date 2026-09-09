@@ -8,6 +8,7 @@ import { DomainError } from "./domain/journeys.mjs";
 import { handleApi } from "./router.mjs";
 import { providerHealth } from "./adapters/providers.mjs";
 import { runGuardian } from "./guardian.mjs";
+import { processJobs, ensureRecurringJob } from "./jobs.mjs";
 const ROOT = resolve(fileURLToPath(new URL("../standalone/", import.meta.url)));
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -84,6 +85,12 @@ export function createApplication({
 } = {}) {
   if (production && !process.env.PUBLIC_ORIGIN)
     throw new Error("PUBLIC_ORIGIN is required in production.");
+  // The periodic sweep is itself a durable job now (see server/jobs.mjs), not a bare function
+  // call from the timer below -- seeding it is idempotent, so this is safe on every startup.
+  ensureRecurringJob(store, "guardian-sweep", {}, 30000);
+  const jobHandlers = {
+    "guardian-sweep": (jobStore) => runGuardian(jobStore),
+  };
   const server = http.createServer(async (req, res) => {
     const requestId = randomUUID();
     res.setHeader("x-request-id", requestId);
@@ -205,13 +212,16 @@ export function createApplication({
   const timer = setInterval(() => {
     try {
       store.cleanup();
-      runGuardian(store);
     } catch (e) {
       if (!quiet)
-        console.error(
-          JSON.stringify({ level: "error", message: "Guardian evaluation failed", error: e.name }),
-        );
+        console.error(JSON.stringify({ level: "error", message: "Cleanup failed", error: e.name }));
     }
+    processJobs(store, jobHandlers, { now: Date.now() }).catch((e) => {
+      if (!quiet)
+        console.error(
+          JSON.stringify({ level: "error", message: "Job processing failed", error: e.name }),
+        );
+    });
   }, 30000);
   timer.unref();
   server.on("close", () => clearInterval(timer));

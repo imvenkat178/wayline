@@ -47,6 +47,9 @@ export class Store {
    CREATE INDEX IF NOT EXISTS idx_shares_user ON shares(user_id);
    CREATE TABLE IF NOT EXISTS audit(id TEXT PRIMARY KEY,user_id TEXT,action TEXT NOT NULL,resource_id TEXT,at INTEGER NOT NULL) STRICT;
    CREATE INDEX IF NOT EXISTS idx_audit_user_time ON audit(user_id,at DESC);
+   CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,kind TEXT NOT NULL,payload TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,max_attempts INTEGER NOT NULL DEFAULT 8,interval_ms INTEGER,run_at INTEGER NOT NULL,leased_until INTEGER,leased_by TEXT,last_error TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL) STRICT;
+   CREATE INDEX IF NOT EXISTS idx_jobs_status_run ON jobs(status,run_at);
+   CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_recurring_kind ON jobs(kind) WHERE interval_ms IS NOT NULL;
    INSERT OR IGNORE INTO schema_version VALUES(1,datetime('now')); PRAGMA optimize;`);
   }
   encrypt(value) {
@@ -343,6 +346,12 @@ export class Store {
       .prepare(
         "DELETE FROM users WHERE email_hash IS NULL AND created_at<? AND NOT EXISTS(SELECT 1 FROM sessions WHERE sessions.user_id=users.id)",
       )
+      .run(now - 14 * 86400000);
+    // Finished one-shot jobs are kept for a while so a dead-lettered job can still be reviewed
+    // (see server/jobs.mjs) -- 14 days matches the guest-account retention above, not a
+    // requirement of the job system itself.
+    this.db
+      .prepare("DELETE FROM jobs WHERE status IN ('done','dead') AND updated_at<?")
       .run(now - 14 * 86400000);
   }
   close() {
