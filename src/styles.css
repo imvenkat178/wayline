@@ -709,9 +709,10 @@ svg {
   margin-top: 17px;
   cursor: pointer;
 }
-.profile-nav div {
+.profile-nav-name {
   min-width: 0;
   flex: 1;
+  text-align: left;
 }
 .profile-nav b {
   display: block;
@@ -1001,6 +1002,14 @@ svg {
   padding: 12px 22px;
   background: #152932;
   border-top: 1px solid #28404c;
+}
+/* Phase 9 (accessibility): the input inside removes its own outline (below) so it doesn't clash
+   with this bar's rounded shape -- but that only reads as a fix, not a regression, if this
+   wrapper supplies its own visible focus indicator when the input is focused. Matches the same
+   pattern .input-with-icon:focus-within already used elsewhere in this file. */
+.prompt-bar:focus-within {
+  outline: 2px solid var(--mint);
+  outline-offset: -2px;
 }
 .prompt-bar > svg {
   color: var(--mint);
@@ -2779,6 +2788,14 @@ tbody tr:hover {
   border-radius: 12px;
   background: #0e202b;
   padding: 10px;
+}
+/* Phase 9 (accessibility): same reasoning as .prompt-bar:focus-within above -- the textarea's
+   own outline is suppressed below, so this wrapper needs to supply a real one instead of a
+   keyboard user losing all focus indication while typing to the assistant. */
+.agent-input:focus-within {
+  border-color: var(--mint);
+  outline: 2px solid var(--mint);
+  outline-offset: -1px;
 }
 .agent-input textarea {
   flex: 1;

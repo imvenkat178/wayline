@@ -391,14 +391,18 @@ export default function App() {
               <Icon name="download" size={19} />
               Offline packs
             </button>
-            <div className="profile-nav" onClick={() => navigate("profile")}>
+            {/* Phase 9 (accessibility): this was a plain <div onClick> -- unreachable by
+                keyboard and invisible to a screen reader as an interactive control. A real
+                <button> gets tab order, Enter/Space activation and an implicit "button" role for
+                free instead of hand-rolling role/tabIndex/onKeyDown. */}
+            <button className="profile-nav" onClick={() => navigate("profile")}>
               <span className="avatar">{boot.user.name[0]}</span>
-              <div>
+              <span className="profile-nav-name">
                 <b>{boot.user.name}</b>
                 <small>{boot.user.registered ? "Your account" : "Guest session"}</small>
-              </div>
+              </span>
               <Icon name="chevron" size={15} />
-            </div>
+            </button>
           </div>
         </aside>
         {menu && (
