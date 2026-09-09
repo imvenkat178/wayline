@@ -9,8 +9,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "start": "node --env-file-if-exists=.env server/server.mjs",
     "start:free": "node --env-file-if-exists=.env server/server.mjs",
-    "test": "node --test tests/*.test.mjs",
-    "check": "tsc -b && node --test tests/*.test.mjs",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "check": "tsc -b && node --experimental-strip-types --test tests/*.test.mjs",
     "package": "python3 scripts/package.py"
   },
   "dependencies": {

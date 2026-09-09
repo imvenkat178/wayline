@@ -9,6 +9,7 @@ import type {
   Alert,
 } from "./types";
 import { AppContext, defaultPreferences } from "./context";
+import { nav, resolveHash } from "./routes";
 import { api, setCsrf, time, dateLabel, readable } from "./api";
 import { Icon, Button, Badge, Notice, Empty, Section } from "./components/ui";
 import { Agent } from "./components/Agent";
@@ -53,16 +54,7 @@ const labels: Record<string, string[]> = {
     "परिवहन डेटा",
   ],
 };
-const nav: [Page, string][] = [
-  ["plan", "route"],
-  ["journey", "shield"],
-  ["wallet", "ticket"],
-  ["inbox", "bell"],
-  ["trips", "clock"],
-  ["commute", "refresh"],
-  ["profile", "user"],
-  ["lab", "globe"],
-];
+
 export default function App() {
   const [boot, setBoot] = useState<Bootstrap | null>(null),
     [page, setPage] = useState<Page>("plan"),
@@ -102,11 +94,20 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(""), 5500);
   }, []);
   const navigate = useCallback((p: Page) => {
+    setOfflineView(false);
     setPage(p);
     setMenu(false);
     history.pushState({}, "", `#${p}`);
     window.scrollTo({ top: 0, behavior: "instant" });
     requestAnimationFrame(() => document.getElementById("main-content")?.focus());
+  }, []);
+  // The one place offline view is entered, so it always leaves a history entry behind it --
+  // otherwise Back after opening it had nowhere real to go, and the URL never reflected being
+  // there (a direct link/refresh to #offline worked, entering it from inside the app did not).
+  const openOffline = useCallback(() => {
+    setOfflineView(true);
+    setMenu(false);
+    history.pushState({}, "", "#offline");
   }, []);
   const refresh = useCallback(async () => {
     const epoch = sessionEpoch.current;
@@ -155,8 +156,13 @@ export default function App() {
         setSearchInput((s) => ({ ...s, preferences: data.user.preferences }));
         await refresh();
         const current = location.hash.slice(1);
-        if (nav.some(([p]) => p === current) || current === "watch") setPage(current as Page);
-        if (current === "offline") setOfflineView(true);
+        const match = resolveHash(current);
+        setPage(match.page);
+        if (match.offline) setOfflineView(true);
+        // A direct link or refresh landed on a hash that matches no known route: show the
+        // fallback page (already set above) but also correct the address bar to match what's
+        // actually on screen, instead of leaving it pointing at a route that doesn't exist.
+        if (current && !match.recognized) history.replaceState({}, "", `#${match.page}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Wayline could not start.");
       }
@@ -166,8 +172,15 @@ export default function App() {
     const on = () => setOnline(true),
       off = () => setOnline(false),
       back = () => {
-        const p = location.hash.slice(1) as Page;
-        setPage(nav.some(([x]) => x === p) || p === "watch" ? p : "plan");
+        // Shared with the initial-load handler so Back/Forward, a direct link and a refresh
+        // all agree on what a given hash means -- including entering/leaving offline view,
+        // which previously had no popstate handling at all (offlineView was only ever set to
+        // true from a button click with no history entry behind it, or from the initial-load
+        // hash check; Back could leave the app showing Offline while the URL had already moved
+        // on, or vice versa).
+        const match = resolveHash(location.hash.slice(1));
+        setOfflineView(match.offline);
+        setPage(match.page);
       };
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
@@ -297,7 +310,7 @@ export default function App() {
           <Button kind="primary" onClick={() => location.reload()}>
             Try again
           </Button>
-          <Button icon="lock" onClick={() => setOfflineView(true)}>
+          <Button icon="lock" onClick={openOffline}>
             Open offline packs
           </Button>
         </div>
@@ -341,7 +354,11 @@ export default function App() {
       </a>
       <div className={`app-shell ${menu ? "menu-open" : ""}`}>
         <aside className="sidebar">
-          <Brand />
+          {/* The only Brand usage inside the loaded app shell -- goes through navigate() like
+              every other nav control, instead of a plain hash link with nothing listening for
+              a bare hashchange. The other Brand usages above render before boot/routing exist
+              (loading, error, and shared-link views), so a plain anchor is harmless there. */}
+          <Brand onClick={() => navigate("plan")} />
           <div className="workspace-label">YOUR JOURNEY SPACE</div>
           <nav aria-label="Main navigation">
             {nav.slice(0, 6).map(([p, icon], i) => (
@@ -378,7 +395,7 @@ export default function App() {
                 {navigation[6 + i]}
               </button>
             ))}
-            <button onClick={() => setOfflineView(true)}>
+            <button onClick={openOffline}>
               <Icon name="download" size={19} />
               Offline packs
             </button>
@@ -439,7 +456,7 @@ export default function App() {
           {!online && (
             <Notice tone="amber">
               Connection lost. Previously displayed information may be stale.{" "}
-              <button className="text-link" onClick={() => setOfflineView(true)}>
+              <button className="text-link" onClick={openOffline}>
                 Open encrypted offline packs
               </button>
             </Notice>
@@ -505,9 +522,20 @@ export default function App() {
     </AppContext.Provider>
   );
 }
-function Brand() {
+function Brand({ onClick }: { onClick?: () => void } = {}) {
   return (
-    <a className="brand" href="#plan" aria-label="Wayline home">
+    <a
+      className="brand"
+      href="#plan"
+      aria-label="Wayline home"
+      onClick={
+        onClick &&
+        ((e) => {
+          e.preventDefault();
+          onClick();
+        })
+      }
+    >
       <img src="/icon.svg" alt="" />
       <strong>
         wayline<span>®</span>
