@@ -2,7 +2,9 @@
 
 Transportation planning, journey monitoring, and a grounded travel assistant, built with React, TypeScript, Vite, and Node.js/SQLite.
 
-**Work-in-progress checkpoint — 8 September 2026.** This is the implementation so far, not a finished production release. All 105 requested features are accounted for in [FEATURE_STATUS.md](docs/FEATURE_STATUS.md). Sample routes, prices, crowding, reliability, and connection probabilities are illustrative, not verified schedules, quotes, or predictions.
+**Work-in-progress checkpoint — 8 September 2026, with a Stage A stabilization pass applied 9 September 2026.** This is the implementation so far, not a finished production release. All 105 requested features are accounted for in [FEATURE_STATUS.md](docs/FEATURE_STATUS.md). Sample routes, prices, crowding, reliability, and connection probabilities are illustrative, not verified schedules, quotes, or predictions.
+
+The 9 September pass addressed every row in the roadmap's "Immediate code work before expanding scope" table: account-switch state leaks, hash routing consistency, an offline app-shell service worker, bundled OCR assets, local-timezone night-walking scoring, tracking-agency/provider separation, freshness recomputed per response instead of cached, Guardian's account scan no longer capped at 1,000, recovery alternatives checked against where the traveler can actually reach, recovery cost calculated incrementally instead of by whole-itinerary subtraction, honest per-capability integration-status reporting, and paginated MBTA feed fetches. All of this is code-level and unit-tested (69 focused Node tests); none of it has been exercised against a real browser, a live MBTA/OTP/GBFS feed, or real user accounts at scale -- see "Known gaps and remaining work" below for what that leaves outstanding.
 
 ## Quick start
 
@@ -35,15 +37,15 @@ On PowerShell use `$env:PORT="4174"; npm start` in terminal 1. Open the URL prin
 | --- | --- |
 | Planner | Sample multimodal corridors, comparison, group costs, budget/walking/transfer/accessibility filters, arrival deadlines, importance and risk preferences |
 | Journey | Persisted plans, state transitions, timeline, leave-time estimates, connection graph, delay/accessibility/weather scenarios |
-| Guardian | Periodic server evaluation, persisted/deduplicated alerts, prepared recovery alternatives, in-app check-in reminders |
+| Guardian | Periodic server evaluation paginated across every account with a journey/commute/pass (no longer capped at 1,000), persisted/deduplicated alerts, prepared recovery alternatives checked against where the traveler can currently reach, in-app check-in reminders |
 | Assistant | Grounded rules and preference extraction; optional Ollama intent classification with deterministic fallback |
-| Wallet | Manually entered ticket details, passes, receipt exports, refund drafts; no issuance or money movement |
+| Wallet | Manually entered ticket details (including an optional self-reported paid amount used for recovery cost), passes, receipt exports, refund drafts; no issuance or money movement |
 | Profile | Guest/registered accounts, travelers, contacts, preferences, favorites, data export and deletion |
 | Sharing | Expiring, revocable journey links with explicit location scope; no rider background GPS collection |
 | Commute | Recurring schedules, entered-fare comparisons, fare-cap calculations and renewal reminders |
-| Transit Lab | Curated agency seed, optional MBTA, GTFS-RT, GBFS, weather, geocoder and routing adapters |
-| Local data | Passphrase-encrypted journey packs in IndexedDB; cold-start offline shell remains unfinished |
-| Maps/boarding | MapLibre endpoint map, schematic sample routes, manual sign comparison and camera checklist |
+| Transit Lab | Curated agency seed, optional MBTA, GTFS-RT, GBFS, weather, geocoder and routing adapters; MBTA vehicle/alert fetches now paginate with an explicit coverage-limited flag; integration-capability status distinguishes provider-required from unimplemented instead of one blanket "not connected" |
+| Local data | Passphrase-encrypted journey packs in IndexedDB; an app-shell service worker (`public/sw.js`) now caches the shell for cold-start offline access, not yet verified in a real browser |
+| Maps/boarding | MapLibre endpoint map, schematic sample routes, manual sign comparison, camera checklist and bundled OCR scanning (tesseract.js worker/WASM assets under `/ocr/`) |
 | Analytics | Trip summaries, estimated budgets and carbon; no verified on-time dataset or actual purchased spend |
 
 The six bidirectional sample corridors are Los Angeles–San Jose, Boston–New York, Indianapolis–Chicago, San Francisco–Oakland, Seattle–Bainbridge, and Los Angeles–LAX. Agency seed entries span 50 states and DC; this does not mean complete national routing or live feed coverage.
@@ -123,14 +125,16 @@ Offline passphrases remain in the browser. Share links are bearer credentials. C
 
 ## Known gaps and remaining work
 
-1. Validate routing/provider feeds, vehicle-to-journey matching, cached timestamps, fares, platforms and accessibility evidence.
-2. Complete the service worker and offline app shell. Local encrypted packs alone do not provide cold-start offline access.
-3. Bundle OCR worker/WASM assets under `/ocr/`. Manual entry works; packaged photo OCR is unfinished.
-4. Complete account-switch UI cleanup, navigation details, local-time night-walking scoring, full localization and accessibility review.
+1. Validate routing/provider feeds against real, live traffic. This environment has no network path to MBTA/OTP/GBFS, so vehicle-to-journey matching (now keyed on canonical agency rather than routing provider) and MBTA's now-paginated vehicle/alert fetches (with an explicit `coverageLimited` flag instead of a silent one-page truncation) are unit-tested against mocked responses only, not exercised against a live feed. Fares, platforms and accessibility evidence remain unverified.
+2. The offline app shell now has a service worker (`public/sw.js`) that caches the static shell and lets the SPA boot without a connection; it has not been tested with real browser interaction (install/activate lifecycle across browsers, storage limits, multi-tab behavior). Local encrypted IndexedDB packs are unaffected by this and were already present.
+3. OCR assets are bundled under `/ocr/` (tesseract.js worker plus standard and SIMD WASM cores, with their licenses), and scan cancellation is reliable across unmount/navigation. First-use and failure-path behavior have not been tested in a real browser.
+4. Account switching now clears user-scoped app state and in-flight requests on identity change; hash routing is consistent for the logo, offline view, and unknown routes; night-walking scoring uses each journey's own timezone instead of `getUTCHours`. Full localization and an accessibility (screen reader/keyboard) review remain outstanding.
 5. Integrate authorized ticketing, seats, payments, holds, rebooking, claim submission and refunds.
 6. Add observed reliability data and calibrated prediction models; current probabilities and sample crowding are heuristics.
-7. Complete remote push, native watch clients, indoor maps/AR, actual family tracking, flight and EV integrations.
-8. Add broader integration, end-to-end, migration, load, recovery and security checks. Browser interaction testing has not been performed for this checkpoint.
+7. Integration-capability reporting now distinguishes features that need a commercial/contracted provider ("provider required": checkout, ticketing, seat inventory, payment tokenization, rebooking, refunds, flight inventory, SMS/email) from features with no implementation in this codebase at all ("unsupported": remote push, native watch clients, indoor maps/AR, EV live availability) instead of marking all twelve "not connected." None of the twelve are actually built yet; actual family tracking is separately still deferred.
+8. Guardian's periodic sweep now paginates through every account with a journey, commute, or pass on file instead of capping at the first 1,000 accounts, but it remains a single in-process timer, not a durable, leased, multi-worker job system — that is later-stage architectural work per the roadmap's "Durable background processing" guidance, documented inline in `server/guardian.mjs`.
+9. Prepared trip recovery now checks that an alternative actually departs from a stop and time the traveler could reach (not just that it shares the destination and arrives in the future), and calculates an incremental cost — netting out legs retained from the original itinerary and using a self-reported paid ticket amount when one is on file — instead of subtracting two whole-itinerary estimates. There is still no provider transaction, no real exchange/refund-rule data, and no nonrefundable-amount data anywhere in this codebase; both remain draft-only, for-review calculations.
+10. Add broader integration, end-to-end, migration, load, recovery and security checks. Browser interaction testing has not been performed for this checkpoint.
 
 See [FEATURE_STATUS.md](docs/FEATURE_STATUS.md) for all 105 items. No organization-specific engineering or release standards were attached; these must be supplied before production approval.
 
@@ -144,7 +148,7 @@ npm run package
 
 `check` runs TypeScript and focused regression tests. `build` compiles the frontend. `package` creates `artifacts/wayline-ai-complete.zip`. [CHECKPOINT.md](docs/CHECKPOINT.md) records the actual results.
 
-Tests cover stale signal labeling, integer-cent pricing, guarded state changes, record ownership, optimistic concurrency, share revocation, history deletion, CSRF, session rotation and traveler-only registration. They do not verify every feature or live integration.
+69 focused Node tests (`node --test tests/*.test.mjs`) cover stale signal labeling, integer-cent pricing, guarded state changes, record ownership, optimistic concurrency, share revocation, history deletion, CSRF, session rotation, traveler-only registration, local-timezone night-walking scoring, tracking-agency/provider matching, freshness recomputation, account-switch/navigation state, the offline service worker's caching logic, bundled OCR assets, Guardian's paginated account scan, recovery-alternative reachability, recovery incremental cost, honest integration-capability statuses, and mocked MBTA feed pagination. They do not verify every feature or live integration -- see "Known gaps and remaining work" above.
 
 The ZIP includes all source, lockfile, compiled frontend, public assets, tests, scripts, infrastructure examples, configuration template and current/original documentation. Dependencies, databases, secrets, Git metadata and caches are excluded. Restore dependencies with `npm ci`.
 

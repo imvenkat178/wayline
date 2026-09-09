@@ -1,6 +1,6 @@
 # Feature implementation status
 
-Checkpoint: 8 September 2026. Every row maps to the supplied requirements. **Local** means local code exists, not that all browser interactions or production behavior have been certified. **Sample** uses illustrative assumptions. **Partial** has meaningful unfinished work. **Integration** requires configured services and validation. **Provider required** and **Deferred** are not completed features.
+Checkpoint: 8 September 2026, with a Stage A code-stabilization pass applied 9 September 2026 (see the rows noting it below and [README.md](../README.md) for the full list). Every row maps to the supplied requirements. **Local** means local code exists, not that all browser interactions or production behavior have been certified. **Sample** uses illustrative assumptions. **Partial** has meaningful unfinished work. **Integration** requires configured services and validation. **Provider required** and **Deferred** are not completed features.
 
 Read [README.md](../README.md) for setup and limitations and [ORIGINAL_REQUIREMENTS.md](ORIGINAL_REQUIREMENTS.md) for the full original request.
 
@@ -12,19 +12,19 @@ Read [README.md](../README.md) for setup and limitations and [ORIGINAL_REQUIREME
 | 4 | Reliability scoring | Sample | Illustrative reliability values; no observed reliability dataset. |
 | 5 | Arrival confidence | Sample | Modeled arrival time; no calibrated confidence interval. |
 | 6 | Transfer-risk scoring | Sample | Connection buffers, detours and heuristic risk. |
-| 7 | Journey Guardian | Partial | Persisted server-side alerts; no continuous provider-to-journey refresh. |
+| 7 | Journey Guardian | Partial | Persisted server-side alerts; periodic scan now paginates through every account with a relevant record instead of capping at 1,000, but remains a single in-process timer, not a durable leased job system; no continuous provider-to-journey refresh. |
 | 8 | Connection protection | Partial | Connection warnings; no carrier protection guarantee. |
-| 9 | Prepared trip recovery | Partial | Prepared alternatives; no reserved inventory. |
-| 10 | Automatic recovery architecture | Partial | Recovery states and user choice; no provider transaction or automatic purchase. |
-| 11 | Tracking provenance | Local | Source labels and freshness logic; provider mappings need integration validation. |
+| 9 | Prepared trip recovery | Partial | Prepared alternatives now checked against a stop and time the traveler could actually reach, not just a shared destination and future arrival; no reserved inventory. |
+| 10 | Automatic recovery architecture | Partial | Recovery states and user choice; cost is now an incremental estimate (retained legs netted out, self-reported paid ticket used as baseline when on file) instead of a whole-itinerary subtraction; no provider transaction, exchange/refund-rule data, or automatic purchase. |
+| 11 | Tracking provenance | Local | Source labels and freshness logic, now recomputed against the current time on every response instead of cached at fetch time; live-vehicle matching keys off canonical agency rather than routing provider; provider mappings still need integration validation against a live feed. |
 | 12 | Ghost-bus detection | Partial | Stale/missing GPS flags, never proof of cancellation. |
-| 13 | Live vehicle tracking | Integration | MBTA and configured GTFS-RT adapters; complete journey matching remains. |
+| 13 | Live vehicle tracking | Integration | MBTA and configured GTFS-RT adapters; MBTA vehicle/alert fetches now paginate with an explicit coverage-limited flag instead of one silently-truncated page (unit-tested against mocked responses; not yet exercised against the live feed). Complete journey matching remains. |
 | 14 | Live map | Partial | MapLibre endpoints and separate vehicle view; no complete live route geometry. |
 | 15 | Exact boarding location | Deferred | Generic boarding guidance; no verified precise boarding dataset. |
 | 16 | Vehicle identity confidence | Deferred | Manual sign comparison; no calibrated identity confidence. |
-| 17 | “Is this my bus?” feature | Partial | Manual sign entry/camera checklist; OCR assets still need bundling. |
+| 17 | “Is this my bus?” feature | Partial | Manual sign entry/camera checklist; OCR worker/WASM assets are now bundled under `/ocr/` with reliable scan cancellation; first-use/failure behavior untested in a real browser. |
 | 18 | Ticket wallet | Partial | Manual ticket records and passes; no barcode import or issuance. |
-| 19 | Offline ticket access | Partial | Encrypted journey packs; offline shell and complete ticket artifacts remain. |
+| 19 | Offline ticket access | Partial | Encrypted journey packs; an app-shell service worker now provides cold-start offline access (untested in a real browser); complete ticket artifacts remain. |
 | 20 | Single journey timeline | Local | Saved states and events in one journey timeline. |
 | 21 | Unified disruption inbox | Partial | Persisted app alerts and separate provider alerts; full normalization remains. |
 | 22 | AI disruption summaries | Partial | Rules-based summaries; optional model intent extraction. |
@@ -37,7 +37,7 @@ Read [README.md](../README.md) for setup and limitations and [ORIGINAL_REQUIREME
 | 29 | Refund eligibility | Partial | Draft refund workflow; no authoritative provider eligibility engine. |
 | 30 | Journey Receipt | Partial | JSON estimate receipt; not proof of purchase. |
 | 31 | Automatic refund claims | Deferred | Drafts can be exported; submission and money recovery are unconnected. |
-| 32 | Open Transit Lab | Partial | Discovery seed, adapter status and optional live-data tools. |
+| 32 | Open Transit Lab | Partial | Discovery seed, adapter status and optional live-data tools; commercial/native integration status now distinguishes provider-required from genuinely unimplemented instead of one blanket "not connected." |
 | 33 | Free/open-data architecture | Partial | Open stack adapters; routing datasets/services must be supplied. |
 | 34 | Universal booking | Provider required | No unified purchase or ticket issuance. |
 | 35 | Real Amtrak ticket issuance | Provider required | Official operator link; no issuance. |
@@ -62,8 +62,8 @@ Read [README.md](../README.md) for setup and limitations and [ORIGINAL_REQUIREME
 | 54 | Station intelligence | Partial | Generic station guides; facilities unverified. |
 | 55 | Station indoor navigation | Deferred | No indoor mapping graph or verified paths. |
 | 56 | AR boarding guidance | Deferred | Camera checklist exists; no AR localization. |
-| 57 | Camera-assisted bus recognition | Partial | Manual signs and photo UI; OCR assets missing. |
-| 58 | Safety-aware routing | Partial | Walking/night preferences; no verified safety dataset and timezone scoring needs work. |
+| 57 | Camera-assisted bus recognition | Partial | Manual signs and photo UI; OCR worker/WASM assets are now bundled under `/ocr/`. |
+| 58 | Safety-aware routing | Partial | Walking/night preferences, now scored against each journey's own local timezone instead of UTC; no verified safety dataset. |
 | 59 | Weather-aware routing | Partial | Weather endpoint and explicit scenarios; no complete automatic journey-weather pipeline. |
 | 60 | Airport connection mode | Partial | Configurable airport arrival allowances; no live security/terminal forecasts. |
 | 61 | Flight + ground transportation integration | Provider required | No live flight data or booking integration. |
@@ -90,9 +90,9 @@ Read [README.md](../README.md) for setup and limitations and [ORIGINAL_REQUIREME
 | 82 | Personal travel analytics | Partial | Saved-trip totals; purchased spend and measured on-time rates unavailable. |
 | 83 | Operator reliability analytics | Deferred | No validated operator performance observations. |
 | 84 | Real-time system health | Partial | Adapter/circuit status; no full monitoring or alerting platform. |
-| 85 | Data freshness | Partial | Timestamp-based freshness; cached provider-label behavior needs review. |
+| 85 | Data freshness | Partial | Timestamp-based freshness, now recomputed at response/render time on every call instead of being baked in when provider data was fetched or cached. |
 | 86 | Confidence everywhere | Partial | Provenance/missing-data notices; no calibrated confidence across providers. |
-| 87 | Offline journey mode | Partial | Encrypted local packs; no service worker for offline startup. |
+| 87 | Offline journey mode | Partial | Encrypted local packs; an app-shell service worker now caches the shell for offline startup (untested in a real browser). |
 | 88 | Poor-connectivity mode | Partial | Request timeouts and error UI; cold-start offline/retry queue unfinished. |
 | 89 | Push notifications | Partial | Browser notifications while app is open; no remote push delivery. |
 | 90 | Smart notification prioritization | Partial | Severity, preferences, quiet hours and deduplication. |
