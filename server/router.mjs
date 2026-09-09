@@ -18,7 +18,7 @@ import {
   transitions,
   withFreshTracking,
 } from "./domain/journeys.mjs";
-import { agentReply } from "./domain/agent.mjs";
+import { runAgentGraph } from "./domain/agentGraph.mjs";
 import {
   mbtaVehicles,
   mbtaAlerts,
@@ -361,7 +361,7 @@ If you didn't request this, you can ignore this email.`,
       journey = search.result.journeys.find((j) => j.id === b.candidateId) ?? null;
     }
     const history = store.list(userId, "agent").slice(0, 10).reverse();
-    const reply = await agentReply({
+    const reply = await runAgentGraph({
       input,
       journey,
       preferences: preferences(store.user(userId).preferences),

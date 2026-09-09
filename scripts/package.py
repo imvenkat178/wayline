@@ -5,7 +5,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 root = Path(__file__).resolve().parents[1]
 target = root / 'artifacts' / 'wayline-ai-complete.zip'
 target.parent.mkdir(exist_ok=True)
-excluded = {'.git', 'node_modules', 'data', 'artifacts', 'coverage', '__pycache__'}
+excluded = {'.git', 'node_modules', 'data', 'artifacts', 'coverage', '__pycache__', 'models'}
 files = []
 for path in sorted(root.rglob('*')):
     relative = path.relative_to(root)

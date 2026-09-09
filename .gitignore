@@ -8,3 +8,5 @@ vite.config.d.ts
 artifacts/
 coverage/
 .tsx-test-cache/
+models/
+.llm-smoke-test.Modelfile
