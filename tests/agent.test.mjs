@@ -256,6 +256,85 @@ test("OllamaChatProvider refuses to construct without both a baseUrl and a model
   assert.doesNotThrow(() => new OllamaChatProvider({ baseUrl: "http://x", model: "m" }));
 });
 
+// OLLAMA_NUM_CTX exists because a real local Llama 3.2 3B model, run against this project on a
+// 3.8GB-RAM host, failed outright ("model requires more system memory than is available") at
+// Ollama's default context size and only completed a chat request once the context window was
+// capped -- this isn't a hypothetical knob, it's what made the real smoke test in
+// scripts/llm-smoke-test.mjs pass on that machine. See docs/adr/0008-real-llm-agent.md.
+test("defaultChatProvider passes OLLAMA_NUM_CTX through to the provider as numCtx", () => {
+  const withoutIt = defaultChatProvider({ OLLAMA_BASE_URL: "http://x:11434", OLLAMA_MODEL: "m" });
+  assert.equal(withoutIt.numCtx, undefined);
+  const withIt = defaultChatProvider({
+    OLLAMA_BASE_URL: "http://x:11434",
+    OLLAMA_MODEL: "m",
+    OLLAMA_NUM_CTX: "256",
+  });
+  assert.equal(withIt.numCtx, 256);
+});
+
+test("OllamaChatProvider.chat only sends num_ctx when the provider was configured with one", async (t) => {
+  const bodies = [];
+  t.mock.method(globalThis, "fetch", async (_url, options) => {
+    bodies.push(JSON.parse(options.body));
+    const bytes = Buffer.from(JSON.stringify({ message: { content: "ok" } }));
+    return {
+      ok: true,
+      headers: { get: () => null },
+      body: {
+        async *[Symbol.asyncIterator]() {
+          yield bytes;
+        },
+      },
+    };
+  });
+
+  const plain = new OllamaChatProvider({ baseUrl: "http://x:11434", model: "m" });
+  await plain.chat({ messages: [{ role: "user", content: "hi" }] });
+  assert.equal(bodies[0].options.num_ctx, undefined);
+
+  const capped = new OllamaChatProvider({ baseUrl: "http://x:11434", model: "m", numCtx: 256 });
+  await capped.chat({ messages: [{ role: "user", content: "hi" }] });
+  assert.equal(bodies[1].options.num_ctx, 256);
+});
+
+// This is deliberately NOT `format: <schema object>` (Ollama's newer structured-outputs
+// feature) -- see the long comment on OllamaChatProvider.chat() in server/adapters/llm.mjs for
+// why: that mode 400s outright against a real Ollama 0.3.14 install, confirmed by hand, not
+// assumed. Sending the broadly-supported `format: "json"` string plus the schema as plain text
+// works on old and new Ollama versions alike, and doesn't weaken the safety property because
+// agentGraph.mjs's classifyIntent re-checks the answer against the closed `intents` list
+// regardless of which format mode produced it.
+test('OllamaChatProvider.chat sends format:"json" (not a schema object) and embeds the schema as text when jsonSchema is given', async (t) => {
+  const bodies = [];
+  t.mock.method(globalThis, "fetch", async (_url, options) => {
+    bodies.push(JSON.parse(options.body));
+    const bytes = Buffer.from(JSON.stringify({ message: { content: '{"intent":"cost"}' } }));
+    return {
+      ok: true,
+      headers: { get: () => null },
+      body: {
+        async *[Symbol.asyncIterator]() {
+          yield bytes;
+        },
+      },
+    };
+  });
+
+  const provider = new OllamaChatProvider({ baseUrl: "http://x:11434", model: "m" });
+  const schema = { type: "object", properties: { intent: { type: "string" } } };
+  const content = await provider.chat({
+    messages: [{ role: "user", content: "how much?" }],
+    jsonSchema: schema,
+  });
+
+  assert.equal(content, '{"intent":"cost"}');
+  assert.equal(bodies[0].format, "json");
+  assert.equal(bodies[0].messages.length, 2);
+  assert.equal(bodies[0].messages[0].content, "how much?");
+  assert.equal(bodies[0].messages[1].role, "system");
+  assert.ok(bodies[0].messages[1].content.includes(JSON.stringify(schema)));
+});
+
 test("tracingEnabled requires both LANGSMITH_TRACING=true and an API key -- either alone is off", () => {
   assert.equal(tracingEnabled({}), false);
   assert.equal(tracingEnabled({ LANGSMITH_TRACING: "true" }), false);

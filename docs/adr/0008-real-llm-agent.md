@@ -91,3 +91,63 @@ user's own action a clean, explicit seam rather than something faked:
 - This only changes the Agent feature (roadmap 46). It does not touch any other feature, and it
   does not add any new hosted-LLM account or credential to the codebase -- Anthropic, OpenAI, or
   any other contracted API remains exactly as absent as it was before this pass.
+
+## Update: validated against a real pulled model
+
+Everything above was written when no model was reachable from this environment at all. Since
+then, the user installed Ollama on their own machine and ran `ollama pull llama3.2` themselves
+(a real `llama3.2`, 3B, Q4_K_M, ~2 GB) -- the path this ADR's original "Decision" section said
+the user would need to take. That model was then validated for real, not left as an assumption:
+
+- This environment's own Ollama binary (installed the way described above, from
+  `release-assets.githubusercontent.com`) was pointed at the user's already-pulled model via
+  Ollama's own `OLLAMA_MODELS` environment variable, rather than pulling a second copy through
+  the still-blocked registry path. `ollama list` against that directory correctly showed
+  `llama3.2:latest`, and `ollama serve` loaded and served it.
+- That surfaced a real, previously undetected bug: `OllamaChatProvider` (in
+  `server/adapters/llm.mjs`) was sending the classify step's schema as `format: <schema
+object>` -- Ollama's newer structured-outputs feature. Against this real install's Ollama
+  version (0.3.14), that 400s immediately: `"json: cannot unmarshal object into Go struct field
+ChatRequest.format of type string"`. Fixed by sending the broadly-supported `format: "json"`
+  string instead, with the schema described as plain text in an appended system message. This
+  doesn't weaken the safety property this ADR is built around: `classifyIntent` in
+  `agentGraph.mjs` re-checks the model's answer against the closed `intents` list in JS
+  regardless of which format mode produced it, so a less-strict format mode can only fail
+  closed (fall back to the regex classifier), never smuggle an out-of-list answer through. A
+  test against a mocked `fetch` (`tests/agent.test.mjs`) now pins this exact request shape down
+  so it can't silently regress back to the object form.
+- That also surfaced a second real, previously undetected problem: the machine this Ollama
+  install ran on (3.8 GB RAM, no GPU, no swap) could not load the model at its default context
+  size at all -- `"model requires more system memory than is available"` -- until the context
+  window was capped. `OllamaChatProvider` now accepts an optional `numCtx`, wired to a new
+  `OLLAMA_NUM_CTX` environment variable; unset by default, so this changes nothing for anyone
+  who doesn't need it, but it's what let a chat request complete at all on this machine.
+- With that fix, a real classify-shaped HTTP request through this exact code path returned a
+  correct, genuinely model-generated answer (`{"intent":"cost"}` for a cost question), and a
+  real compose-shaped request independently returned a real reworded version of a grounded
+  reply (labeled `· composed` in the response) -- both confirmed directly, not assumed from the
+  fix alone.
+- What did not fit in one sitting was running `scripts/llm-smoke-test.mjs`'s full three-case
+  sequence back-to-back on that same machine within a single tool invocation here: measured
+  prompt-processing throughput on it was on the order of half a second to a second and a half
+  per token (evaluating a 27-token prompt alone took ~39 seconds at one point) -- a CPU/
+  scheduling limit of that one sandboxed environment, not of the code or of Ollama. That's also
+  why `OllamaChatProvider` now accepts an optional `timeoutMs` override via a new
+  `OLLAMA_TIMEOUT_MS` environment variable: the previous fixed 20-second timeout is realistic
+  for ordinary hardware but was measured, directly, to be too short here. On typical
+  unconstrained hardware (most normal desktops, including whatever the user pulled the model on
+  the normal way), none of this slowness is expected, and the full three-case script should
+  complete in well under a minute.
+- `scripts/llm-smoke-test.mjs` was extended to match how this was actually validated: it now
+  accepts `MODEL_NAME` (use a model already pulled the normal way, skipping the raw-`.gguf`-
+  file-plus-generated-`Modelfile` path this ADR originally described as the only option) and
+  `OLLAMA_MODELS` (point at an existing Ollama install's models directory instead of pulling a
+  second copy). The original raw-file path still works and is documented as the fallback for
+  someone who genuinely only has a `.gguf` file and no Ollama-managed pull.
+
+None of this changes the shipped default: `OLLAMA_BASE_URL`/`OLLAMA_MODEL` are still unset out
+of the box, and the model is still never the source of a fact. What changed is that the model
+path is no longer an untested assumption -- it was pointed at a real model the user actually
+pulled, produced real output through the real HTTP contract this code uses, and the two bugs
+that showed up in the process (an incompatible format mode, an unfittable default context) are
+now fixed and pinned down by tests, not just described as hypothetical risks.
