@@ -577,6 +577,72 @@ export function transition(journey, next, now = Date.now()) {
     ],
   };
 }
+
+// The floor, in minutes, a traveler needs after becoming free to act before they could
+// plausibly reach a stop and board a different service. This sample-data model has no real
+// walking-time or transfer graph, so this is a deliberately conservative minimum rather than a
+// computed distance -- its purpose is only to stop recovery from ever offering something that
+// cannot physically be caught, not to model actual transfer time.
+export const RECOVERY_MIN_TRANSFER_MINUTES = 10;
+
+// States in which the traveler has not yet boarded (or even departed toward) the journey being
+// replaced: recovering from here still departs from the journey's own origin, exactly as before.
+// Every other state means at least the first leg is already underway or complete, so the
+// traveler is no longer standing at the original origin.
+const RECOVERY_NOT_YET_DEPARTED = new Set([
+  "PLANNED",
+  "BOOKED",
+  "TRAVEL_TO_STOP",
+  "WAITING",
+  "BOARDING",
+]);
+
+// Where a traveler can actually recover from right now: the stop they can currently reach, and
+// the earliest moment they could plausibly board something else there. This sample-data model
+// represents a journey as one corridor between exactly two catalog cities (no intermediate stop
+// graph), so "current or next safely reachable stop" reduces to two cases: still at the original
+// origin (nothing has departed yet), or already committed past it, in which case the traveler
+// only becomes reachable again once their current/next leg actually lets them off -- which is
+// the earliest a different service could realistically be boarded, not "any time before its
+// listed arrival."
+export function recoveryPosition(journey, now = Date.now()) {
+  if (RECOVERY_NOT_YET_DEPARTED.has(journey.state))
+    return { stopId: journey.fromId, earliestDeparture: now };
+  const upcoming = journey.legs.find((l) => Date.parse(l.arrival) > now);
+  const lastLeg = journey.legs[journey.legs.length - 1];
+  return {
+    stopId: journey.toId,
+    earliestDeparture: upcoming ? Date.parse(upcoming.arrival) : Date.parse(lastLeg.arrival),
+  };
+}
+
+// Validates a proposed recovery alternative against where the traveler can actually depart from
+// and when, instead of only checking that it shares a destination and arrives in the future
+// (feature 27, "Recovery origin"). Throws a DomainError describing exactly what failed; callers
+// should not need to re-derive the reason. Because this sample-data model has no stop graph, an
+// alternative can only be reachable while the traveler is still at the journey's original origin
+// -- once they are already committed past it, no whole-corridor "alternative" from a fresh search
+// is a coherent replacement, and this says so explicitly rather than silently accepting one.
+export function assertRecoverable(journey, alternative, now = Date.now()) {
+  if (["ARRIVED", "CANCELLED"].includes(journey.state))
+    throw new DomainError("This journey is already finished; there is nothing to recover.", 409);
+  if (alternative.toId !== journey.toId)
+    throw new DomainError("Choose an alternative to the same destination from your search.");
+  const position = recoveryPosition(journey, now);
+  if (alternative.fromId !== position.stopId)
+    throw new DomainError(
+      "This alternative does not depart from where you can currently reach. Search again from your current position.",
+      409,
+    );
+  const earliestBoardable = position.earliestDeparture + RECOVERY_MIN_TRANSFER_MINUTES * 60000;
+  if (Date.parse(alternative.departure) < earliestBoardable)
+    throw new DomainError(
+      "This alternative departs before you could reach it. Choose a later option.",
+      409,
+    );
+  if (Date.parse(alternative.arrival) < now)
+    throw new DomainError("This alternative is in the past. Run a fresh search.");
+}
 // Returns the journey with every leg's `tracking` recomputed by freshness() against `now`,
 // instead of whatever derived age/stale/label happened to be stored. Measurement time
 // (observedAt) is the only part of tracking that is ever persisted; everything else is a

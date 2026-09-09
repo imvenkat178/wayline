@@ -7,6 +7,7 @@ import {
   preferences,
   matchLiveTracking,
   withFreshTracking,
+  assertRecoverable,
 } from "./domain/journeys.mjs";
 import { mbtaVehicles } from "./adapters/providers.mjs";
 import { receipt } from "./records.mjs";
@@ -112,10 +113,8 @@ export async function journeyRoutes({ req, res, url, b, store, session, send }) 
   if (action === "recovery" && req.method === "POST") {
     const search = store.get(userId, b.searchId, "search");
     const alt = search.result.journeys.find((x) => x.id === b.journeyId);
-    if (!alt || alt.toId !== j.toId)
-      throw new DomainError("Choose an alternative to the same destination from your search.");
-    if (Date.parse(alt.arrival) < Date.now())
-      throw new DomainError("This alternative is in the past. Run a fresh search.");
+    if (!alt) throw new DomainError("Choose an alternative from your search.");
+    assertRecoverable(j, alt, Date.now());
     const delta =
       alt.price.totalCents === null || j.price.totalCents === null
         ? null
