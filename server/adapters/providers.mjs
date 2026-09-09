@@ -116,7 +116,10 @@ export function providerHealth() {
 // live feed, which this environment cannot reach; see the roadmap's "Feed completeness" row.
 const MBTA_MAX_PAGES = 6;
 const MBTA_PAGE_LIMIT = 100;
-export async function mbtaPaginated(path, { limit = MBTA_PAGE_LIMIT, maxPages = MBTA_MAX_PAGES } = {}) {
+export async function mbtaPaginated(
+  path,
+  { limit = MBTA_PAGE_LIMIT, maxPages = MBTA_MAX_PAGES } = {},
+) {
   const rows = [];
   let coverageLimited = false;
   for (let page = 0; page < maxPages; page++) {
