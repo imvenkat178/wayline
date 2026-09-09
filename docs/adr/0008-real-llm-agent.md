@@ -151,3 +151,61 @@ path is no longer an untested assumption -- it was pointed at a real model the u
 pulled, produced real output through the real HTTP contract this code uses, and the two bugs
 that showed up in the process (an incompatible format mode, an unfittable default context) are
 now fixed and pinned down by tests, not just described as hypothetical risks.
+
+## Update: full end-to-end run on the user's own machine, and a prompt-tuning follow-up
+
+The previous update above could only validate individual HTTP round-trips inside this
+environment's constrained sandbox -- it explicitly could not run `scripts/llm-smoke-test.mjs`'s
+full three-case sequence back-to-back within one tool call. The user then ran that exact script
+themselves, unmodified, on their own real machine (the same one that pulled `llama3.2`), with
+Node.js and the project's dependencies installed there directly, no sandbox involved:
+
+- Every request completed in 4-17 seconds -- confirming the sandbox's half-a-second-to-a-
+  second-and-a-half-per-token throughput was a property of that one constrained VM, not of the
+  code, Ollama, or the model.
+- Of the three cases, one ("why is my train running late today?") returned a genuine
+  model-classified, model-composed reply (`mode: Ollama classify · llama3.2 · composed`) --
+  real `llama3.2` inference through this exact code path, not a mock.
+- The other two ("how much is this trip going to cost me?", "what platform do I board at?")
+  came back `Rules assistant · model returned an unknown intent`: the model's JSON answer named
+  something outside the fixed `intents` list, so `classifyIntent`'s membership check did exactly
+  what it's there to do and fell back to the deterministic regex classifier instead of guessing.
+  This is the safety design working as intended, not a bug: the model can only ever select from
+  a closed list or be discarded, never inject a fact or an out-of-list action.
+- The measured real-world hit rate on this classification prompt was therefore 1 of 3 for
+  `llama3.2` 3B -- a real, specific number, not a guess -- which is a model-capability limit on a
+  small local model, not a defect in the graph or the provider.
+
+Given that measured 1/3 hit rate, the follow-up was to tune the classify prompt/schema to give
+the small model a better real chance, without touching the safety contract at all. `classifyIntent`
+in `agentGraph.mjs` now:
+
+- Sends a short natural-language hint alongside each fixed intent word in the system prompt
+  (e.g. `cost (price, fare, or total cost)`, `boarding (where or how to board, platform or
+gate)`), so the model has more to match against than a single bare word.
+- Is shown three labeled few-shot examples (as real user/assistant message pairs) before the
+  actual user message, anchoring both the expected JSON shape and which fixed word applies to
+  which kind of question -- including one for "cost" and one for "boarding", the two categories
+  that missed on the user's real run.
+- Extracts the first `{...}` substring from the model's response before parsing it
+  (`extractJsonObject`), tolerating a model that wraps its JSON in markdown fences or adds
+  leading/trailing prose despite being told not to -- Ollama's `format: "json"` mode guarantees
+  valid JSON syntax somewhere in the response, not that the response is _only_ that JSON.
+
+None of this changes the safety contract: `classifyIntent` still only ever accepts an `intent`
+that is a literal member of the closed `intents` list checked in JS, and anything that still
+fails to parse or names something outside that list still falls back to the exact same regex
+classifier as before. The hints, the examples, and the fence-tolerant extraction are purely
+about raising how often a small model lands on a valid answer in the first place -- they cannot
+make a wrong answer get accepted. Two new tests in `tests/agent.test.mjs` (using an injected
+mock provider, no live model needed) pin this down: one asserts the system prompt actually
+contains every intent's hint and that the few-shot pairs appear in the right order and shape;
+the other feeds a mock provider a fenced (` ```json ... ``` `) and a prose-wrapped JSON answer
+and asserts both still resolve to the correct intent.
+
+This prompt/schema change has not yet been re-validated against the real model on the user's
+machine -- that would require the user to re-run `scripts/llm-smoke-test.mjs` (or the app
+itself) again and report whether the hit rate improved on the same three cases. Until that
+happens, this section describes a change made in direct response to a real measured 1/3 hit
+rate, verified with mocked-provider tests and a syntax/type/lint check, but not yet re-confirmed
+against the real model that motivated it.

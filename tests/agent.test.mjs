@@ -131,6 +131,93 @@ test("runAgentGraph routes classification through a configured provider and labe
   assert.equal(result.mode, "Ollama classify · mock-classify");
 });
 
+test("classifyIntent sends intent hints and few-shot examples to the model", async () => {
+  const seen = {};
+  const provider = {
+    available: true,
+    model: "llama3.2",
+    // The graph also runs a compose step after classification, which calls chat() a second
+    // time with an unrelated rephrasing prompt -- only capture the classify call (identified by
+    // the jsonSchema it requests) so this test checks the right messages array.
+    async chat({ messages, jsonSchema }) {
+      if (jsonSchema) seen.messages = messages;
+      return JSON.stringify({ intent: "cost" });
+    },
+  };
+  const result = await runAgentGraph({
+    input: "how much is this trip going to cost me?",
+    journey: null,
+    preferences: {},
+    history: [],
+    provider,
+  });
+  assert.equal(result.intent, "cost");
+  assert.ok(result.mode.startsWith("Ollama classify"));
+  assert.ok(seen.messages, "expected the classify call to have been captured");
+
+  const system = seen.messages.find((m) => m.role === "system");
+  assert.ok(system, "expected a system message");
+  // Every fixed intent's natural-language hint should be present in the system prompt, so a
+  // small model has a real chance of picking the right one-word label.
+  for (const intent of intents) {
+    assert.ok(
+      system.content.includes(intent),
+      `expected system prompt to mention intent "${intent}"`,
+    );
+  }
+  assert.ok(system.content.includes("price, fare, or total cost"));
+
+  // The few-shot examples should appear as real user/assistant message pairs before the
+  // real user input, anchoring both the JSON shape and the fixed-word choice.
+  const exampleUser = seen.messages.find(
+    (m) => m.role === "user" && m.content === "how much will this trip cost me?",
+  );
+  assert.ok(exampleUser, "expected a few-shot example user message");
+  const exampleIndex = seen.messages.indexOf(exampleUser);
+  assert.equal(seen.messages[exampleIndex + 1].role, "assistant");
+  assert.equal(seen.messages[exampleIndex + 1].content, JSON.stringify({ intent: "cost" }));
+
+  const lastMessage = seen.messages.at(-1);
+  assert.equal(lastMessage.role, "user");
+  assert.equal(lastMessage.content, "how much is this trip going to cost me?");
+});
+
+test("classifyIntent tolerates markdown fences and extra prose around the model's JSON answer", async () => {
+  const fencedProvider = {
+    available: true,
+    model: "llama3.2",
+    async chat() {
+      return '```json\n{"intent":"cost"}\n```';
+    },
+  };
+  const fenced = await runAgentGraph({
+    input: "how much is this trip going to cost me?",
+    journey: null,
+    preferences: {},
+    history: [],
+    provider: fencedProvider,
+  });
+  assert.equal(fenced.intent, "cost");
+  assert.ok(fenced.mode.startsWith("Ollama classify"));
+
+  const chattyProvider = {
+    available: true,
+    model: "llama3.2",
+    async chat() {
+      return 'Sure! Here you go: {"intent":"cost"} -- that is my answer.';
+    },
+  };
+  const chatty = await runAgentGraph({
+    input: "how much is this trip going to cost me?",
+    journey: null,
+    preferences: {},
+    history: [],
+    provider: chattyProvider,
+  });
+  assert.equal(chatty.intent, "cost");
+  assert.ok(chatty.mode.startsWith("Ollama classify"));
+});
+
 test("runAgentGraph falls back to the regex intent when the model returns an intent outside the fixed list", async () => {
   const provider = {
     available: true,
