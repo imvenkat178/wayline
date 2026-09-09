@@ -5,6 +5,7 @@ import {
   digitalTwin,
   transition,
   preferences,
+  matchLiveTracking,
 } from "./domain/journeys.mjs";
 import { mbtaVehicles } from "./adapters/providers.mjs";
 import { receipt } from "./records.mjs";
@@ -135,14 +136,7 @@ export async function journeyRoutes({ req, res, url, b, store, session, send }) 
     if (j.dataMode !== "provider")
       throw new DomainError("Sample journeys do not receive live positions.", 409);
     const feed = await mbtaVehicles();
-    let matches = 0;
-    const legs = j.legs.map((l) => {
-      if (l.provider !== "mbta") return l;
-      const v = feed.vehicles.find((v) => v.tripId === l.tripId);
-      if (!v) return l;
-      matches++;
-      return { ...l, tracking: v.tracking, vehicleId: v.vehicleId };
-    });
+    const { legs, matches } = matchLiveTracking(j.legs, feed.vehicles, "mbta");
     if (!matches)
       return send(res, 200, {
         matched: 0,

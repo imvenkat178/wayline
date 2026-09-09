@@ -104,6 +104,16 @@ export interface Leg {
   delayMinutes?: number;
   vehicleId?: string;
   tripId?: string;
+  // Raw feed-scoped trip id as returned by the routing engine, kept for provenance/debugging;
+  // tripId above is normalized for live-tracking matching (see providers.mjs normalizeGtfsId).
+  routingTripId?: string | null;
+  routeId?: string | null;
+  // Which routing engine produced this leg (e.g. "otp", "sample"). Not the same thing as the
+  // live-tracking source -- see `agency`.
+  provider?: string;
+  // Canonical live-tracking agency identifier (e.g. "mbta"), independent of `provider`. Only
+  // legs with a recognized agency are eligible for live position matching.
+  agency?: string | null;
   accessible: boolean | null;
   accessibilitySource?: string;
   crowding: number | null;

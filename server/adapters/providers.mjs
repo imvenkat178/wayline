@@ -312,6 +312,32 @@ export async function streetRoute({ fromLat, fromLon, toLat, toLon, mode = "pede
     })),
   };
 }
+// Canonical live-tracking agency identifiers this deployment can actually refresh positions
+// for (see mbtaVehicles). This is deliberately separate from a leg's `provider`, which records
+// which routing engine (e.g. "otp") produced the itinerary -- a routing engine and a live-data
+// source are different concerns, and conflating them previously meant every OTP-routed leg was
+// silently skipped by tracking refresh even when its true operating agency (e.g. MBTA) does
+// have a live feed. Matching by GTFS agency_id first (feed-configuration-specific, so this
+// mapping needs confirming against the real deployment's feed) and falling back to the
+// human-readable agency name.
+const TRACKED_AGENCY_IDS = { mbta: "mbta", MBTA: "mbta" };
+export function canonicalAgencyId(agency) {
+  if (!agency) return null;
+  const byId = TRACKED_AGENCY_IDS[agency.id];
+  if (byId) return byId;
+  if (typeof agency.name === "string" && agency.name.toUpperCase().includes("MBTA")) return "mbta";
+  return null;
+}
+// OTP's GraphQL `gtfsId` fields are feed-scoped ("feedId:entityId"). MBTA's own v3 API returns
+// unprefixed raw GTFS ids for the same entities in its own feed. Strip a leading "feedId:" so a
+// leg's tripId/routeId can be compared directly against what mbtaVehicles() returns. This
+// assumes OTP's graph for MBTA was built from a feed sharing MBTA's own trip/route ids, which
+// needs validating against the real deployment rather than assumed.
+export function normalizeGtfsId(gtfsId) {
+  if (typeof gtfsId !== "string") return null;
+  const colon = gtfsId.indexOf(":");
+  return colon === -1 ? gtfsId : gtfsId.slice(colon + 1);
+}
 // OTP 2.x legacy GraphQL schema. Validate against the region's pinned OTP deployment.
 export async function otpSearch(input) {
   if (!process.env.OTP_GRAPHQL_URL)
@@ -336,7 +362,12 @@ export async function otpSearch(input) {
     hour12: false,
   }).format(timestamp);
   const [date, time] = zoned.split(" ");
-  const query = `query Plan($from:String!,$to:String!,$date:String!,$time:String!,$arrive:Boolean!,$wheelchair:Boolean!){plan(fromPlace:$from,toPlace:$to,date:$date,time:$time,arriveBy:$arrive,wheelchair:$wheelchair,numItineraries:5){itineraries{duration startTime endTime walkTime transfers legs{mode startTime endTime duration realTime departureDelay arrivalDelay from{name lat lon} to{name lat lon} route{shortName longName agency{name}} trip{gtfsId} legGeometry{points}}}}}`;
+  // Requests agency{id name} and route{gtfsId} in addition to the original fields so live
+  // tracking can later identify which agency/route actually operates a leg (see
+  // canonicalAgencyId/normalizeGtfsId below), independent of "otp" being the routing engine
+  // that produced the itinerary. OTP1 legacy GraphQL is assumed here per the existing adapter;
+  // this still needs validation against the deployment's actual OTP version/schema.
+  const query = `query Plan($from:String!,$to:String!,$date:String!,$time:String!,$arrive:Boolean!,$wheelchair:Boolean!){plan(fromPlace:$from,toPlace:$to,date:$date,time:$time,arriveBy:$arrive,wheelchair:$wheelchair,numItineraries:5){itineraries{duration startTime endTime walkTime transfers legs{mode startTime endTime duration realTime departureDelay arrivalDelay from{name lat lon} to{name lat lon} route{shortName longName gtfsId agency{id name}} trip{gtfsId} legGeometry{points}}}}}`;
   const d = await json(process.env.OTP_GRAPHQL_URL, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -380,8 +411,17 @@ export async function otpSearch(input) {
       arrival: new Date(l.endTime).toISOString(),
       durationMinutes: Math.round(l.duration / 60),
       delayMinutes: Math.round((l.arrivalDelay ?? 0) / 60),
-      tripId: l.trip?.gtfsId,
+      // Canonical, unprefixed ids used to match this leg against a live-tracking feed (e.g.
+      // mbtaVehicles). Kept separate from routingTripId, which preserves OTP's raw feed-scoped
+      // id for provenance/debugging (feature 11) even though it isn't what tracking matches on.
+      tripId: normalizeGtfsId(l.trip?.gtfsId),
+      routingTripId: l.trip?.gtfsId ?? null,
+      routeId: normalizeGtfsId(l.route?.gtfsId),
+      // "provider" records which routing engine produced this leg (OTP); "agency" records which
+      // live-tracking source, if any, actually operates it. These must not be conflated: a leg
+      // routed by OTP can still be an MBTA-operated trip with real live tracking available.
       provider: "otp",
+      agency: canonicalAgencyId(l.route?.agency),
       priceCents: null,
       tracking: {
         source: l.realTime ? "predicted" : "schedule",

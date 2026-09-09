@@ -524,6 +524,29 @@ export const transitions = {
   ARRIVED: [],
   CANCELLED: [],
 };
+// Matches each leg of a journey against a live-vehicle feed, returning new leg objects (with
+// `tracking`/`vehicleId` applied) and the count of legs that matched. A leg is eligible only
+// when its canonical `agency` (the live-tracking source, e.g. "mbta") is present in the feed's
+// vehicles -- NOT based on `provider` (the routing engine that produced the leg, e.g. "otp").
+// Conflating the two previously meant every OTP-routed leg was silently skipped even when its
+// true operating agency does have live tracking (see providers.mjs canonicalAgencyId).
+// A route-id cross-check guards against a coincidental trip-id collision when both sides carry
+// one; neither the leg nor the feed currently carries a service date, so an exact same-day trip
+// instance still cannot be fully guaranteed (see the roadmap's tracking-provenance work).
+export function matchLiveTracking(legs, vehicles, agency) {
+  let matches = 0;
+  const matchedLegs = legs.map((leg) => {
+    if (leg.agency !== agency) return leg;
+    if (!leg.tripId) return leg;
+    const vehicle = vehicles.find(
+      (v) => v.tripId === leg.tripId && (!leg.routeId || !v.routeId || v.routeId === leg.routeId),
+    );
+    if (!vehicle) return leg;
+    matches++;
+    return { ...leg, tracking: vehicle.tracking, vehicleId: vehicle.vehicleId };
+  });
+  return { legs: matchedLegs, matches };
+}
 export function transition(journey, next, now = Date.now()) {
   if (!transitions[journey.state]?.includes(next))
     throw new DomainError(
