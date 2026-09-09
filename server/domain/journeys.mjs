@@ -184,6 +184,79 @@ export function priceBreakdown(
 function iso(ms) {
   return new Date(ms).toISOString();
 }
+
+// Hours treated as "night" for the nightWalking preference: 21:00 up to
+// (not including) 06:00, wrapping across midnight. This is a preference
+// amplifier the traveler opts into, not a safety claim (see feature 58,
+// which still needs a verified environmental-safety dataset).
+const NIGHT_START_HOUR = 21;
+const NIGHT_END_HOUR = 6;
+
+// Resolve the wall-clock hour (0-23) of an ISO instant in the journey's
+// applicable local timezone (IANA name, e.g. "America/New_York"), rather
+// than UTC. Intl.DateTimeFormat resolves DST transitions and midnight
+// rollover correctly for any supported zone; falls back to UTC only if no
+// timezone is available or the zone is invalid.
+export function localHour(dateIso, timezone) {
+  const date = new Date(dateIso);
+  if (!timezone) return date.getUTCHours();
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      hour: "numeric",
+      hourCycle: "h23",
+    }).formatToParts(date);
+    const hour = parts.find((part) => part.type === "hour")?.value;
+    return hour === undefined ? date.getUTCHours() : Number(hour);
+  } catch {
+    return date.getUTCHours();
+  }
+}
+
+function isNightHour(hour) {
+  return hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR;
+}
+
+// The extra weight applied to a journey's walk minutes when the traveler has
+// asked to avoid night walking and the journey departs during the origin's
+// local night window. Kept as its own function so it can be tested directly
+// without depending on the composite ranking formula below.
+export function nightWalkingPenalty(journey, prefs) {
+  if (!prefs.nightWalking) return 0;
+  return isNightHour(localHour(journey.departure, journey.timezone)) ? journey.walkMinutes * 2 : 0;
+}
+
+// Combines every ranking preference into one comparable score for a single
+// journey; lower is better. Named "custom"/"balanced" priorities (and any
+// other value not in the fixed list below) fall through to the weighted
+// composite so a single preferences object drives search, comparison and
+// recovery consistently (feature 27).
+export function rankingScore(journey, prefs) {
+  switch (prefs.priority) {
+    case "price":
+      return journey.price.totalCents;
+    case "fastest":
+      return journey.durationMinutes;
+    case "walking":
+      return journey.walkMinutes;
+    case "transfers":
+      return journey.transfers;
+    case "carbon":
+      return journey.carbonKg;
+    case "reliable":
+      return -journey.reliability;
+    default:
+      return (
+        journey.durationMinutes / 4 +
+        journey.price.totalCents / 100 +
+        (journey.graph.overallRisk === "high" ? 80 : 0) +
+        (prefs.lessCrowded ? journey.legs[2].crowding : 0) +
+        (prefs.preferTrain && journey.legs[2].mode !== "train" ? 40 : 0) +
+        (prefs.coveredTransfers && journey.walkMinutes > 10 ? 25 : 0) +
+        nightWalkingPenalty(journey, prefs)
+      );
+  }
+}
 export function sampleSearch(input) {
   const from = cities.find((c) => c.id === input.from),
     to = cities.find((c) => c.id === input.to);
@@ -425,29 +498,7 @@ export function sampleSearch(input) {
     if (reason) excluded.push({ name: j.name, reason });
     return !reason;
   });
-  const score = (j) =>
-    p.priority === "price"
-      ? j.price.totalCents
-      : p.priority === "fastest"
-        ? j.durationMinutes
-        : p.priority === "walking"
-          ? j.walkMinutes
-          : p.priority === "transfers"
-            ? j.transfers
-            : p.priority === "carbon"
-              ? j.carbonKg
-              : p.priority === "reliable"
-                ? -j.reliability
-                : j.durationMinutes / 4 +
-                  j.price.totalCents / 100 +
-                  (j.graph.overallRisk === "high" ? 80 : 0) +
-                  (p.lessCrowded ? j.legs[2].crowding : 0) +
-                  (p.preferTrain && j.legs[2].mode !== "train" ? 40 : 0) +
-                  (p.coveredTransfers && j.walkMinutes > 10 ? 25 : 0) +
-                  (p.nightWalking && new Date(j.departure).getUTCHours() < 7
-                    ? j.walkMinutes * 2
-                    : 0);
-  filtered.sort((a, b) => score(a) - score(b));
+  filtered.sort((a, b) => rankingScore(a, p) - rankingScore(b, p));
   return {
     journeys: filtered,
     excluded,
