@@ -53,18 +53,22 @@ export async function copyText(value: string) {
   if (!navigator.clipboard) throw new Error("Clipboard is unavailable. Select and copy the text.");
   await navigator.clipboard.writeText(value);
 }
-export const money = (c: number | null | undefined) =>
+// Phase 7 (multilingual infrastructure): all four now take an optional locale tag so a caller
+// bound to the signed-in user's `preferences.language` (via src/useT.ts) gets locale-aware
+// formatting -- e.g. "US$85.00" in es-US vs "$85.00" in en-US for the exact same amount -- while
+// every call site that hasn't been migrated yet keeps working unchanged against the en-US default.
+export const money = (c: number | null | undefined, locale = "en-US", unknown = "Fare unknown") =>
   c == null
-    ? "Fare unknown"
-    : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(c / 100);
+    ? unknown
+    : new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(c / 100);
 export const duration = (m: number) =>
   `${Math.floor(m / 60) ? Math.floor(m / 60) + "h " : ""}${m % 60}m`;
-export const time = (iso: string, zone?: string) =>
-  new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "numeric", minute: "2-digit" }).format(
+export const time = (iso: string, zone?: string, locale = "en-US") =>
+  new Intl.DateTimeFormat(locale, { timeZone: zone, hour: "numeric", minute: "2-digit" }).format(
     new Date(iso),
   );
-export const dateLabel = (iso: string, zone?: string) =>
-  new Intl.DateTimeFormat("en-US", {
+export const dateLabel = (iso: string, zone?: string, locale = "en-US") =>
+  new Intl.DateTimeFormat(locale, {
     timeZone: zone,
     month: "short",
     day: "numeric",

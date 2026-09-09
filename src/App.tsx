@@ -12,6 +12,8 @@ import { AppContext, defaultPreferences } from "./context";
 import { nav, resolveHash } from "./routes";
 import { api, setCsrf, time, dateLabel, readable } from "./api";
 import { Icon, Button, Badge, Notice, Empty, Section } from "./components/ui";
+import { useT } from "./useT";
+import { t as translate, type Locale } from "./i18n";
 import { Agent } from "./components/Agent";
 import Planner from "./pages/Planner";
 import Offline from "./pages/Offline";
@@ -22,38 +24,23 @@ const Commute = lazy(() => import("./pages/Commute"));
 const Inbox = lazy(() => import("./pages/Inbox"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Lab = lazy(() => import("./pages/Lab"));
-const labels: Record<string, string[]> = {
-  en: [
-    "Plan a journey",
-    "Journey Guardian",
-    "Tickets",
-    "Journey inbox",
-    "My journeys",
-    "Commute",
-    "Profile & preferences",
-    "Open Transit Lab",
-  ],
-  es: [
-    "Planificar viaje",
-    "Guardián del viaje",
-    "Billetes",
-    "Notificaciones",
-    "Mis viajes",
-    "Trayecto habitual",
-    "Perfil y preferencias",
-    "Datos de transporte",
-  ],
-  hi: [
-    "यात्रा की योजना",
-    "यात्रा सहायक",
-    "टिकट",
-    "यात्रा सूचनाएँ",
-    "मेरी यात्राएँ",
-    "दैनिक यात्रा",
-    "प्रोफ़ाइल",
-    "परिवहन डेटा",
-  ],
-};
+// The nav array's order must match how routes.ts/the sidebar render it below -- this used to
+// be a raw positional array of translated strings per language; it is now built from the same
+// keyed i18n.ts catalog every other page pulls from, so navigation, the phrasebook and full-page
+// copy all come from one resource system instead of three separate ad hoc ones.
+const NAV_KEYS = [
+  "nav.plan",
+  "nav.guardian",
+  "nav.tickets",
+  "nav.inbox",
+  "nav.trips",
+  "nav.commute",
+  "nav.profile",
+  "nav.lab",
+];
+function navLabels(locale: Locale) {
+  return NAV_KEYS.map((k) => translate(locale, k));
+}
 
 export default function App() {
   const [boot, setBoot] = useState<Bootstrap | null>(null),
@@ -326,7 +313,12 @@ export default function App() {
         </div>
       </div>
     );
-  const navigation = labels[boot.user.preferences.language] ?? labels.en;
+  const activeLocale: Locale = (["en", "es", "hi"] as string[]).includes(
+    boot.user.preferences.language,
+  )
+    ? (boot.user.preferences.language as Locale)
+    : "en";
+  const navigation = navLabels(activeLocale);
   return (
     <AppContext.Provider
       value={{
@@ -495,9 +487,10 @@ export default function App() {
             )}
             <footer className="page-footer">
               <span>
-                Wayline <span className="footer-divider">/</span> Find. Know. Arrive.
+                Wayline <span className="footer-divider">/</span>{" "}
+                {translate(activeLocale, "app.footerTagline")}
               </span>
-              <span>Sample data stays labeled. Your journey stays yours.</span>
+              <span>{translate(activeLocale, "app.footerNote")}</span>
             </footer>
           </main>
         </div>
@@ -505,7 +498,7 @@ export default function App() {
       {agentOpen && <Agent initialPrompt={prompt} close={() => setAgentOpen(false)} />}
       <button
         className="mobile-agent"
-        aria-label="Open journey assistant"
+        aria-label={translate(activeLocale, "app.openAgentAria")}
         onClick={() => openAgent()}
       >
         <Icon name="spark" size={26} />
@@ -514,7 +507,10 @@ export default function App() {
         <div className="toast" role="status">
           <Icon name="check" size={18} />
           {toast}
-          <button onClick={() => setToast("")} aria-label="Dismiss notification">
+          <button
+            onClick={() => setToast("")}
+            aria-label={translate(activeLocale, "app.dismissNotificationAria")}
+          >
             <Icon name="close" size={16} />
           </button>
         </div>
@@ -545,76 +541,93 @@ function Brand({ onClick }: { onClick?: () => void } = {}) {
 }
 function Watch() {
   const ctx = requireApp();
+  const { t } = useT();
   const j = ctx.active?.version ? ctx.active : ctx.journeys[0];
   return (
     <div className="glance-view">
-      <Badge>GLANCE VIEW · WEB</Badge>
+      <Badge>{t("app.watchBadge")}</Badge>
       {j ? (
         <>
           <h1>{j.to}</h1>
           <div className="glance-time">{time(j.arrival, j.destinationTimezone)}</div>
-          <p>Scheduled arrival · {j.destinationTimezone}</p>
+          <p>{t("app.scheduledArrival", { tz: j.destinationTimezone })}</p>
           <h2>{readable(j.state ?? "planned")}</h2>
           <Badge tone={j.graph.overallRisk === "high" ? "amber" : "mint"}>
-            {j.graph.overallRisk} modeled connection risk
+            {t("app.overallRisk", { risk: j.graph.overallRisk })}
           </Badge>
-          <p>{j.dataMode === "illustrative" ? "Sample journey" : "Connected schedule"}</p>
+          <p>
+            {j.dataMode === "illustrative" ? t("app.sampleJourney") : t("app.connectedSchedule")}
+          </p>
           <Button kind="primary" onClick={() => ctx.navigate("journey")}>
-            Full journey
+            {t("app.fullJourney")}
           </Button>
         </>
       ) : (
-        <Empty title="No saved journey">Save a trip to use the glance view.</Empty>
+        <Empty title={t("app.noSavedJourneyTitle")}>{t("app.noSavedJourneyBody")}</Empty>
       )}
-      <p className="fine-print">
-        This compact web view is not a native Apple Watch or Wear OS application.
-      </p>
+      <p className="fine-print">{t("app.notNativeApp")}</p>
     </div>
   );
 }
 import { useApp as requireApp } from "./context";
+// Extends visitor mode (roadmap feature 94) using the same i18n.ts catalog as everything else:
+// the phrasebook now covers the four categories feature 93 itself names -- transit alerts,
+// station instructions, ticketing and boarding directions -- instead of four unlabeled phrases
+// with no category structure. es/hi phrases are AI-translated and unreviewed, same as the rest
+// of the non-English catalog; that caveat is shown directly in the section, not just in a doc.
+const PHRASEBOOK_CATEGORIES: { titleKey: string; phraseKeys: string[] }[] = [
+  {
+    titleKey: "phrasebook.categoryAlerts",
+    phraseKeys: ["phrasebook.alerts.1", "phrasebook.alerts.2", "phrasebook.alerts.3"],
+  },
+  {
+    titleKey: "phrasebook.categoryStation",
+    phraseKeys: ["phrasebook.station.1", "phrasebook.station.2", "phrasebook.station.3"],
+  },
+  {
+    titleKey: "phrasebook.categoryTicketing",
+    phraseKeys: ["phrasebook.ticketing.1", "phrasebook.ticketing.2", "phrasebook.ticketing.3"],
+  },
+  {
+    titleKey: "phrasebook.categoryBoarding",
+    phraseKeys: ["phrasebook.boarding.1", "phrasebook.boarding.2", "phrasebook.boarding.3"],
+  },
+];
 function Phrasebook({ language }: { language: string }) {
-  const phrases: Record<string, string[]> = {
-    en: [
-      "Where does this bus go?",
-      "Which platform is my train on?",
-      "Is there a step-free entrance?",
-      "Can you help me find my connection?",
-    ],
-    es: [
-      "¿A dónde va este autobús?",
-      "¿En qué andén está mi tren?",
-      "¿Hay una entrada sin escaleras?",
-      "¿Puede ayudarme a encontrar mi conexión?",
-    ],
-    hi: [
-      "यह बस कहाँ जाती है?",
-      "मेरी ट्रेन किस प्लेटफ़ॉर्म पर है?",
-      "क्या बिना सीढ़ियों वाला प्रवेश द्वार है?",
-      "क्या आप मेरी अगली सवारी ढूँढ़ने में मदद कर सकते हैं?",
-    ],
+  const locale: Locale = (["en", "es", "hi"] as string[]).includes(language)
+    ? (language as Locale)
+    : "en";
+  const speak = (phrase: string) => {
+    if (!("speechSynthesis" in window)) return;
+    speechSynthesis.cancel();
+    const s = new SpeechSynthesisUtterance(phrase);
+    s.lang = locale === "es" ? "es-US" : locale === "hi" ? "hi-IN" : "en-US";
+    speechSynthesis.speak(s);
   };
   return (
-    <Section title="A few words for the journey">
-      <div className="phrase-grid">
-        {(phrases[language] ?? phrases.en).map((p, i) => (
-          <button
-            key={p}
-            onClick={() => {
-              if ("speechSynthesis" in window) {
-                speechSynthesis.cancel();
-                const s = new SpeechSynthesisUtterance(p);
-                s.lang = language === "es" ? "es-US" : language === "hi" ? "hi-IN" : "en-US";
-                speechSynthesis.speak(s);
-              }
-            }}
-          >
-            <Icon name="headphones" />
-            <b>{p}</b>
-            <small>{language === "en" ? "Tap to hear" : phrases.en[i]}</small>
-          </button>
-        ))}
-      </div>
+    <Section title={translate(locale, "app.phrasebookTitle")}>
+      {locale !== "en" && (
+        <p className="fine-print">{translate(locale, "phrasebook.unreviewedNote")}</p>
+      )}
+      {PHRASEBOOK_CATEGORIES.map((category) => (
+        <div key={category.titleKey}>
+          <h3>{translate(locale, category.titleKey)}</h3>
+          <div className="phrase-grid">
+            {category.phraseKeys.map((key) => {
+              const phrase = translate(locale, key);
+              return (
+                <button key={key} onClick={() => speak(phrase)}>
+                  <Icon name="headphones" />
+                  <b>{phrase}</b>
+                  <small>
+                    {locale === "en" ? translate(locale, "app.tapToHear") : translate("en", key)}
+                  </small>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </Section>
   );
 }

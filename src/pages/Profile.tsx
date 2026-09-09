@@ -263,11 +263,11 @@ export default function Profile() {
                 ))}
               </select>
             </Field>
-            <Field label="Language for navigation & phrasebook">
+            <Field label="Language for navigation, phrasebook & Planner">
               <select value={p.language} onChange={(e) => update("language", e.target.value)}>
                 <option value="en">English</option>
-                <option value="es">Español</option>
-                <option value="hi">हिन्दी</option>
+                <option value="es">Español (AI-translated, unreviewed)</option>
+                <option value="hi">हिन्दी (navigation & phrasebook only)</option>
               </select>
             </Field>
           </div>

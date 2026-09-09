@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../context";
+import { useT } from "../useT";
 import { api, money, duration, dateLabel, time, localInput } from "../api";
 import type { Journey, SearchInput, SearchResult, SavedItem } from "../types";
 import {
@@ -29,6 +30,7 @@ export default function Planner() {
     notify,
     openAgent,
   } = useApp();
+  const { t, locale, localeTag } = useT();
   const { busy, error, run } = useAsync();
   const [filters, setFilters] = useState(false),
     [special, setSpecial] = useState<"airport" | "group" | null>(null);
@@ -65,7 +67,7 @@ export default function Planner() {
       );
       await refresh();
       setActive(saved);
-      notify("Journey saved. You can now follow it in Journey Guardian.");
+      notify(t("planner.savedNotify"));
       navigate("journey");
     });
   const favorite = () =>
@@ -78,18 +80,18 @@ export default function Planner() {
         to: searchInput.to,
       });
       setShortcuts(await api("/records/favorite"));
-      notify("Shortcut saved.");
+      notify(t("planner.shortcutSaved"));
     });
   return (
     <>
       <div className="page-heading">
         <div>
           <span className="eyebrow">YOUR NEXT CHAPTER</span>
-          <h1>Where are we heading?</h1>
-          <p>Every connection. One complete journey.</p>
+          <h1>{t("planner.heading")}</h1>
+          <p>{t("planner.subheading")}</p>
         </div>
         <Badge tone="mint">
-          <Icon name="spark" size={15} /> Journey assistant
+          <Icon name="spark" size={15} /> {t("planner.assistantBadge")}
         </Badge>
       </div>
       <div className="planner-panel">
@@ -100,7 +102,7 @@ export default function Planner() {
           }}
         >
           <div className="location-row">
-            <Field label="From">
+            <Field label={t("planner.from")}>
               <div className="input-with-icon">
                 <Icon name="route" />
                 <select value={searchInput.from} onChange={(e) => update("from", e.target.value)}>
@@ -114,11 +116,11 @@ export default function Planner() {
             </Field>
             <Button
               icon="swap"
-              title="Swap origin and destination"
+              title={t("planner.swapTitle")}
               kind="swap icon-only"
               onClick={() => setSearchInput((s) => ({ ...s, from: s.to, to: s.from }))}
             />
-            <Field label="To">
+            <Field label={t("planner.to")}>
               <div className="input-with-icon">
                 <Icon name="pin" />
                 <select value={searchInput.to} onChange={(e) => update("to", e.target.value)}>
@@ -130,7 +132,7 @@ export default function Planner() {
                 </select>
               </div>
             </Field>
-            <Field label="Departure · your device time">
+            <Field label={t("planner.departureLabel")}>
               <input
                 type="datetime-local"
                 required
@@ -141,23 +143,25 @@ export default function Planner() {
               />
             </Field>
             <Button kind="primary search-button" type="submit" icon="search" disabled={busy}>
-              {busy ? "Searching…" : "Find journeys"}
+              {busy ? t("planner.searching") : t("planner.findJourneys")}
             </Button>
           </div>
           <div className="planner-options">
-            <Field label="Travelers">
+            <Field label={t("planner.travelers")}>
               <select
                 value={searchInput.travelers}
                 onChange={(e) => update("travelers", +e.target.value)}
               >
                 {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
                   <option key={n} value={n}>
-                    {n} {n === 1 ? "traveler" : "travelers"}
+                    {n === 1
+                      ? t("planner.travelerCountOne", { n })
+                      : t("planner.travelerCountMany", { n })}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Total budget">
+            <Field label={t("planner.totalBudget")}>
               <div className="input-with-icon">
                 <span>$</span>
                 <input
@@ -170,28 +174,28 @@ export default function Planner() {
                 />
               </div>
             </Field>
-            <Field label="Schedules">
+            <Field label={t("planner.schedules")}>
               <select value={searchInput.mode} onChange={(e) => update("mode", e.target.value)}>
-                <option value="sample">Explore sample routes</option>
-                <option value="provider">Connected regional schedules</option>
+                <option value="sample">{t("planner.sampleRoutes")}</option>
+                <option value="provider">{t("planner.connectedSchedules")}</option>
               </select>
             </Field>
             <div className="option-buttons">
               <Button icon="filter" onClick={() => setFilters(!filters)}>
-                {filters ? "Hide" : "Trip"} preferences
+                {filters ? t("planner.hidePreferences") : t("planner.tripPreferences")}
               </Button>
               <Button icon="calendar" onClick={() => setSpecial("airport")}>
-                Airport deadline
+                {t("planner.airportDeadline")}
               </Button>
               <Button icon="user" onClick={() => setSpecial("group")}>
-                Meet together
+                {t("planner.meetTogether")}
               </Button>
             </div>
           </div>
           {filters && (
             <div className="filters">
               <div className="form-grid">
-                <Field label="Arrive by · your device time">
+                <Field label={t("planner.arriveByLabel")}>
                   <input
                     type="datetime-local"
                     value={searchInput.deadline ? localInput(new Date(searchInput.deadline)) : ""}
@@ -203,17 +207,19 @@ export default function Planner() {
                     }
                   />
                 </Field>
-                <Field label="Trip importance">
+                <Field label={t("planner.tripImportance")}>
                   <select
                     value={searchInput.preferences.importance}
                     onChange={(e) => preference("importance", e.target.value)}
                   >
                     {["casual", "normal", "important", "critical"].map((x) => (
-                      <option key={x}>{x}</option>
+                      <option key={x} value={x}>
+                        {t(`planner.importance.${x}`)}
+                      </option>
                     ))}
                   </select>
                 </Field>
-                <Field label="Maximum transfers">
+                <Field label={t("planner.maxTransfers")}>
                   <input
                     type="number"
                     min="0"
@@ -222,7 +228,7 @@ export default function Planner() {
                     onChange={(e) => preference("maxTransfers", +e.target.value)}
                   />
                 </Field>
-                <Field label="Maximum walking (min)">
+                <Field label={t("planner.maxWalking")}>
                   <input
                     type="number"
                     min="0"
@@ -231,7 +237,7 @@ export default function Planner() {
                     onChange={(e) => preference("maxWalkMinutes", +e.target.value)}
                   />
                 </Field>
-                <Field label="Connection buffer (min)">
+                <Field label={t("planner.connectionBuffer")}>
                   <input
                     type="number"
                     min="0"
@@ -240,7 +246,7 @@ export default function Planner() {
                     onChange={(e) => preference("minConnectionMinutes", +e.target.value)}
                   />
                 </Field>
-                <Field label="Extra bags">
+                <Field label={t("planner.extraBags")}>
                   <input
                     type="number"
                     min="0"
@@ -249,23 +255,27 @@ export default function Planner() {
                     onChange={(e) => update("bags", +e.target.value)}
                   />
                 </Field>
-                <Field label="Risk tolerance">
+                <Field label={t("planner.riskTolerance")}>
                   <select
                     value={searchInput.preferences.riskTolerance}
                     onChange={(e) => preference("riskTolerance", e.target.value)}
                   >
                     {["conservative", "balanced", "aggressive"].map((x) => (
-                      <option key={x}>{x}</option>
+                      <option key={x} value={x}>
+                        {t(`planner.risk.${x}`)}
+                      </option>
                     ))}
                   </select>
                 </Field>
-                <Field label="Weather scenario">
+                <Field label={t("planner.weatherScenario")}>
                   <select
                     value={searchInput.weather ?? "clear"}
                     onChange={(e) => update("weather", e.target.value)}
                   >
                     {["clear", "rain", "snow", "heat"].map((x) => (
-                      <option key={x}>{x}</option>
+                      <option key={x} value={x}>
+                        {t(`planner.weather.${x}`)}
+                      </option>
                     ))}
                   </select>
                 </Field>
@@ -273,23 +283,23 @@ export default function Planner() {
               <div className="toggle-grid">
                 {(
                   [
-                    ["stepFree", "Step-free route"],
-                    ["lessCrowded", "Prefer more space"],
-                    ["avoidBus", "Avoid buses"],
-                    ["preferTrain", "Prefer trains"],
+                    ["stepFree", "planner.stepFreeRoute"],
+                    ["lessCrowded", "planner.preferMoreSpace"],
+                    ["avoidBus", "planner.avoidBuses"],
+                    ["preferTrain", "planner.preferTrains"],
                   ] as const
-                ).map(([key, label]) => (
+                ).map(([key, labelKey]) => (
                   <Toggle
                     key={key}
-                    label={label}
+                    label={t(labelKey)}
                     checked={searchInput.preferences[key]}
                     onChange={(v) => preference(key, v)}
                   />
                 ))}
               </div>
               <Toggle
-                label="Model an elevator outage"
-                description="Scenario only; affects accessible transfer options."
+                label={t("planner.elevatorOutage")}
+                description={t("planner.elevatorOutageDesc")}
                 checked={Boolean(searchInput.accessibilityOutage)}
                 onChange={(v) => update("accessibilityOutage", v)}
               />
@@ -305,16 +315,16 @@ export default function Planner() {
         >
           <Icon name="spark" />
           <input
-            aria-label="Ask the journey assistant"
+            aria-label={t("planner.askAria")}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Or just ask: get me to San Jose under $75, with a comfortable transfer"
+            placeholder={t("planner.askPlaceholder")}
           />
-          <Button type="submit" kind="icon-only" icon="arrow" title="Ask the journey assistant" />
+          <Button type="submit" kind="icon-only" icon="arrow" title={t("planner.askAria")} />
         </form>
       </div>
       <div className="shortcuts">
-        <span>QUICK ROUTES</span>
+        <span>{t("planner.quickRoutes")}</span>
         {shortcuts.slice(0, 4).map((s) => (
           <Button
             key={s.id}
@@ -330,7 +340,7 @@ export default function Planner() {
           </Button>
         ))}
         <Button icon="plus" kind="small subtle" onClick={() => void favorite()}>
-          Save this route
+          {t("planner.saveRoute")}
         </Button>
       </div>
       {error && <Notice tone="error">{error}</Notice>}
@@ -339,9 +349,11 @@ export default function Planner() {
         <section>
           <div className="section-title">
             <div>
-              <span className="eyebrow">LET’S FIND YOUR WAY</span>
+              <span className="eyebrow">{t("planner.findEyebrow")}</span>
               <h2>
-                {result ? `${result.journeys.length} ways to get there` : "Finding your journey…"}
+                {result
+                  ? t("planner.waysToGetThere", { n: result.journeys.length })
+                  : t("planner.findingJourney")}
               </h2>
             </div>
             <small>
@@ -351,11 +363,11 @@ export default function Planner() {
           </div>
           <div className="sort-tabs" aria-label="Sort journeys">
             {[
-              ["balanced", "Recommended"],
-              ["price", "Cheapest"],
-              ["fastest", "Fastest"],
-              ["reliable", "More reliable"],
-            ].map(([value, label]) => (
+              ["balanced", "planner.sort.balanced"],
+              ["price", "planner.sort.price"],
+              ["fastest", "planner.sort.fastest"],
+              ["reliable", "planner.sort.reliable"],
+            ].map(([value, labelKey]) => (
               <button
                 key={value}
                 className={searchInput.preferences.priority === value ? "active" : ""}
@@ -369,13 +381,13 @@ export default function Planner() {
                   void run(() => search(next));
                 }}
               >
-                {label}
+                {t(labelKey)}
               </button>
             ))}
           </div>
           {result?.dataMode === "illustrative" && (
             <div className="sample-note">
-              <Icon name="info" size={14} /> Sample schedules, fares and scores · no tickets issued
+              <Icon name="info" size={14} /> {t("planner.sampleNote")}
             </div>
           )}
           <div className={busy ? "results-loading" : ""}>
@@ -390,13 +402,13 @@ export default function Planner() {
             ))}
           </div>
           {result && !result.journeys.length && (
-            <Empty icon="search" title="No route meets every preference">
+            <Empty icon="search" title={t("planner.noRouteTitle")}>
               {result.reason}
             </Empty>
           )}
           {!!result?.excluded.length && (
             <details className="excluded">
-              <summary>{result.excluded.length} options excluded by your preferences</summary>
+              <summary>{t("planner.excludedCount", { n: result.excluded.length })}</summary>
               {result.excluded.map((r, i) => (
                 <p key={i}>
                   <b>{r.name}</b> — {r.reason}
@@ -411,21 +423,21 @@ export default function Planner() {
               <JourneyMap journey={selected} />
               <div className="selected-detail">
                 <div className="section-title">
-                  <h2>Your journey, at a glance</h2>
+                  <h2>{t("planner.glanceTitle")}</h2>
                   <Icon name="route" />
                 </div>
                 <div className="detail-metrics">
                   <div>
                     <span>{duration(selected.durationMinutes)}</span>
-                    <small>door to door</small>
+                    <small>{t("planner.doorToDoor")}</small>
                   </div>
                   <div>
                     <span>{selected.transfers}</span>
-                    <small>connections</small>
+                    <small>{t("planner.connections")}</small>
                   </div>
                   <div>
                     <span>{selected.reliability == null ? "—" : selected.reliability + "%"}</span>
-                    <small>sample reliability</small>
+                    <small>{t("planner.sampleReliability")}</small>
                   </div>
                 </div>
                 <div className="mini-timeline">
@@ -446,17 +458,17 @@ export default function Planner() {
                   {selected.price.items.map((item) => (
                     <div key={item.label}>
                       <span>{item.label}</span>
-                      <b>{money(item.cents)}</b>
+                      <b>{money(item.cents, localeTag, t("planner.fareUnknown"))}</b>
                     </div>
                   ))}
                   <div className="price-total">
-                    <span>Door-to-door total</span>
-                    <b>{money(selected.price.totalCents)}</b>
+                    <span>{t("planner.doorToDoorTotal")}</span>
+                    <b>{money(selected.price.totalCents, localeTag, t("planner.fareUnknown"))}</b>
                   </div>
                 </div>
                 <Toggle
-                  label="Private trip"
-                  description="Automatically removed after completion or expiry."
+                  label={t("planner.privateTrip")}
+                  description={t("planner.privateTripDesc")}
                   checked={privateTrip}
                   onChange={setPrivateTrip}
                 />
@@ -466,18 +478,14 @@ export default function Planner() {
                   disabled={busy}
                   icon="shield"
                 >
-                  Save journey & follow
+                  {t("planner.saveAndFollow")}
                 </Button>
-                <p className="fine-print">
-                  Saving plans your trip. Buy tickets directly from each operator.
-                </p>
+                <p className="fine-print">{t("planner.savePlansTrip")}</p>
               </div>
             </>
           ) : (
             <div className="panel">
-              <Empty title="Your journey will appear here">
-                Choose a route to inspect each connection.
-              </Empty>
+              <Empty title={t("planner.willAppearTitle")}>{t("planner.willAppearBody")}</Empty>
             </div>
           )}
         </aside>
@@ -490,7 +498,7 @@ export default function Planner() {
             preference("importance", "critical");
             setFilters(true);
             setSpecial(null);
-            notify("Airport arrival deadline applied. Run your search to compare routes.");
+            notify(t("planner.airportApplied"));
           }}
         />
       )}
@@ -499,14 +507,15 @@ export default function Planner() {
   );
 }
 function AirportModal({ close, apply }: { close: () => void; apply: (d: string) => void }) {
+  const { t } = useT();
   const [flight, setFlight] = useState(localInput(new Date(Date.now() + 86400000))),
     [international, setInternational] = useState(false),
     [bags, setBags] = useState(false),
     [terminal, setTerminal] = useState(20);
   const { busy, error, run } = useAsync();
   return (
-    <Modal title="Make the flight, with time to spare" onClose={close}>
-      <p>Work backward from your flight to a ground-transport arrival deadline.</p>
+    <Modal title={t("planner.airportTitle")} onClose={close}>
+      <p>{t("planner.airportIntro")}</p>
       <form
         className="stack"
         onSubmit={(e) => {
@@ -522,7 +531,7 @@ function AirportModal({ close, apply }: { close: () => void; apply: (d: string) 
           });
         }}
       >
-        <Field label="Flight departure · your device time">
+        <Field label={t("planner.flightDepartureLabel")}>
           <input
             required
             type="datetime-local"
@@ -530,7 +539,7 @@ function AirportModal({ close, apply }: { close: () => void; apply: (d: string) 
             onChange={(e) => setFlight(e.target.value)}
           />
         </Field>
-        <Field label="Terminal transfer allowance (min)">
+        <Field label={t("planner.terminalAllowanceLabel")}>
           <input
             type="number"
             min="0"
@@ -539,16 +548,21 @@ function AirportModal({ close, apply }: { close: () => void; apply: (d: string) 
             onChange={(e) => setTerminal(+e.target.value)}
           />
         </Field>
-        <Toggle label="International flight" checked={international} onChange={setInternational} />
-        <Toggle label="Checking baggage" checked={bags} onChange={setBags} />
+        <Toggle
+          label={t("planner.internationalFlight")}
+          checked={international}
+          onChange={setInternational}
+        />
+        <Toggle label={t("planner.checkingBaggage")} checked={bags} onChange={setBags} />
         <Notice>
-          Includes a planning allowance of {international ? 180 : 120} minutes, plus your terminal
-          transfer{bags ? " and 30 minutes for baggage" : ""}. No flight status or live security
-          queue is connected.
+          {t("planner.airportNotice", {
+            minutes: international ? 180 : 120,
+            baggage: bags ? t("planner.baggageExtra") : "",
+          })}
         </Notice>
         {error && <Notice tone="error">{error}</Notice>}
         <Button type="submit" kind="primary" disabled={busy}>
-          Apply arrival deadline
+          {t("planner.applyDeadline")}
         </Button>
       </form>
     </Modal>
@@ -556,19 +570,17 @@ function AirportModal({ close, apply }: { close: () => void; apply: (d: string) 
 }
 function GroupModal({ close }: { close: () => void }) {
   const { boot, searchInput, setSearchInput, notify } = useApp();
+  const { t } = useT();
   const [origins, setOrigins] = useState([searchInput.from, searchInput.from]);
   const [result, setResult] = useState<{ city: string; minutes: number; perPerson: number[] }[]>(
     [],
   );
   return (
-    <Modal title="Different starts. One meeting point." onClose={close}>
-      <p>
-        Compare a shared station for up to six people. These distance-based estimates are for early
-        coordination, not departure planning.
-      </p>
+    <Modal title={t("planner.groupTitle")} onClose={close}>
+      <p>{t("planner.groupIntro")}</p>
       <div className="stack">
         {origins.map((v, i) => (
-          <Field key={i} label={`Traveler ${i + 1} starts in`}>
+          <Field key={i} label={t("planner.travelerStartsIn", { n: i + 1 })}>
             <select
               value={v}
               onChange={(e) =>
@@ -589,7 +601,7 @@ function GroupModal({ close }: { close: () => void }) {
             disabled={origins.length >= 6}
             onClick={() => setOrigins([...origins, searchInput.from])}
           >
-            Add traveler
+            {t("planner.addTraveler")}
           </Button>
           <Button
             kind="primary"
@@ -614,24 +626,28 @@ function GroupModal({ close }: { close: () => void }) {
               setResult(estimates.slice(0, 3));
             }}
           >
-            Compare meeting points
+            {t("planner.compareMeetingPoints")}
           </Button>
         </div>
         {result.map((r, i) => (
           <div className="option-card" key={r.city}>
             <div>
-              <Badge>{i === 0 ? "Shortest longest approach" : "Alternative"}</Badge>
+              <Badge>{i === 0 ? t("planner.shortestApproach") : t("planner.alternative")}</Badge>
               <h3>{boot.cities.find((c) => c.id === r.city)?.station}</h3>
-              <p>{r.perPerson.map((m, n) => `Person ${n + 1}: ~${duration(m)}`).join(" · ")}</p>
+              <p>
+                {r.perPerson
+                  .map((m, n) => t("planner.personEstimate", { n: n + 1, duration: duration(m) }))
+                  .join(" · ")}
+              </p>
             </div>
             <Button
               onClick={() => {
                 setSearchInput((s) => ({ ...s, from: r.city, travelers: origins.length }));
                 close();
-                notify("Meeting point and group size applied. Verify each approach separately.");
+                notify(t("planner.meetingApplied"));
               }}
             >
-              Use station
+              {t("planner.useStation")}
             </Button>
           </div>
         ))}
