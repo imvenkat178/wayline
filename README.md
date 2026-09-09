@@ -2,7 +2,7 @@
 
 Transportation planning, journey monitoring, and a grounded travel assistant, built with React, TypeScript, Vite, and Node.js/SQLite.
 
-**Work-in-progress checkpoint — 8 September 2026, with a Stage A stabilization pass, a durable-jobs/web-push pass, an account-security pass (TOTP MFA, session/device management, password recovery), and a privacy-retention-propagation pass applied 9 September 2026.** This is the implementation so far, not a finished production release. All 105 requested features are accounted for in [FEATURE_STATUS.md](docs/FEATURE_STATUS.md). Sample routes, prices, crowding, reliability, and connection probabilities are illustrative, not verified schedules, quotes, or predictions.
+**Work-in-progress checkpoint — 8 September 2026, with a Stage A stabilization pass, a durable-jobs/web-push pass, an account-security pass (TOTP MFA, session/device management, password recovery), a privacy-retention-propagation pass, and a sandbox commerce-scaffolding pass applied 9 September 2026.** This is the implementation so far, not a finished production release. All 105 requested features are accounted for in [FEATURE_STATUS.md](docs/FEATURE_STATUS.md). Sample routes, prices, crowding, reliability, and connection probabilities are illustrative, not verified schedules, quotes, or predictions.
 
 The 9 September stabilization pass addressed every row in the roadmap's "Immediate code work before expanding scope" table: account-switch state leaks, hash routing consistency, an offline app-shell service worker, bundled OCR assets, local-timezone night-walking scoring, tracking-agency/provider separation, freshness recomputed per response instead of cached, Guardian's account scan no longer capped at 1,000, recovery alternatives checked against where the traveler can actually reach, recovery cost calculated incrementally instead of by whole-itinerary subtraction, honest per-capability integration-status reporting, and paginated MBTA feed fetches.
 
@@ -11,6 +11,8 @@ A follow-on pass the same day went further than stabilization: Guardian's period
 A further pass the same day hardened accounts (roadmap feature 95): TOTP-based multi-factor authentication (`server/totp.mjs`, RFC 6238, verified against the RFC's own Appendix B test vectors, with 8 one-time base32 recovery codes issued on enrollment), a session/device list with per-session and "sign out everywhere else" revocation (`server/store.mjs`'s widened `sessions` table, migrated in place for a pre-existing database), and a password-recovery token flow whose response is identical whether or not the given email has an account, so it can't be used to enumerate registered addresses. None of this depends on an external account: TOTP and recovery codes are generated and verified locally, exactly like any other authenticator app. Actually delivering a recovery email does need a real provider (SES, Postmark, Resend, an SMTP relay), which this environment doesn't have -- so email sending is a pluggable interface (`server/email.mjs`) with a default that logs the message instead of sending it, clearly labeled as such in the API response and here. A login against an MFA-enabled account gets a short-lived, single-use challenge token instead of a session; a wrong code does not consume that token, so a mistyped code doesn't force starting over.
 
 A final pass the same day closed a gap this document already flagged (roadmap feature 97, "Privacy mode"): account and history deletion previously reached only the `records` table and whatever else already had a foreign key to `users` -- one piece of derived, per-user data, the durable job queue's queued-but-not-yet-delivered push notifications, could linger for up to 14 days after an account was deleted, self-healing silently rather than erroring, but still present in the database until an unrelated age-based sweep happened to run. The `jobs` table now has a real `user_id` foreign key with `ON DELETE CASCADE` (backfilled for existing rows whose referenced user still exists), so deleting an account removes its queued jobs in the same transaction as everything else; deleting just a user's history additionally retracts any still-pending push job for an alert that history deletion just removed, rather than waiting for it to no-op at delivery time. The "export everything about me" endpoint was also missing three tables' worth of account state -- it now includes active sessions, MFA enrollment status, and outstanding share links alongside records and audit history, none of which expose a raw credential (sessions and shares carry only a hashed token id, already how the UI lists them; MFA status is just the enrolled boolean).
+
+A last pass the same day laid groundwork for real ticketing and payment (roadmap features 34, 39-41), all of which the roadmap's own triage already flagged as blocked on a signed carrier reseller/API agreement and a payment processor merchant account -- neither of which exists here, and no amount of code substitutes for either. What is now real: an order/quote/hold/confirm/exchange/reconcile state machine (`server/domain/commerce.mjs`) mirroring the same pure, event-appending pattern journeys already use; idempotent order creation using the exact same key/request-hash pattern as saving a journey; and a signed-webhook callback (`POST /api/commerce/webhook`, HMAC-SHA256 over the raw body, verified with `crypto.timingSafeEqual`) that reconciles an order without any user session, the way a real payment provider's callback would. All of it runs against a sandbox adapter (`server/adapters/payments.mjs`) that authorizes, captures and refunds only synthetic amounts and never talks to a real network -- a new Wallet tab ("Sandbox checkout") makes this visible end to end, clearly labeled, so a real provider is one adapter implementation away, not a redesign.
 
 ## Quick start
 
@@ -82,27 +84,29 @@ Configured integrations are not certified operational. The checkpoint has not be
 
 ## Architecture
 
-| Path                                                  | Responsibility                                                                       |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `src/pages/`                                          | Planner, Journey, Wallet, Trips, Inbox, Commute, Profile, Lab and Offline            |
-| `src/components/`                                     | Journey cards/map, assistant, scanner and shared UI                                  |
-| `src/App.tsx`, `src/context.tsx`, `src/api.ts`        | App shell, state and API client                                                      |
-| `src/offline.ts`                                      | Encrypted IndexedDB snapshots                                                        |
-| `server/server.mjs`                                   | HTTP, sessions, CSRF, request limits, security headers and static serving            |
-| `server/router.mjs`, `server/journey-routes.mjs`      | API and journey operations                                                           |
-| `server/domain/`                                      | Search, risk, state and assistant rules                                              |
-| `server/store.mjs`                                    | SQLite schema, encryption, ownership, versions, shares and retention                 |
-| `server/guardian.mjs`, `server/records.mjs`           | Periodic evaluation and validation                                                   |
-| `server/jobs.mjs`                                     | Durable, leased, retried job/outbox queue backing Guardian's sweep and push delivery |
-| `server/push.mjs`                                     | Web Push: VAPID identity, subscription delivery, privacy-conscious notification text |
-| `server/totp.mjs`                                     | TOTP MFA math (RFC 6238), base32 codec, one-time recovery codes                      |
-| `server/email.mjs`                                    | Pluggable email-sending interface; default logs instead of sending                   |
-| `server/adapters/providers.mjs`, `server/catalog.mjs` | Optional integrations and sample/curated data                                        |
-| `public/`, `standalone/`                              | Public assets and compiled frontend (`public/sw.js` also handles push display/click) |
-| `infra/otp/`                                          | Original OTP examples; validate before use                                           |
-| `tests/`, `scripts/`                                  | Checkpoint tests and packaging                                                       |
-| `docs/original/`                                      | Unchanged original README, START_HERE and FREE_STACK                                 |
-| `docs/ORIGINAL_REQUIREMENTS.md`                       | Complete supplied feature document                                                   |
+| Path                                                       | Responsibility                                                                       |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `src/pages/`                                               | Planner, Journey, Wallet, Trips, Inbox, Commute, Profile, Lab and Offline            |
+| `src/components/`                                          | Journey cards/map, assistant, scanner and shared UI                                  |
+| `src/App.tsx`, `src/context.tsx`, `src/api.ts`             | App shell, state and API client                                                      |
+| `src/offline.ts`                                           | Encrypted IndexedDB snapshots                                                        |
+| `server/server.mjs`                                        | HTTP, sessions, CSRF, request limits, security headers and static serving            |
+| `server/router.mjs`, `server/journey-routes.mjs`           | API and journey operations                                                           |
+| `server/domain/`                                           | Search, risk, state and assistant rules                                              |
+| `server/store.mjs`                                         | SQLite schema, encryption, ownership, versions, shares and retention                 |
+| `server/guardian.mjs`, `server/records.mjs`                | Periodic evaluation and validation                                                   |
+| `server/jobs.mjs`                                          | Durable, leased, retried job/outbox queue backing Guardian's sweep and push delivery |
+| `server/push.mjs`                                          | Web Push: VAPID identity, subscription delivery, privacy-conscious notification text |
+| `server/totp.mjs`                                          | TOTP MFA math (RFC 6238), base32 codec, one-time recovery codes                      |
+| `server/email.mjs`                                         | Pluggable email-sending interface; default logs instead of sending                   |
+| `server/domain/commerce.mjs`, `server/commerce-routes.mjs` | Sandbox order/quote/hold/confirm/exchange/reconcile state machine and its routes     |
+| `server/adapters/payments.mjs`                             | Sandbox payment adapter and webhook-signature verification; moves no real money      |
+| `server/adapters/providers.mjs`, `server/catalog.mjs`      | Optional integrations and sample/curated data                                        |
+| `public/`, `standalone/`                                   | Public assets and compiled frontend (`public/sw.js` also handles push display/click) |
+| `infra/otp/`                                               | Original OTP examples; validate before use                                           |
+| `tests/`, `scripts/`                                       | Checkpoint tests and packaging                                                       |
+| `docs/original/`                                           | Unchanged original README, START_HERE and FREE_STACK                                 |
+| `docs/ORIGINAL_REQUIREMENTS.md`                            | Complete supplied feature document                                                   |
 
 React is the maintained UI source. Vite regenerates `standalone/`; do not maintain a second UI there. SQLite holds users, sessions, versioned records, shares and audit events. Deployment currently assumes one application instance with persistent disk.
 
@@ -110,21 +114,22 @@ React is the maintained UI source. Vite regenerates `standalone/`; do not mainta
 
 Call `GET /api/bootstrap` first for a session cookie and CSRF token. Mutations require JSON and `x-csrf-token`. Cookies are HttpOnly and SameSite Strict, plus Secure in production.
 
-| Group                                                        | Purpose                                                                       |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| `/api/auth/*`, `/api/profile`                                | Registration, login, logout and profile                                       |
-| `/api/search`, `/api/journeys/*`                             | Search snapshots, owned saved journeys, scenarios, recovery and receipts      |
-| `/api/records/*`                                             | Travelers, contacts, favorites, tickets, passes, commutes, reports and alerts |
-| `/api/agent`, `/api/agent/history`                           | Assistant and conversation history                                            |
-| `/api/guardian/check`                                        | Evaluate reminders and heuristics                                             |
-| `/api/fares/compare`, `/api/airport/deadline`                | Explicit-input calculators                                                    |
-| `/api/registry`, `/api/discovery`, `/api/stations/*`         | Curated discovery and station guidance                                        |
-| `/api/mbta/*`, `/api/gtfs-rt/*`, `/api/gbfs`, `/api/weather` | Optional provider data                                                        |
-| `/api/privacy/*`, `/api/shares`, `/api/audit`                | Export, deletion, revocation and audit                                        |
-| `/api/analytics`, `/api/community`, `/api/operator`          | Limited analytics and gated aggregates                                        |
-| `/api/health`                                                | Service status                                                                |
+| Group                                                        | Purpose                                                                            |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `/api/auth/*`, `/api/profile`                                | Registration, login, logout and profile                                            |
+| `/api/search`, `/api/journeys/*`                             | Search snapshots, owned saved journeys, scenarios, recovery and receipts           |
+| `/api/records/*`                                             | Travelers, contacts, favorites, tickets, passes, commutes, reports and alerts      |
+| `/api/agent`, `/api/agent/history`                           | Assistant and conversation history                                                 |
+| `/api/guardian/check`                                        | Evaluate reminders and heuristics                                                  |
+| `/api/fares/compare`, `/api/airport/deadline`                | Explicit-input calculators                                                         |
+| `/api/registry`, `/api/discovery`, `/api/stations/*`         | Curated discovery and station guidance                                             |
+| `/api/mbta/*`, `/api/gtfs-rt/*`, `/api/gbfs`, `/api/weather` | Optional provider data                                                             |
+| `/api/privacy/*`, `/api/shares`, `/api/audit`                | Export, deletion, revocation and audit                                             |
+| `/api/analytics`, `/api/community`, `/api/operator`          | Limited analytics and gated aggregates                                             |
+| `/api/commerce/*`                                            | Sandbox order/quote/hold/confirm/exchange state machine; no real payment or ticket |
+| `/api/health`                                                | Service status                                                                     |
 
-Saving a journey requires an owned, unexpired search snapshot and an idempotency key. Versioned updates require the current version and return 409 on conflict. Booking/payment endpoints return a provider-required error; they do not simulate purchases.
+Saving a journey requires an owned, unexpired search snapshot and an idempotency key. Versioned updates require the current version and return 409 on conflict. A real carrier/payment integration is still provider-required (rows 34-41 in FEATURE_STATUS.md); `/api/commerce/*` is a sandbox scaffold that runs a real state machine (with idempotency and a signed-webhook callback) against a no-op adapter that never moves real money or issues a real ticket -- see "Known gaps" below.
 
 ## Security and privacy
 
@@ -153,6 +158,8 @@ Offline passphrases remain in the browser. Share links are bearer credentials. C
 
 13. Account/history deletion now propagates to the durable job queue (a real foreign key, not just primary records) and data export now covers sessions, MFA status and shares -- but a job already orphaned by an account deleted before this pass shipped has no way to recover whose it was, and is left to the existing 14-day age-based `cleanup()` sweep, same as before. This pass is code-level tested only (`tests/privacy-retention.test.mjs`); it has not been exercised against a production-scale database or a real deletion request under load.
 
+14. Sandbox commerce scaffolding (roadmap features 34, 39-41 groundwork) is code-level tested only (`tests/commerce.test.mjs`, real HTTP including the signed-webhook path) -- it has never been exercised against a real payment processor or carrier, because none is integrated; the adapter behind it (`server/adapters/payments.mjs`) is entirely synthetic by design. Seat inventory (row 39) is unaffected -- the state machine does not model or reserve seats at all.
+
 See [FEATURE_STATUS.md](docs/FEATURE_STATUS.md) for all 105 items. No organization-specific engineering or release standards were attached; these must be supplied before production approval.
 
 ## Checks and packaging
@@ -165,7 +172,7 @@ npm run package
 
 `check` runs TypeScript and focused regression tests. `build` compiles the frontend. `package` creates `artifacts/wayline-ai-complete.zip`. [CHECKPOINT.md](docs/CHECKPOINT.md) records the actual results.
 
-171 focused Node tests (`node --test tests/*.test.mjs`) cover stale signal labeling, integer-cent pricing, guarded state changes, record ownership, optimistic concurrency, share revocation, history deletion, CSRF, session rotation, traveler-only registration, local-timezone night-walking scoring, tracking-agency/provider matching, freshness recomputation, account-switch/navigation state, the offline service worker's caching logic (including that its push/notificationclick handlers are registered at the top level, not nested inside another listener), bundled OCR assets, the durable job queue's claim/lease/reclaim/backoff/dead-letter semantics, Guardian's paginated account scan running through that queue, real web push delivery with a mocked push service (subscription upsert, generic-vs-detailed notification text, 404/410 subscription cleanup), recovery-alternative reachability, recovery incremental cost, honest integration-capability statuses, mocked MBTA feed pagination, TOTP against the RFC 6238 Appendix B test vectors, the sessions-table migration against a simulated pre-existing 4-column database, the full MFA login-challenge flow over real HTTP (including that a wrong code never burns the single-use pending-login token), session listing/revocation, password-recovery request/reset with an enumeration-resistance assertion, the jobs-table user_id migration/backfill against a simulated pre-existing database, account deletion cascading to the job queue/sessions/MFA/pending-logins/shares, history deletion retracting an orphaned pending push job while leaving another user's job and any already-delivered job untouched, and data export including sessions/MFA status/shares without leaking a raw credential. They do not verify every feature or live integration -- see "Known gaps and remaining work" above.
+187 focused Node tests (`node --test tests/*.test.mjs`) cover stale signal labeling, integer-cent pricing, guarded state changes, record ownership, optimistic concurrency, share revocation, history deletion, CSRF, session rotation, traveler-only registration, local-timezone night-walking scoring, tracking-agency/provider matching, freshness recomputation, account-switch/navigation state, the offline service worker's caching logic (including that its push/notificationclick handlers are registered at the top level, not nested inside another listener), bundled OCR assets, the durable job queue's claim/lease/reclaim/backoff/dead-letter semantics, Guardian's paginated account scan running through that queue, real web push delivery with a mocked push service (subscription upsert, generic-vs-detailed notification text, 404/410 subscription cleanup), recovery-alternative reachability, recovery incremental cost, honest integration-capability statuses, mocked MBTA feed pagination, TOTP against the RFC 6238 Appendix B test vectors, the sessions-table migration against a simulated pre-existing 4-column database, the full MFA login-challenge flow over real HTTP (including that a wrong code never burns the single-use pending-login token), session listing/revocation, password-recovery request/reset with an enumeration-resistance assertion, the jobs-table user_id migration/backfill against a simulated pre-existing database, account deletion cascading to the job queue/sessions/MFA/pending-logins/shares, history deletion retracting an orphaned pending push job while leaving another user's job and any already-delivered job untouched, data export including sessions/MFA status/shares without leaking a raw credential, and the sandbox commerce state machine end to end over real HTTP (quote validation, idempotent order creation and its replay/conflict cases, confirm/cancel/exchange transitions and their guards, cross-account isolation, and the signed-webhook reconciliation path including a rejected bad signature and a rejected malformed event). They do not verify every feature or live integration -- see "Known gaps and remaining work" above.
 
 The ZIP includes all source, lockfile, compiled frontend, public assets, tests, scripts, infrastructure examples, configuration template and current/original documentation. Dependencies, databases, secrets, Git metadata and caches are excluded. Restore dependencies with `npm ci`.
 

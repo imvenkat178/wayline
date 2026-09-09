@@ -559,6 +559,15 @@ export class Store {
   // Sessions, MFA enrollment state and share links are just as much "my data" as records
   // and audit history -- none of the three expose a raw credential (sessions/shares carry a
   // hashed token id, mfa is only the enrolled boolean, never the secret or recovery hashes).
+  // System-scoped order lookup for the sandbox commerce webhook (server/commerce-routes.mjs's
+  // reconcileOrder) -- a provider webhook carries no user session, only the opaque order id it
+  // is settling, so this looks the record up directly instead of through the normal
+  // userId-scoped get(). Never call this from a routed per-user endpoint.
+  systemGetOrder(id) {
+    const row = this.db.prepare("SELECT * FROM records WHERE id=? AND kind='order'").get(id);
+    if (!row) throw new DomainError("Order not found.", 404);
+    return { userId: row.user_id, order: this.decode(row) };
+  }
   export(userId) {
     const rows = this.db
       .prepare("SELECT * FROM records WHERE user_id=? ORDER BY created_at")
@@ -577,7 +586,7 @@ export class Store {
     this.transaction(() => {
       this.db
         .prepare(
-          "DELETE FROM records WHERE user_id=? AND kind IN ('journey','ticket','claim','alert','agent','report','search','recovery','idempotency')",
+          "DELETE FROM records WHERE user_id=? AND kind IN ('journey','ticket','claim','alert','agent','report','search','recovery','idempotency','order','quote')",
         )
         .run(userId);
       // Deleting 'alert' rows above can orphan a still-pending push-deliver job queued for

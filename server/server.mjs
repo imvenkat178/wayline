@@ -11,6 +11,7 @@ import { runGuardian } from "./guardian.mjs";
 import { processJobs, ensureRecurringJob } from "./jobs.mjs";
 import { configureWebPush, deliverPush } from "./push.mjs";
 import { LogEmailProvider } from "./email.mjs";
+import { handleCommerceWebhook } from "./commerce-routes.mjs";
 const ROOT = resolve(fileURLToPath(new URL("../standalone/", import.meta.url)));
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -131,6 +132,14 @@ export function createApplication({
       if (url.pathname.startsWith("/api/shared/") && req.method === "GET") {
         rateLimit(`share:${req.socket.remoteAddress}`, 60);
         return send(res, 200, store.shared(url.pathname.slice("/api/shared/".length)));
+      }
+      // Unauthenticated by design, exactly like /api/shared/ above -- a sandbox payment
+      // provider's webhook callback has no session cookie and no CSRF token, only a signed
+      // body (see commerce-routes.mjs's handleCommerceWebhook and adapters/payments.mjs's
+      // verifyWebhookSignature). Never routed through handleApi's session-gated dispatch.
+      if (url.pathname === "/api/commerce/webhook" && req.method === "POST") {
+        rateLimit(`webhook:${req.socket.remoteAddress}`, 120);
+        return await handleCommerceWebhook({ req, res, store, send });
       }
       if (url.pathname.startsWith("/api/")) {
         let token = cookies(req).wayline_session;

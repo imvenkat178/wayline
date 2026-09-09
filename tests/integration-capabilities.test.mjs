@@ -37,9 +37,13 @@ test("commercial capabilities are no longer a single uniform status", () => {
   assert.ok(statuses.size > 1, "expected more than one distinct status among capabilities");
   for (const status of statuses)
     assert.ok(
-      ["provider required", "unsupported", "configured, not checked", "not configured"].includes(
-        status,
-      ),
+      [
+        "provider required",
+        "unsupported",
+        "configured, not checked",
+        "not configured",
+        "sandbox",
+      ].includes(status),
       `unexpected capability status: ${status}`,
     );
 });
@@ -59,9 +63,10 @@ test("no capability claims to be healthy, authorized or connected -- none of the
       !["healthy", "authorized", "connected"].includes(c.status),
       `capability ${c.id} falsely claims status ${c.status}`,
     );
-    // remote-push is the one capability whose `enabled` can legitimately be true (it is now
-    // genuinely implemented) -- every other capability must still honestly report false.
-    if (c.id !== "remote-push") assert.equal(c.enabled, false);
+    // remote-push and sandbox-commerce are the two capabilities whose `enabled` can
+    // legitimately be true (both are now genuinely implemented, the latter as a sandbox that
+    // moves no real money) -- every other capability must still honestly report false.
+    if (!["remote-push", "sandbox-commerce"].includes(c.id)) assert.equal(c.enabled, false);
   }
 });
 
@@ -71,7 +76,7 @@ test("every capability carries a specific, non-generic reason", () => {
   assert.equal(new Set(reasons).size, reasons.length);
 });
 
-test("all twelve original capability ids are still reported", () => {
+test("all twelve original capability ids are still reported, plus the new sandbox-commerce one", () => {
   const ids = commercialCapabilities()
     .map((c) => c.id)
     .sort();
@@ -86,10 +91,20 @@ test("all twelve original capability ids are still reported", () => {
       "payment-tokenization",
       "refund-submission",
       "remote-push",
+      "sandbox-commerce",
       "seat-inventory",
       "sms-email",
       "ticket-issuance",
       "unified-checkout",
     ].sort(),
   );
+});
+
+test("sandbox-commerce is reported as a sandbox, not a real payment/booking integration", () => {
+  const c = commercialCapabilities().find((x) => x.id === "sandbox-commerce");
+  assert.ok(c);
+  assert.equal(c.status, "sandbox");
+  assert.equal(c.enabled, true);
+  assert.match(c.reason, /sandbox/i);
+  assert.match(c.reason, /no real money|never move|no-op/i);
 });

@@ -557,7 +557,8 @@ export async function otpSearch(input) {
 const CAPABILITY_INFO = {
   "unified-checkout": {
     status: "provider required",
-    reason: "Requires an authorized payment provider and carrier checkout contract.",
+    reason:
+      "A sandbox order/quote/hold/confirm state machine now exists (server/commerce-routes.mjs) with idempotency and signed-webhook verification, but it runs against a no-op adapter -- real checkout still requires an authorized payment provider and carrier checkout contract.",
   },
   "ticket-issuance": {
     status: "provider required",
@@ -569,7 +570,8 @@ const CAPABILITY_INFO = {
   },
   "payment-tokenization": {
     status: "provider required",
-    reason: "Requires an authorized payment processor.",
+    reason:
+      "The sandbox commerce adapter (adapters/payments.mjs) authorizes and captures synthetic, non-real payments to exercise the state machine -- real payment tokenization still requires an authorized payment processor.",
   },
   "automatic-rebooking": {
     status: "provider required",
@@ -594,6 +596,16 @@ const CAPABILITY_INFO = {
   "ev-live-availability": {
     status: "unsupported",
     reason: "Not implemented in this codebase yet. Needs an authorized EV charging-network feed.",
+  },
+  "sandbox-commerce": {
+    // Genuinely implemented as a sandbox: a real order/quote/hold/confirm/exchange/reconcile
+    // state machine (domain/commerce.mjs), idempotent order creation (commerce-routes.mjs,
+    // same pattern as journey creation), and HMAC-signed webhook verification
+    // (adapters/payments.mjs) -- but the adapter behind it never calls a real carrier or
+    // payment processor and never moves real money. Always available; nothing to configure.
+    status: "sandbox",
+    reason:
+      "Order/quote/hold/confirm/exchange/reconcile scaffolding with idempotency and signed-webhook verification, running against a sandbox adapter that never moves real money or issues a real ticket. Closing the remaining gap (rows 34, 39-41 in FEATURE_STATUS.md) needs a signed carrier reseller/API agreement and a payment processor merchant account -- no amount of local code substitutes for either.",
   },
   "remote-push": {
     // Now genuinely implemented (server/push.mjs): a push-subscription record kind, a durable
@@ -624,6 +636,8 @@ export function commercialCapabilities() {
           : "Implemented, but configureWebPush() has not run in this process yet.",
       };
     }
+    if (id === "sandbox-commerce")
+      return { id, status: info.status, enabled: true, reason: info.reason };
     return { id, status: info.status, enabled: false, reason: info.reason };
   });
 }

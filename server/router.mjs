@@ -35,6 +35,7 @@ import {
 } from "./adapters/providers.mjs";
 import { validateRecord } from "./records.mjs";
 import { journeyRoutes } from "./journey-routes.mjs";
+import { commerceRoutes } from "./commerce-routes.mjs";
 import { runGuardian } from "./guardian.mjs";
 import { pushPublicKey } from "./push.mjs";
 import QRCode from "qrcode";
@@ -275,6 +276,7 @@ If you didn't request this, you can ignore this email.`,
     return send(res, 201, result);
   }
   if (url.pathname.startsWith("/api/journeys/")) return journeyRoutes(ctx);
+  if (url.pathname.startsWith("/api/commerce/")) return commerceRoutes(ctx);
   if (url.pathname === "/api/shares" && req.method === "GET")
     return send(res, 200, store.shares(userId));
   if (url.pathname.startsWith("/api/shares/") && req.method === "DELETE") {

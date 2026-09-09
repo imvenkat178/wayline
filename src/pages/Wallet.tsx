@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../context";
 import { api, time, dateLabel, localInput, download, money } from "../api";
-import type { Ticket, Claim, SavedItem } from "../types";
+import type { Ticket, Claim, SavedItem, Order } from "../types";
 import {
   Button,
   Icon,
@@ -18,14 +18,29 @@ export default function Wallet() {
   const [tickets, setTickets] = useState<Ticket[]>([]),
     [claims, setClaims] = useState<Claim[]>([]),
     [passes, setPasses] = useState<SavedItem[]>([]),
+    [orders, setOrders] = useState<Order[]>([]),
     [tab, setTab] = useState("tickets"),
-    [modal, setModal] = useState(false);
+    [modal, setModal] = useState(false),
+    [quoteModal, setQuoteModal] = useState(false);
   const { busy, error, run } = useAsync();
   const load = async () => {
     setTickets(await api("/records/ticket"));
     setClaims(await api("/records/claim"));
     setPasses(await api("/records/pass"));
+    setOrders(await api("/commerce/orders"));
   };
+  const orderAction = (id: string, action: "confirm" | "exchange" | "cancel", data?: unknown) =>
+    run(async () => {
+      await api(`/commerce/orders/${id}/${action}`, "POST", data);
+      await load();
+      notify(
+        action === "confirm"
+          ? "Sandbox order confirmed. No real payment was captured."
+          : action === "cancel"
+            ? "Sandbox order cancelled."
+            : "Sandbox order exchanged.",
+      );
+    });
   useEffect(() => {
     void run(load);
   }, []);
@@ -42,13 +57,15 @@ export default function Wallet() {
         </Button>
       </div>
       <div className="view-tabs">
-        {["tickets", "passes", "refund drafts"].map((x) => (
+        {["tickets", "passes", "refund drafts", "sandbox checkout"].map((x) => (
           <button key={x} className={tab === x ? "active" : ""} onClick={() => setTab(x)}>
             {x === "tickets"
               ? `Tickets (${tickets.length})`
               : x === "passes"
                 ? `Passes (${passes.length})`
-                : `Refund drafts (${claims.length})`}
+                : x === "refund drafts"
+                  ? `Refund drafts (${claims.length})`
+                  : `Sandbox checkout (${orders.length})`}
           </button>
         ))}
       </div>
@@ -208,6 +225,61 @@ export default function Wallet() {
           )}
         </div>
       )}
+      {tab === "sandbox checkout" && (
+        <div className="stack">
+          <Notice tone="amber">
+            Sandbox checkout moves no real money and issues no real ticket. It exercises an
+            order/quote/hold/confirm/exchange state machine against a built-in sandbox adapter so a
+            real, contracted payment and carrier integration can plug in later without a redesign.
+            Every order here is synthetic.
+          </Notice>
+          <Button kind="primary" icon="plus" onClick={() => setQuoteModal(true)}>
+            Get a sandbox quote
+          </Button>
+          <div className="card-grid">
+            {orders.map((o) => (
+              <Section
+                key={o.id}
+                title={`${o.quote.from} → ${o.quote.to}`}
+                action={<Badge>SANDBOX · {o.state}</Badge>}
+              >
+                <p>{o.passenger}</p>
+                <h2>{money(o.quote.totalCents)}</h2>
+                <p>
+                  <small>
+                    Fare {money(o.quote.fareCents)} + sandbox fee {money(o.quote.feeCents)}
+                  </small>
+                </p>
+                <div className="button-row">
+                  {o.state === "HELD" && (
+                    <Button
+                      kind="small primary"
+                      disabled={busy}
+                      onClick={() => orderAction(o.id, "confirm")}
+                    >
+                      Confirm (capture)
+                    </Button>
+                  )}
+                  {(o.state === "HELD" || o.state === "CONFIRMED") && (
+                    <Button
+                      kind="small"
+                      disabled={busy}
+                      onClick={() => orderAction(o.id, "cancel")}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+              </Section>
+            ))}
+          </div>
+          {!orders.length && (
+            <Empty icon="ticket" title="No sandbox orders yet">
+              Get a quote to place a non-live, sandbox order.
+            </Empty>
+          )}
+        </div>
+      )}
       {modal && (
         <Modal title="Add an existing ticket" onClose={() => setModal(false)}>
           <Notice>
@@ -285,6 +357,82 @@ export default function Wallet() {
             {error && <Notice tone="error">{error}</Notice>}
             <Button type="submit" kind="primary" disabled={busy}>
               Save ticket details
+            </Button>
+          </form>
+        </Modal>
+      )}
+      {quoteModal && (
+        <Modal title="Sandbox checkout" onClose={() => setQuoteModal(false)}>
+          <Notice tone="amber">
+            No real money moves and no real ticket is issued. This is a scaffold for a future,
+            contracted payment/carrier integration.
+          </Notice>
+          <form
+            className="stack"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const d = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
+              void run(async () => {
+                const quote = await api("/commerce/quotes", "POST", {
+                  from: d.from,
+                  to: d.to,
+                  fareCents: Math.round(Number(d.fareDollars) * 100),
+                });
+                await api(
+                  "/commerce/orders",
+                  "POST",
+                  { quoteId: (quote as { id: string }).id, passenger: d.passenger },
+                  { "idempotency-key": crypto.randomUUID() },
+                );
+                await load();
+                setQuoteModal(false);
+                notify("Sandbox order placed (no real payment or ticket).");
+              });
+            }}
+          >
+            <div className="form-grid">
+              <Field label="From">
+                <select name="from" required defaultValue="">
+                  <option value="" disabled>
+                    Choose an origin
+                  </option>
+                  {boot.cities.map((c) => (
+                    <option value={c.id} key={c.id}>
+                      {c.name}, {c.state}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="To">
+                <select name="to" required defaultValue="">
+                  <option value="" disabled>
+                    Choose a destination
+                  </option>
+                  {boot.cities.map((c) => (
+                    <option value={c.id} key={c.id}>
+                      {c.name}, {c.state}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Passenger">
+                <input name="passenger" required defaultValue={boot.user.name} maxLength={100} />
+              </Field>
+              <Field label="Fare (sandbox, dollars)">
+                <input
+                  name="fareDollars"
+                  type="number"
+                  min="1"
+                  max="2000"
+                  step="0.01"
+                  required
+                  defaultValue="42.00"
+                />
+              </Field>
+            </div>
+            {error && <Notice tone="error">{error}</Notice>}
+            <Button type="submit" kind="primary" disabled={busy}>
+              Get quote and place sandbox order
             </Button>
           </form>
         </Modal>
