@@ -1,13 +1,257 @@
-import {useEffect,useRef,useState,type ReactNode} from 'react';
-const paths:Record<string,string>={route:'M4 17a3 3 0 1 0 6 0 3 3 0 0 0-6 0m10-10a3 3 0 1 0 6 0 3 3 0 0 0-6 0M7 14V7a3 3 0 0 1 3-3h3m4 6v7a3 3 0 0 1-3 3h-3',search:'m21 21-5-5M18 10a8 8 0 1 0-16 0 8 8 0 0 0 16 0',bus:'M5 17V5c0-2 14-2 14 0v12H5Zm0-7h14M7 17v3m10-3v3M8 14h.01M16 14h.01',train:'M6 17V5c0-3 12-3 12 0v12l-6 3-6-3Zm0-7h12M8 21l2-3m6 3-2-3M9 14h.01M15 14h.01',walk:'M13 4h.01M10 9l3-3 3 4 4 1M5 12l5-3 1 5-4 7m4-7 4 2 2 5',shield:'m12 3 8 3v6c0 5-8 9-8 9S4 17 4 12V6l8-3Zm-4 9 3 3 5-6',ticket:'M3 6h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4V6Zm12 0v3m0 2v2m0 2v3',bell:'M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M10 20h4',clock:'M21 12a9 9 0 1 0-18 0 9 9 0 0 0 18 0M12 6v6l4 2',user:'M16 7a4 4 0 1 0-8 0 4 4 0 0 0 8 0M4 21v-3a8 8 0 0 1 16 0v3',spark:'m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5L12 2Z',arrow:'M4 12h16m-6-6 6 6-6 6',chevron:'m9 5 7 7-7 7',down:'m5 9 7 7 7-7',swap:'M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4',pin:'M19 9c0 5-7 12-7 12S5 14 5 9a7 7 0 0 1 14 0Zm-5 0a2 2 0 1 0-4 0 2 2 0 0 0 4 0',plus:'M12 4v16M4 12h16',close:'m6 6 12 12M6 18 18 6',check:'m4 12 5 5L20 6',filter:'M4 6h16M7 12h10M10 18h4',share:'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6m12 7a3 3 0 1 0 0-6 3 3 0 0 0 0 6M9 10l6-4M9 14l6 4',download:'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5',heart:'M12 21S2 14 2 8a5 5 0 0 1 10-1A5 5 0 0 1 22 8c0 6-10 13-10 13Z',globe:'M21 12a9 9 0 1 0-18 0 9 9 0 0 0 18 0M3 12h18M12 3c-5 5-5 13 0 18 5-5 5-13 0-18Z',leaf:'M20 3C4 2 0 19 10 20 20 21 22 11 20 3ZM4 22l12-14',wifi:'M2 8c6-6 14-6 20 0M5 12c4-4 10-4 14 0M9 16c2-2 4-2 6 0M12 20h.01',lock:'M5 10h14v11H5V10Zm3 0V6a4 4 0 0 1 8 0v4m-4 5v2',info:'M21 12a9 9 0 1 0-18 0 9 9 0 0 0 18 0M12 11v6m0-10h.01',alert:'m12 3 10 18H2L12 3Zm0 6v5m0 3h.01',trash:'M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15M10 10v7m4-7v7',camera:'M3 7h4l2-3h6l2 3h4v14H3V7Zm13 7a4 4 0 1 0-8 0 4 4 0 0 0 8 0',mic:'M9 4a3 3 0 0 1 6 0v8a3 3 0 0 1-6 0V4ZM5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8',chart:'M4 3v18h17M8 17v-5m5 5V7m5 10V3',calendar:'M3 5h18v16H3V5ZM7 2v6m10-6v6M3 10h18',menu:'M3 6h18M3 12h18M3 18h18',moon:'M21 13a9 9 0 1 1-10-10 7 7 0 0 0 10 10Z',sun:'M16 12a4 4 0 1 0-8 0 4 4 0 0 0 8 0M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2',external:'M14 3h7v7m0-7L10 14M10 3H3v18h18v-7',refresh:'M20 8A9 9 0 1 0 21 15M20 3v5h-5',ferry:'M12 2v12M6 5h12v7M2 14l10-3 10 3-4 6H6l-4-6Zm0 8 4-2 6 2 6-2 4 2',bike:'M10 16a4 4 0 1 0-8 0 4 4 0 0 0 8 0m12 0a4 4 0 1 0-8 0 4 4 0 0 0 8 0M6 16l4-10h6l3 10M9 4h4',car:'M3 10l3-6h12l3 6v8H3v-8Zm0 0h18M5 18v3m14-3v3M6 14h.01M18 14h.01',access:'M14 3h.01M12 6v8h7l3 6M12 9h6M9 12a5 5 0 1 0 6 7',copy:'M8 8h13v13H8V8ZM4 16H2V2h14v2',headphones:'M3 14v-3a9 9 0 0 1 18 0v3M3 12h4v9H3v-9Zm14 0h4v9h-4v-9'};
-export function Icon({name,size=20}:{name:string;size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]??paths.route}/></svg>;}
-export const modeIcon=(mode:string)=>({metro:'train',tram:'train',rideshare:'car',drive:'car',scooter:'bike'}[mode]??mode);
-export function Button({children,icon,onClick,kind='',disabled=false,type='button',title}:{children?:ReactNode;icon?:string;onClick?:()=>void;kind?:string;disabled?:boolean;type?:'button'|'submit';title?:string}){return <button type={type} className={`btn ${kind}`} onClick={onClick} disabled={disabled} title={title} aria-label={title}>{icon&&<Icon name={icon} size={18}/>} {children}</button>;}
-export function Badge({children,tone=''}:{children:ReactNode;tone?:string}){return <span className={`badge ${tone}`}>{children}</span>;}
-export function Notice({children,tone=''}:{children:ReactNode;tone?:string}){return <div className={`notice ${tone}`} role={tone==='error'?'alert':undefined}><Icon name={tone==='error'?'alert':'info'} size={18}/><div>{children}</div></div>;}
-export function Empty({icon='route',title,children,action}:{icon?:string;title:string;children?:ReactNode;action?:ReactNode}){return <div className="empty"><div className="empty-icon"><Icon name={icon} size={30}/></div><h3>{title}</h3><p>{children}</p>{action}</div>;}
-export function Field({label,children,hint}:{label:string;children:ReactNode;hint?:string}){return <label className="field"><span>{label}</span>{children}{hint&&<small>{hint}</small>}</label>;}
-export function Toggle({label,description,checked,onChange}:{label:string;description?:string;checked:boolean;onChange:(v:boolean)=>void}){return <label className="setting"><div><b>{label}</b>{description&&<p>{description}</p>}</div><input type="checkbox" role="switch" checked={checked} onChange={e=>onChange(e.target.checked)}/></label>;}
-export function Modal({title,children,onClose,wide=false}:{title:string;children:ReactNode;onClose:()=>void;wide?:boolean}){const ref=useRef<HTMLDialogElement>(null);useEffect(()=>{const element=ref.current;element?.showModal();const previous=document.activeElement as HTMLElement;return()=>{element?.close();previous?.focus();};},[]);return <dialog ref={ref} className={`dialog ${wide?'wide':''}`} aria-label={title} onCancel={e=>{e.preventDefault();onClose();}} onClick={e=>{if(e.target===ref.current)onClose();}}><div className="dialog-inner"><div className="section-title"><h2>{title}</h2><Button icon="close" title="Close dialog" kind="icon-only" onClick={onClose}/></div>{children}</div></dialog>;}
-export function Section({title,action,children,className=''}:{title:string;action?:ReactNode;children:ReactNode;className?:string}){return <section className={`panel ${className}`}><div className="section-title"><h2>{title}</h2>{action}</div>{children}</section>;}
-export function useAsync(){const [busy,setBusy]=useState(false);const [error,setError]=useState('');const run=async(fn:()=>Promise<void>)=>{setBusy(true);setError('');try{await fn();}catch(e){setError(e instanceof Error?e.message:'Something went wrong.');}finally{setBusy(false);}};return {busy,error,run,setError};}
+import { useEffect, useRef, useState, type ReactNode } from "react";
+const paths: Record<string, string> = {
+  route:
+    "M4 17a3 3 0 1 0 6 0 3 3 0 0 0-6 0m10-10a3 3 0 1 0 6 0 3 3 0 0 0-6 0M7 14V7a3 3 0 0 1 3-3h3m4 6v7a3 3 0 0 1-3 3h-3",
+  search: "m21 21-5-5M18 10a8 8 0 1 0-16 0 8 8 0 0 0 16 0",
+  bus: "M5 17V5c0-2 14-2 14 0v12H5Zm0-7h14M7 17v3m10-3v3M8 14h.01M16 14h.01",
+  train: "M6 17V5c0-3 12-3 12 0v12l-6 3-6-3Zm0-7h12M8 21l2-3m6 3-2-3M9 14h.01M15 14h.01",
+  walk: "M13 4h.01M10 9l3-3 3 4 4 1M5 12l5-3 1 5-4 7m4-7 4 2 2 5",
+  shield: "m12 3 8 3v6c0 5-8 9-8 9S4 17 4 12V6l8-3Zm-4 9 3 3 5-6",
+  ticket: "M3 6h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4V6Zm12 0v3m0 2v2m0 2v3",
+  bell: "M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M10 20h4",
+  clock: "M21 12a9 9 0 1 0-18 0 9 9 0 0 0 18 0M12 6v6l4 2",
+  user: "M16 7a4 4 0 1 0-8 0 4 4 0 0 0 8 0M4 21v-3a8 8 0 0 1 16 0v3",
+  spark: "m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5L12 2Z",
+  arrow: "M4 12h16m-6-6 6 6-6 6",
+  chevron: "m9 5 7 7-7 7",
+  down: "m5 9 7 7 7-7",
+  swap: "M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4",
+  pin: "M19 9c0 5-7 12-7 12S5 14 5 9a7 7 0 0 1 14 0Zm-5 0a2 2 0 1 0-4 0 2 2 0 0 0 4 0",
+  plus: "M12 4v16M4 12h16",
+  close: "m6 6 12 12M6 18 18 6",
+  check: "m4 12 5 5L20 6",
+  filter: "M4 6h16M7 12h10M10 18h4",
+  share:
+    "M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6m12 7a3 3 0 1 0 0-6 3 3 0 0 0 0 6M9 10l6-4M9 14l6 4",
+  download: "M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5",
+  heart: "M12 21S2 14 2 8a5 5 0 0 1 10-1A5 5 0 0 1 22 8c0 6-10 13-10 13Z",
+  globe: "M21 12a9 9 0 1 0-18 0 9 9 0 0 0 18 0M3 12h18M12 3c-5 5-5 13 0 18 5-5 5-13 0-18Z",
+  leaf: "M20 3C4 2 0 19 10 20 20 21 22 11 20 3ZM4 22l12-14",
+  wifi: "M2 8c6-6 14-6 20 0M5 12c4-4 10-4 14 0M9 16c2-2 4-2 6 0M12 20h.01",
+  lock: "M5 10h14v11H5V10Zm3 0V6a4 4 0 0 1 8 0v4m-4 5v2",
+  info: "M21 12a9 9 0 1 0-18 0 9 9 0 0 0 18 0M12 11v6m0-10h.01",
+  alert: "m12 3 10 18H2L12 3Zm0 6v5m0 3h.01",
+  trash: "M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15M10 10v7m4-7v7",
+  camera: "M3 7h4l2-3h6l2 3h4v14H3V7Zm13 7a4 4 0 1 0-8 0 4 4 0 0 0 8 0",
+  mic: "M9 4a3 3 0 0 1 6 0v8a3 3 0 0 1-6 0V4ZM5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8",
+  chart: "M4 3v18h17M8 17v-5m5 5V7m5 10V3",
+  calendar: "M3 5h18v16H3V5ZM7 2v6m10-6v6M3 10h18",
+  menu: "M3 6h18M3 12h18M3 18h18",
+  moon: "M21 13a9 9 0 1 1-10-10 7 7 0 0 0 10 10Z",
+  sun: "M16 12a4 4 0 1 0-8 0 4 4 0 0 0 8 0M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2",
+  external: "M14 3h7v7m0-7L10 14M10 3H3v18h18v-7",
+  refresh: "M20 8A9 9 0 1 0 21 15M20 3v5h-5",
+  ferry: "M12 2v12M6 5h12v7M2 14l10-3 10 3-4 6H6l-4-6Zm0 8 4-2 6 2 6-2 4 2",
+  bike: "M10 16a4 4 0 1 0-8 0 4 4 0 0 0 8 0m12 0a4 4 0 1 0-8 0 4 4 0 0 0 8 0M6 16l4-10h6l3 10M9 4h4",
+  car: "M3 10l3-6h12l3 6v8H3v-8Zm0 0h18M5 18v3m14-3v3M6 14h.01M18 14h.01",
+  access: "M14 3h.01M12 6v8h7l3 6M12 9h6M9 12a5 5 0 1 0 6 7",
+  copy: "M8 8h13v13H8V8ZM4 16H2V2h14v2",
+  headphones: "M3 14v-3a9 9 0 0 1 18 0v3M3 12h4v9H3v-9Zm14 0h4v9h-4v-9",
+};
+export function Icon({ name, size = 20 }: { name: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={paths[name] ?? paths.route} />
+    </svg>
+  );
+}
+export const modeIcon = (mode: string) =>
+  ({ metro: "train", tram: "train", rideshare: "car", drive: "car", scooter: "bike" })[mode] ??
+  mode;
+export function Button({
+  children,
+  icon,
+  onClick,
+  kind = "",
+  disabled = false,
+  type = "button",
+  title,
+}: {
+  children?: ReactNode;
+  icon?: string;
+  onClick?: () => void;
+  kind?: string;
+  disabled?: boolean;
+  type?: "button" | "submit";
+  title?: string;
+}) {
+  return (
+    <button
+      type={type}
+      className={`btn ${kind}`}
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={title}
+    >
+      {icon && <Icon name={icon} size={18} />} {children}
+    </button>
+  );
+}
+export function Badge({ children, tone = "" }: { children: ReactNode; tone?: string }) {
+  return <span className={`badge ${tone}`}>{children}</span>;
+}
+export function Notice({ children, tone = "" }: { children: ReactNode; tone?: string }) {
+  return (
+    <div className={`notice ${tone}`} role={tone === "error" ? "alert" : undefined}>
+      <Icon name={tone === "error" ? "alert" : "info"} size={18} />
+      <div>{children}</div>
+    </div>
+  );
+}
+export function Empty({
+  icon = "route",
+  title,
+  children,
+  action,
+}: {
+  icon?: string;
+  title: string;
+  children?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="empty">
+      <div className="empty-icon">
+        <Icon name={icon} size={30} />
+      </div>
+      <h3>{title}</h3>
+      <p>{children}</p>
+      {action}
+    </div>
+  );
+}
+export function Field({
+  label,
+  children,
+  hint,
+}: {
+  label: string;
+  children: ReactNode;
+  hint?: string;
+}) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      {children}
+      {hint && <small>{hint}</small>}
+    </label>
+  );
+}
+export function Toggle({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="setting">
+      <div>
+        <b>{label}</b>
+        {description && <p>{description}</p>}
+      </div>
+      <input
+        type="checkbox"
+        role="switch"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+    </label>
+  );
+}
+export function Modal({
+  title,
+  children,
+  onClose,
+  wide = false,
+}: {
+  title: string;
+  children: ReactNode;
+  onClose: () => void;
+  wide?: boolean;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const element = ref.current;
+    element?.showModal();
+    const previous = document.activeElement as HTMLElement;
+    return () => {
+      element?.close();
+      previous?.focus();
+    };
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      className={`dialog ${wide ? "wide" : ""}`}
+      aria-label={title}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+      onClick={(e) => {
+        if (e.target === ref.current) onClose();
+      }}
+    >
+      <div className="dialog-inner">
+        <div className="section-title">
+          <h2>{title}</h2>
+          <Button icon="close" title="Close dialog" kind="icon-only" onClick={onClose} />
+        </div>
+        {children}
+      </div>
+    </dialog>
+  );
+}
+export function Section({
+  title,
+  action,
+  children,
+  className = "",
+}: {
+  title: string;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`panel ${className}`}>
+      <div className="section-title">
+        <h2>{title}</h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+export function useAsync() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    setError("");
+    try {
+      await fn();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { busy, error, run, setError };
+}
