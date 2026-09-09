@@ -4,6 +4,22 @@ export function validTime(value, label) {
     throw new DomainError(`Enter a valid ${label}.`);
   return new Date(value).toISOString();
 }
+// A ticket's optional attached document: the photo itself (base64), never verified against
+// any issuer system. Bounded well under the request-body cap server.mjs allows specifically
+// for this endpoint (8,000,000 bytes of raw JSON, itself sized for a base64-inflated ~5 MB
+// photo) so one oversized upload can't be used to balloon a single record indefinitely.
+function validateTicketDocument(doc) {
+  if (doc === undefined || doc === null) return null;
+  if (typeof doc !== "object" || Array.isArray(doc))
+    throw new DomainError("Invalid ticket document.");
+  const name = text(doc.name, "Document name", 200);
+  const type = text(doc.type, "Document type", 100);
+  if (typeof doc.base64 !== "string" || !doc.base64)
+    throw new DomainError("Document data is required.");
+  if (doc.base64.length > 7_000_000) throw new DomainError("Document is too large.");
+  if (!/^[A-Za-z0-9+/]+=*$/.test(doc.base64)) throw new DomainError("Invalid document data.");
+  return { name, type, base64: doc.base64 };
+}
 export function validateRecord(kind, b) {
   if (kind === "favorite")
     return {
@@ -86,8 +102,18 @@ export function validateRecord(kind, b) {
           ? null
           : integer(b.paidCents, "Paid amount", 0, 1000000),
       validity: "self-reported",
-      source: "manual import; not verified by operator",
-      barcode: null,
+      // Roadmap feature 18/19 (Phase 6): a ticket can now optionally carry a barcode decoded
+      // client-side from an attached photo (QR/PDF417/Aztec/Code128/Data Matrix -- open
+      // standards, decoded entirely in the browser, see src/components/TicketImport.tsx) and
+      // the photo itself, base64-encoded and encrypted at rest the same as every other record.
+      // None of this is verified against any issuer or carrier system -- it is exactly as
+      // "unverified" as a manually typed confirmation code, just with more evidence attached.
+      barcodeFormat: b.barcodeFormat ? text(b.barcodeFormat, "Barcode format", 20) : null,
+      barcodeText: b.barcodeText ? text(b.barcodeText, "Barcode payload", 2000) : null,
+      document: validateTicketDocument(b.document),
+      source: b.document
+        ? "document import (photo + decoded barcode when detected); not verified by operator"
+        : "manual import; not verified by operator",
     };
   if (kind === "report") {
     const types = [

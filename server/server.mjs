@@ -57,14 +57,22 @@ export function send(res, status, data, extra = {}) {
   });
   res.end(JSON.stringify(data));
 }
-async function body(req) {
+async function body(req, maxBytes = 1_000_000) {
   if (!String(req.headers["content-type"] ?? "").startsWith("application/json"))
     throw new DomainError("Send JSON content.", 415);
   let length = 0;
   const parts = [];
   for await (const c of req) {
     length += c.length;
-    if (length > 1_000_000) throw new DomainError("Request is too large.", 413);
+    if (length > maxBytes) {
+      // Bail out before the client has finished sending. Do NOT destroy the socket here --
+      // req and res share it, and destroying it now would kill the connection before the 413
+      // response below ever reaches the client (the request would just look like a connection
+      // reset). Instead this is tagged BODY_TOO_LARGE so the top-level handler can send the
+      // response first and only then force the (still not fully drained) connection closed,
+      // which is what actually prevents server.close() from hanging on it afterwards.
+      throw new DomainError("Request is too large.", 413, "BODY_TOO_LARGE");
+    }
     parts.push(c);
   }
   try {
@@ -166,7 +174,14 @@ export function createApplication({
           if (req.headers["x-csrf-token"] !== session.csrf)
             throw new DomainError("Refresh your session before making changes.", 403, "CSRF");
         }
-        const b = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) ? await body(req) : {};
+        // Ticket imports (roadmap features 18/19, Phase 6) can attach a base64-encoded photo
+        // alongside a manually entered ticket -- comfortably larger than any other request
+        // body in this API, so that one route gets a specifically raised, still-bounded cap
+        // (server/records.mjs's validateTicketDocument enforces the real limit) rather than
+        // loosening the shared 1 MB default every other endpoint relies on.
+        const b = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)
+          ? await body(req, url.pathname === "/api/records/ticket" ? 8_000_000 : 1_000_000)
+          : {};
         return await handleApi({
           req,
           res,
@@ -214,7 +229,14 @@ export function createApplication({
         console.error(
           JSON.stringify({ level: "error", requestId, error: e.name, message: "Request failed" }),
         );
-      if (!res.headersSent)
+      if (!res.headersSent) {
+        // A BODY_TOO_LARGE rejection means the request stream was abandoned mid-read (see
+        // body() above) -- the client may still be sending bytes we're never going to consume.
+        // Ask for the connection to close once this response is flushed (rather than being kept
+        // alive for reuse) and, once it actually finishes, destroy the socket so the leftover
+        // unread bytes can't leave it half-open -- exactly the kind of lingering connection a
+        // later server.close() would otherwise wait on forever.
+        const closeAfter = e.code === "BODY_TOO_LARGE";
         send(
           res,
           status,
@@ -223,9 +245,13 @@ export function createApplication({
             code: e.code ?? "INTERNAL_ERROR",
             requestId,
           },
-          status === 429 ? { "retry-after": "60" } : {},
+          {
+            ...(status === 429 ? { "retry-after": "60" } : {}),
+            ...(closeAfter ? { connection: "close" } : {}),
+          },
         );
-      else res.end();
+        if (closeAfter) res.on("finish", () => req.destroy());
+      } else res.end();
     }
   });
   server.requestTimeout = 15000;

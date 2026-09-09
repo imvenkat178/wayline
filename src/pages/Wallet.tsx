@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "../context";
 import { api, time, dateLabel, localInput, download, money } from "../api";
 import type { Ticket, Claim, SavedItem, Order } from "../types";
+import type { DecodedBarcode } from "../barcode";
 import {
   Button,
   Icon,
@@ -22,6 +23,14 @@ export default function Wallet() {
     [tab, setTab] = useState("tickets"),
     [modal, setModal] = useState(false),
     [quoteModal, setQuoteModal] = useState(false);
+  const [importedDoc, setImportedDoc] = useState<{
+      name: string;
+      type: string;
+      base64: string;
+    } | null>(null),
+    [importedBarcode, setImportedBarcode] = useState<DecodedBarcode | null>(null),
+    [importPreview, setImportPreview] = useState(""),
+    [importStatus, setImportStatus] = useState("");
   const { busy, error, run } = useAsync();
   const load = async () => {
     setTickets(await api("/records/ticket"));
@@ -122,6 +131,21 @@ export default function Wallet() {
                     <b>{t.platform || "Check departure board"}</b>
                   </div>
                 </div>
+                {(t.document || t.barcodeFormat) && (
+                  <div className="ticket-stub">
+                    <div>
+                      <small>
+                        {t.barcodeFormat
+                          ? `BARCODE · ${t.barcodeFormat.replace(/_/g, " ")}`
+                          : "PHOTO ATTACHED"}
+                      </small>
+                      <code>
+                        {t.barcodeText ? t.barcodeText.slice(0, 60) : "No barcode detected"}
+                      </code>
+                    </div>
+                    <Badge>UNVERIFIED</Badge>
+                  </div>
+                )}
                 <div className="ticket-stub">
                   <div>
                     <small>CONFIRMATION</small>
@@ -281,7 +305,16 @@ export default function Wallet() {
         </div>
       )}
       {modal && (
-        <Modal title="Add an existing ticket" onClose={() => setModal(false)}>
+        <Modal
+          title="Add an existing ticket"
+          onClose={() => {
+            setModal(false);
+            setImportedDoc(null);
+            setImportedBarcode(null);
+            setImportPreview("");
+            setImportStatus("");
+          }}
+        >
           <Notice>
             Your ticket information is encrypted on the server. No ticket is issued or verified by
             this form.
@@ -295,14 +328,64 @@ export default function Wallet() {
                 await api("/records/ticket", "POST", {
                   ...d,
                   departure: new Date(String(d.departure)).toISOString(),
+                  document: importedDoc,
+                  barcodeFormat: importedBarcode?.format ?? null,
+                  barcodeText: importedBarcode?.text ?? null,
                 });
                 await load();
                 setModal(false);
+                setImportedDoc(null);
+                setImportedBarcode(null);
+                setImportPreview("");
+                setImportStatus("");
                 notify("Ticket details saved.");
               });
             }}
           >
             <div className="form-grid">
+              <Field label="Attach a photo of your ticket (optional)">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    void (async () => {
+                      setImportedDoc(null);
+                      setImportedBarcode(null);
+                      if (f.size > 5_000_000) {
+                        setImportStatus("Choose a photo smaller than 5 MB.");
+                        return;
+                      }
+                      setImportStatus("Reading photo and looking for a barcode…");
+                      const { decodeBarcodeFromImage, loadImage, readFileAsDataUrl } =
+                        await import("../barcode");
+                      const dataUrl = await readFileAsDataUrl(f);
+                      setImportPreview(dataUrl);
+                      const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+                      setImportedDoc({ name: f.name, type: f.type, base64 });
+                      const image = await loadImage(dataUrl);
+                      const found = await decodeBarcodeFromImage(image);
+                      setImportedBarcode(found);
+                      setImportStatus(
+                        found
+                          ? `Detected a ${found.format.replace(/_/g, " ")} barcode. Not verified by the operator.`
+                          : "Photo attached. No barcode was detected in it.",
+                      );
+                    })();
+                  }}
+                />
+              </Field>
+              {importPreview && (
+                <img
+                  className="ticket-doc-preview"
+                  src={importPreview}
+                  alt="Attached ticket photo"
+                />
+              )}
+              {importStatus && (
+                <Notice tone={importedBarcode ? "" : "amber"}>{importStatus}</Notice>
+              )}
               <Field label="Operator">
                 <input name="operator" required list="ticket-operators" />
                 <datalist id="ticket-operators">

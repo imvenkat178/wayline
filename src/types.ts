@@ -288,7 +288,12 @@ export interface Ticket {
   platform: string;
   source: string;
   journeyId: string;
-  barcode: null;
+  // Roadmap features 18/19 (Phase 6): an optional barcode decoded client-side from an attached
+  // photo, and the photo itself. Never verified against any issuer or carrier system -- see
+  // server/records.mjs's validateTicketDocument and src/barcode.ts.
+  barcodeFormat: string | null;
+  barcodeText: string | null;
+  document: { name: string; type: string; base64: string } | null;
 }
 export interface SavedItem {
   id: string;

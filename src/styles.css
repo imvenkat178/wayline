@@ -2021,6 +2021,13 @@ svg {
   width: 100%;
   border-radius: 9px;
 }
+.ticket-doc-preview {
+  max-height: 180px;
+  object-fit: contain;
+  width: 100%;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+}
 .camera-guide {
   position: relative;
   border: 1px solid var(--line);
