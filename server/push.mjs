@@ -6,29 +6,13 @@ import { join } from "node:path";
 import { preferences } from "./domain/journeys.mjs";
 import { enqueueJob } from "./jobs.mjs";
 import { isForbiddenAddress } from "./netGuard.mjs";
+import { isNotificationAllowed, notificationContent } from "./domain/notificationPolicy.mjs";
 
 // Web Push (RFC 8030) plus VAPID (RFC 8292) needs a keypair identifying this server to each
 // browser's push service. This is explicitly NOT a carrier or payment contract -- see the
 // roadmap's own note on feature 89 ("not inherently a carrier contract") -- it is a standard,
 // self-issued keypair, generated locally with no external account.
 const VAPID_FILE = ".vapid-keys.json";
-
-// Privacy-conscious default: unless a user opts into `pushDetails` (see catalog.mjs's
-// defaultPreferences and domain/journeys.mjs's preferences() validator), a push notification's
-// visible text is a generic phrase keyed by the alert's `kind`, not the real journey/operator
-// detail. A push notification can surface on a locked device's screen, which is a materially
-// different exposure than the in-app alert list sitting behind a signed-in session.
-const GENERIC_BODY = {
-  connection: "One of your journeys has a connection alert. Open Wayline for details.",
-  accessibility: "An accessibility alert affects one of your journeys. Open Wayline for details.",
-  tracking: "One of your journeys has a tracking update. Open Wayline for details.",
-  leave: "It's nearly time to leave for an upcoming journey. Open Wayline for details.",
-  "check-in": "A check-in reminder needs your attention. Open Wayline for details.",
-  commute: "Your usual commute window is coming up. Open Wayline for details.",
-  renewal: "One of your passes needs review. Open Wayline for details.",
-};
-const GENERIC_TITLE = "Wayline alert";
-const GENERIC_FALLBACK_BODY = "Wayline has an update for you. Open the app for details.";
 
 // R03 (defense in depth): re-validates the actual DNS-resolved address right before the outbound
 // socket connects, so a hostname that passed registration-time validation (server/records.mjs's
@@ -144,6 +128,12 @@ export function fanOutPush(store, userId, alertId) {
 // "push-deliver" kind. Looks up the alert and subscription fresh at delivery time -- not at
 // enqueue time -- so an alert that was read/expired, or a subscription that was already removed
 // by an earlier delivery's "gone" cleanup, is handled as a no-op rather than an error.
+//
+// R07: re-runs the exact same isNotificationAllowed check guardian.mjs already ran when it
+// enqueued this job. Preferences (or the alert's read state) can change in the time a job sits
+// in the queue -- someone can flip notifyCritical off, adjust quiet hours, or read the alert
+// from another device before this handler ever runs -- and re-checking here is what makes an
+// opt-out actually affect already-queued work, not just future alerts.
 export async function deliverPush(store, { userId, alertId, subscriptionId }) {
   let alert;
   try {
@@ -151,17 +141,16 @@ export async function deliverPush(store, { userId, alertId, subscriptionId }) {
   } catch {
     return;
   }
+  const p = preferences(store.user(userId)?.preferences);
+  if (!isNotificationAllowed(alert, p)) return;
   let subscription;
   try {
     subscription = store.get(userId, subscriptionId, "push-subscription");
   } catch {
     return;
   }
-  const p = preferences(store.user(userId)?.preferences);
-  const detailed = Boolean(p.pushDetails);
   const result = await sendPush(subscription, {
-    title: detailed ? alert.title : GENERIC_TITLE,
-    body: detailed ? alert.body : (GENERIC_BODY[alert.kind] ?? GENERIC_FALLBACK_BODY),
+    ...notificationContent(alert, p),
     severity: alert.severity,
     alertId,
     journeyId: alert.journeyId ?? null,

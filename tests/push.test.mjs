@@ -183,6 +183,15 @@ test("deliverPush is a silent no-op when the subscription was already removed", 
 test("deliverPush sends a generic, non-identifying body by default (pushDetails off)", async (t) => {
   const store = temporaryStore(t);
   const user = store.createGuest();
+  // R07: deliverPush now re-checks the same notification policy guardian.mjs already applied
+  // at creation time -- an info-severity alert needs notifyInfo, which defaults off, and is
+  // subject to quiet hours, which this test doesn't want interfering regardless of the real
+  // wall-clock time it happens to run at (quietStart===quietEnd never matches). Opt in here
+  // since this test is about the pushDetails content rule, not the notification gate itself
+  // (that has its own dedicated tests below).
+  store.updateUser(user.id, {
+    preferences: { notifyInfo: true, quietStart: "00:00", quietEnd: "00:00" },
+  });
   const sub = store.put(user.id, "push-subscription", {
     endpoint: "https://push.example/a",
     keys: { p256dh: "p1", auth: "a1" },
@@ -213,7 +222,14 @@ test("deliverPush sends a generic, non-identifying body by default (pushDetails 
 test("deliverPush sends the real alert title/body once the user opts into pushDetails", async (t) => {
   const store = temporaryStore(t);
   const user = store.createGuest();
-  store.updateUser(user.id, { preferences: { pushDetails: true } });
+  store.updateUser(user.id, {
+    preferences: {
+      pushDetails: true,
+      notifyInfo: true,
+      quietStart: "00:00",
+      quietEnd: "00:00",
+    },
+  });
   const sub = store.put(user.id, "push-subscription", {
     endpoint: "https://push.example/a",
     keys: { p256dh: "p1", auth: "a1" },
@@ -262,10 +278,19 @@ test("deliverPush removes the subscription when the push service reports it gone
   assert.throws(() => store.get(user.id, sub.id, "push-subscription"), { status: 404 });
 });
 
-test("guardian's alert creation fans out a real push-deliver job when a subscription exists", () => {
+test("guardian's alert creation fans out a real push-deliver job when a subscription exists and the account allows it (R07)", () => {
   const store = temporaryStore(test);
   const now = Date.now();
   const user = store.createGuest();
+  // A pass-renewal reminder is info-severity, so it needs notifyInfo -- default preferences
+  // have that off (see the dedicated R07 default-suppression test below), so opt in explicitly
+  // here since this test's purpose is "does a real subscription actually get a job." Quiet
+  // hours are also disabled deterministically (quietStart===quietEnd never matches) since this
+  // test doesn't mock `now` and shouldn't be sensitive to the real wall-clock time it happens
+  // to run at.
+  store.updateUser(user.id, {
+    preferences: { notifyInfo: true, quietStart: "00:00", quietEnd: "00:00" },
+  });
   store.put(user.id, "push-subscription", {
     endpoint: "https://push.example/a",
     keys: { p256dh: "p1", auth: "a1" },
@@ -278,6 +303,26 @@ test("guardian's alert creation fans out a real push-deliver job when a subscrip
   assert.equal(store.list(user.id, "alert").length, 1);
   const jobs = store.db.prepare("SELECT * FROM jobs WHERE kind='push-deliver'").all();
   assert.equal(jobs.length, 1);
+});
+
+test("guardian's alert creation still happens, but no push is queued, when the account's default preferences don't allow it (R07)", () => {
+  const store = temporaryStore(test);
+  const now = Date.now();
+  const user = store.createGuest();
+  store.put(user.id, "push-subscription", {
+    endpoint: "https://push.example/a",
+    keys: { p256dh: "p1", auth: "a1" },
+  });
+  store.put(user.id, "pass", {
+    name: "Pass",
+    renewal: new Date(now + 86400000).toISOString(),
+  });
+  // Default preferences have notifyInfo off -- a pass-renewal reminder is info-severity, so
+  // this is exactly the review's reproduction (an opted-out category still queued a push job).
+  runGuardian(store, user.id, now);
+  assert.equal(store.list(user.id, "alert").length, 1, "the alert is still created in-app");
+  const jobs = store.db.prepare("SELECT * FROM jobs WHERE kind='push-deliver'").all();
+  assert.equal(jobs.length, 0, "but no push job should be queued for an opted-out category");
 });
 
 test("bootstrap reports a real VAPID public key once the server has started", async (t) => {

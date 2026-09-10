@@ -10,8 +10,9 @@ import type {
 } from "./types";
 import { AppContext, defaultPreferences } from "./context";
 import { nav, resolveHash } from "./routes";
+import { isNotificationAllowed, notificationContent } from "./notifications";
 import { api, setCsrf, time, readable } from "./api";
-import { Icon, Button, Badge, Notice, Empty, Section } from "./components/ui";
+import { Icon, Button, Badge, Notice, Empty, Section, ThemeToggle } from "./components/ui";
 import { useT } from "./useT";
 import { t as translate, type Locale } from "./i18n";
 import { Agent } from "./components/Agent";
@@ -108,22 +109,47 @@ export default function App() {
   // Applies a login/register response and clears every piece of state that belongs to whichever
   // account was previously active: the last search result, the currently viewed journey (it may
   // be a transient, never-saved sample preview with no `version`, which refresh()'s own merge
-  // logic would otherwise leave in place), search preferences (reset to the new user's saved
-  // preferences so a fresh search never silently applies someone else's budget/accessibility
-  // requirements), the notification de-dup set, and the assistant panel (it may still be open
-  // and rendered with the previous user's conversation on screen). Also bumps sessionEpoch so
-  // any request already in flight for the previous identity is discarded rather than applied.
+  // logic would otherwise leave in place), the saved-journeys list itself, search preferences
+  // (reset to the new user's saved preferences so a fresh search never silently applies someone
+  // else's budget/accessibility requirements), the notification de-dup set, any toast still on
+  // screen, and the assistant panel (it may still be open and rendered with the previous user's
+  // conversation on screen). Also bumps sessionEpoch so any request already in flight for the
+  // previous identity is discarded rather than applied (see refresh() and the Guardian poll
+  // effect below, which both check it).
+  //
+  // R10: the login/register/mfa-verify response this receives only ever carries {user, csrf} --
+  // not a full Bootstrap -- so before this fix, every OTHER bootstrap-derived field (mfaEnabled
+  // in particular, which Profile.tsx's MFA toggle reads directly off `boot`) kept showing
+  // whichever account was active before the switch until a full page reload happened to refetch
+  // it. This now re-fetches /bootstrap immediately under the new session (already the active one
+  // by this point -- the login/register/mfa-verify response already applied its Set-Cookie) so
+  // every field reflects the new identity, not just `user`.
   const switchIdentity = useCallback((next: { user: Bootstrap["user"]; csrf: string }) => {
     sessionEpoch.current += 1;
+    const epoch = sessionEpoch.current;
     setCsrf(next.csrf);
-    setBoot((prev) => (prev ? { ...prev, user: next.user } : prev));
-    setSearchInput((s) => ({ ...s, preferences: next.user.preferences }));
+    setJourneys([]);
     setResult(null);
     setActive(null);
     setAgentOpen(false);
     setPrompt("");
     notificationSeen.current.clear();
     setError("");
+    setToast("");
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setSearchInput((s) => ({ ...s, preferences: next.user.preferences }));
+    // Optimistic partial update so the UI reflects the new name/preferences immediately, in case
+    // the full re-fetch below is slow or fails -- refined into the authoritative full Bootstrap
+    // as soon as that resolves.
+    setBoot((prev) => (prev ? { ...prev, user: next.user } : prev));
+    void api<Bootstrap>("/bootstrap")
+      .then((fresh) => {
+        if (sessionEpoch.current !== epoch) return; // identity changed again while this was in flight
+        fresh.user.preferences = { ...defaultPreferences, ...fresh.user.preferences };
+        setBoot(fresh);
+        setSearchInput((s) => ({ ...s, preferences: fresh.user.preferences }));
+      })
+      .catch(() => {});
   }, []);
   useEffect(() => {
     if (initial.current) return;
@@ -182,27 +208,28 @@ export default function App() {
     if (!boot) return;
     const id = setInterval(() => {
       if (!navigator.onLine) return;
+      // R10: capture the identity this specific request is FOR before it goes out, and re-check
+      // it after the response arrives. clearInterval below (on identity change, since `boot` is
+      // this effect's dependency) only stops FUTURE ticks -- it can't cancel a fetch already in
+      // flight, so without this a slow /guardian/check response for the account someone just
+      // switched AWAY from could still land and surface a notification (with that stale
+      // account's preferences/timezone) after the new account is already active.
+      const epoch = sessionEpoch.current;
       void api<Alert[]>("/guardian/check", "POST")
         .then((alerts) => {
+          if (sessionEpoch.current !== epoch) return; // identity changed while this was in flight
           const p = boot.user.preferences;
-          const now = new Date();
-          const minutes = now.getHours() * 60 + now.getMinutes();
-          const start = p.quietStart.split(":").map(Number),
-            end = p.quietEnd.split(":").map(Number);
-          const a = start[0] * 60 + start[1],
-            b = end[0] * 60 + end[1];
-          const quiet = a > b ? minutes >= a || minutes < b : minutes >= a && minutes < b;
           for (const alert of alerts) {
-            if (notificationSeen.current.has(alert.id) || alert.read) continue;
+            if (notificationSeen.current.has(alert.id)) continue;
             notificationSeen.current.add(alert.id);
-            const critical = alert.severity === "critical";
-            if ((critical && !p.notifyCritical) || (!critical && (!p.notifyInfo || quiet)))
-              continue;
+            // R07: the same policy server/push.mjs applies to a push -- see ./notifications.ts.
+            // Evaluated against the account's saved timezone, not this device's own clock, so
+            // this agrees with what a push (delivered while this device might be asleep) would
+            // decide for the same alert.
+            if (!isNotificationAllowed(alert, p)) continue;
+            const { title, body } = notificationContent(alert, p);
             if ("Notification" in window && Notification.permission === "granted")
-              new Notification(
-                `${alert.dataMode === "illustrative" ? "Sample · " : ""}${alert.title}`,
-                { body: alert.body, tag: alert.id, icon: "/icon.svg" },
-              );
+              new Notification(title, { body, tag: alert.id, icon: "/icon.svg" });
           }
         })
         .catch(() => {});
@@ -434,6 +461,7 @@ export default function App() {
               <Button icon="spark" kind="agent-trigger" onClick={() => openAgent()}>
                 Ask Wayline
               </Button>
+              <ThemeToggle />
               <Button
                 icon="bell"
                 kind="icon-only"

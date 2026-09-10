@@ -12,27 +12,43 @@
 // and offers to open a saved offline pack -- this file's only job is making sure that screen is
 // reachable at all without a connection, not reimplementing it.
 //
-// Bump CACHE_VERSION on any change to this file's caching strategy (not on every app deploy --
-// hashed asset URLs already change per build, so stale JS/CSS is naturally never served under
-// the wrong content; this version exists to let `activate` drop a previous strategy's cache).
+// R08: CACHE_VERSION is rewritten by scripts/build-sw.mjs (run automatically after `vite build`
+// -- see package.json's "build" script) to a hash of the actual build output, so every real
+// deploy gets a genuinely new cache name and `activate`'s cleanup below actually has something
+// to clean up. The literal value here only ever ships if that step is skipped -- it's never
+// registered under `vite dev` (see main.tsx), so this default is effectively unreachable in
+// practice, not a silent fallback to worry about.
 const CACHE_VERSION = "wayline-shell-v1";
 
-// Entry points whose URL does NOT change between builds -- these are what `install` can
-// actually precache ahead of time. The hashed JS/CSS/asset files Vite emits change name every
-// build and are picked up opportunistically by the fetch handler below the first time each is
-// requested (safe: a given hashed filename's content is immutable for its lifetime).
-const SHELL_URLS = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
+// Entry points whose URL does NOT change between builds -- always safe to precache regardless
+// of build content.
+const SHELL_URLS = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg", "/theme-init.js"];
+
+// R08: the actual hashed entry JS/CSS (and their direct static dependencies) this build's
+// index.html references, rewritten by scripts/build-sw.mjs from the real build output. Before
+// this fix, install() precached only SHELL_URLS above and relied on the fetch handler's
+// cache-first branch to opportunistically catch these files on some LATER request -- which a
+// first visit that closes its only tab before making one never gets, so "open once online, close
+// every tab, go offline" could fail to boot even though install() reported success. Left empty
+// in this source template (also what `vite dev` would serve unbuilt, though the SW is never
+// registered there); an empty list here just means install() falls back to SHELL_URLS alone,
+// same as this file's behavior always was before this fix -- not a crash, and not silently
+// wrong, since the fetch handler's cache-first branch below still opportunistically fills in
+// whatever a page actually requests.
+const BUILD_ASSETS = [];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_VERSION)
-      .then((cache) => cache.addAll(SHELL_URLS))
-      .catch(() => {
-        // A precache failure (e.g. first install while already offline) must not block
-        // installation entirely -- the fetch handler will still opportunistically cache
-        // whatever does succeed once the app is used online.
-      }),
+      // cache.addAll is atomic: if any single URL fails, NOTHING from this call is written to
+      // the cache -- so a partially-precached, internally inconsistent shell can never exist.
+      // The catch() below only stops that failure from making install() itself reject (which
+      // would abort activation and leave the PREVIOUS service worker, if any, still in control
+      // -- itself a reasonable outcome for e.g. a first install attempted while offline); it
+      // does not paper over a partial cache, because there isn't one to paper over.
+      .then((cache) => cache.addAll([...SHELL_URLS, ...BUILD_ASSETS]))
+      .catch(() => {}),
   );
 });
 
@@ -68,10 +84,23 @@ self.addEventListener("fetch", (event) => {
     // shell (and any server-side redirect/behavior) rather than a possibly-stale cached copy.
     // Only fall back to the cached shell -- which boots the SPA and lets its own offline/error
     // screen take over -- when the network is genuinely unreachable.
+    //
+    // R08: a successful response is also written back into the cache under "/index.html" --
+    // before this fix, the cached copy was whatever install() precached at CACHE_VERSION's
+    // last bump and was never refreshed by an ordinary successful visit, so the offline
+    // fallback path could serve stale markup (referencing since-evicted hashed asset URLs from
+    // an old build) between deploys that didn't happen to bump CACHE_VERSION. This keeps it
+    // current on every online visit, independent of that version bump.
     event.respondWith(
-      fetch(request).catch(() =>
-        caches.match("/index.html").then((cached) => cached ?? caches.match("/")),
-      ),
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_VERSION).then((cache) => cache.put("/index.html", copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match("/index.html").then((cached) => cached ?? caches.match("/"))),
     );
     return;
   }
@@ -94,6 +123,30 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+// R08: lets the page ask "has this build's app shell actually finished precaching," not just
+// "is a service worker registered/active" -- those are different moments (install() is
+// asynchronous and can still be running, or can have failed and fallen back to SHELL_URLS
+// alone -- see install() above). src/serviceWorker.ts's shellReady() sends this and waits for
+// the reply; Journey.tsx's offline-pack save flow uses it to avoid telling someone their trip
+// is safe to open offline when the shell that boots the app in the first place isn't actually
+// cached yet.
+self.addEventListener("message", (event) => {
+  if (event.data?.type !== "SHELL_STATUS") return;
+  const port = event.ports[0];
+  if (!port) return;
+  event.waitUntil(
+    caches
+      .open(CACHE_VERSION)
+      .then(async (cache) => {
+        const required = [...SHELL_URLS, ...BUILD_ASSETS];
+        const matches = await Promise.all(required.map((u) => cache.match(u)));
+        port.postMessage({ type: "SHELL_STATUS", ready: matches.every(Boolean) });
+      })
+      .catch(() => port.postMessage({ type: "SHELL_STATUS", ready: false })),
+  );
+});
+
 // Push notifications (feature 89; see server/push.mjs). The payload arrives as plain JSON at
 // this layer -- Web Push's own transport encryption (RFC 8291) already protects it in transit,
 // and by design the server sends only a generic phrase unless the account has opted into

@@ -60,16 +60,65 @@ export default function Profile() {
       setModal("reset-password");
     }
   }, []);
+  // R10: a browser's PushManager subscription is scoped to this origin, not to whichever Wayline
+  // account happens to be signed in right now -- so "the browser has a live subscription" alone
+  // doesn't mean the CURRENT identity owns it. Before this fix this effect ran once on mount and
+  // trusted the browser alone, so switching identity in this same tab (or a previous identity's
+  // subscription simply outliving that identity) could show "push is on" for an account whose
+  // server-side record is gone (or was never created). Re-runs on every identity change
+  // ([boot.user.id]) and reconciles against the CURRENT user's own server records instead of
+  // trusting either side alone -- if the browser has a subscription the server doesn't recognize
+  // for this identity, it's detached outright rather than left as a dangling, silently-inert
+  // half-state.
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       setPushSubscribed(false);
       return;
     }
-    navigator.serviceWorker.ready
-      .then((registration) => registration.pushManager.getSubscription())
-      .then((subscription) => setPushSubscribed(Boolean(subscription)))
-      .catch(() => setPushSubscribed(false));
-  }, []);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (cancelled) return;
+        if (!subscription) {
+          setPushSubscribed(false);
+          return;
+        }
+        const records = await api<{ endpoint: string }[]>("/records/push-subscription");
+        if (cancelled) return;
+        const owned = records.some((r) => r.endpoint === subscription.endpoint);
+        setPushSubscribed(owned);
+        if (!owned) await subscription.unsubscribe().catch(() => {});
+      } catch {
+        if (!cancelled) setPushSubscribed(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [boot.user.id]);
+  // Deletes the server-side push-subscription record matching this browser's current
+  // subscription (if any) and tears the subscription down in the browser too. Shared by the
+  // explicit "turn push off" toggle below and by logout, which must leave no live subscription
+  // behind for an identity that's no longer signed in on this device (R10).
+  const detachPushSubscription = async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    const registration = await navigator.serviceWorker.ready.catch(() => null);
+    const subscription = await registration?.pushManager.getSubscription().catch(() => null);
+    if (!subscription) return;
+    try {
+      const existingRecords = await api<{ id: string; endpoint: string }[]>(
+        "/records/push-subscription",
+      );
+      const match = existingRecords.find((r) => r.endpoint === subscription.endpoint);
+      if (match) await api(`/records/push-subscription/${match.id}`, "DELETE");
+    } catch {
+      // Not fatal -- the browser-side unsubscribe below still stops delivery to this device, and
+      // a stale server record self-corrects the next time it's used.
+    }
+    await subscription.unsubscribe();
+  };
   // Turns real Web Push (feature 89, server/push.mjs) on or off for this browser. Distinct from
   // the "Enable browser notifications" button below, which only grants permission to display a
   // notification while the tab is open -- this registers a subscription with the push service
@@ -78,11 +127,11 @@ export default function Profile() {
     run(async () => {
       if (!("serviceWorker" in navigator) || !("PushManager" in window))
         throw new Error("Push notifications are unavailable in this browser.");
-      const registration = await navigator.serviceWorker.ready;
       if (subscribe) {
         if (!boot.pushPublicKey) throw new Error("Push is not configured on this server yet.");
         if ("Notification" in window && Notification.permission === "default")
           await Notification.requestPermission();
+        const registration = await navigator.serviceWorker.ready;
         const existing = await registration.pushManager.getSubscription();
         const subscription =
           existing ??
@@ -99,23 +148,7 @@ export default function Profile() {
         setPushSubscribed(true);
         notify("Push notifications are on for this device.");
       } else {
-        const subscription = await registration.pushManager.getSubscription();
-        if (subscription) {
-          // Best-effort: remove the matching server-side record by endpoint before tearing down
-          // the browser subscription, so a stray record isn't left to be delivered to nowhere
-          // until its next delivery attempt discovers it's gone (see push.mjs's deliverPush).
-          try {
-            const existingRecords = await api<{ id: string; endpoint: string }[]>(
-              "/records/push-subscription",
-            );
-            const match = existingRecords.find((r) => r.endpoint === subscription.endpoint);
-            if (match) await api(`/records/push-subscription/${match.id}`, "DELETE");
-          } catch {
-            // Not fatal -- the browser-side unsubscribe below still stops delivery to this
-            // device, and a stale server record self-corrects the next time it's used.
-          }
-          await subscription.unsubscribe();
-        }
+        await detachPushSubscription();
         setPushSubscribed(false);
         notify("Push notifications are off for this device.");
       }
@@ -139,6 +172,13 @@ export default function Profile() {
     });
   const logout = () =>
     run(async () => {
+      // R10: detach this device's push subscription (if any) while the session that registered
+      // it is still valid, so this browser stops receiving this account's alerts the moment it
+      // signs out -- not just eventually, whenever it's next reconciled under a different
+      // identity. server/store.mjs's logout() also cascades this server-side (defense in depth
+      // if this call is interrupted, e.g. the tab closes mid-logout), but only this client-side
+      // half can tear down the browser's own live PushManager subscription.
+      await detachPushSubscription();
       await api("/auth/logout", "POST");
       await clearOffline();
       location.href = "/";
@@ -405,14 +445,33 @@ export default function Profile() {
             onChange={(v) => update("notifyInfo", v)}
           />
           <div className="form-grid">
-            <Field label="Quiet hours start · device time">
+            {/* R07: quiet hours used to be labeled as this browser's own clock, but a push
+                notification is delivered by the server, often while nothing is open to observe
+                that clock -- so quiet hours are evaluated against this saved zone instead. */}
+            <Field
+              label="Timezone"
+              hint="Quiet hours below are evaluated in this zone, on every device."
+            >
+              <input
+                list="wayline-timezones"
+                value={p.timezone}
+                onChange={(e) => update("timezone", e.target.value)}
+                placeholder={Intl.DateTimeFormat().resolvedOptions().timeZone}
+              />
+              <datalist id="wayline-timezones">
+                {[...new Set(boot.cities.map((c) => c.timezone))].map((z) => (
+                  <option key={z} value={z} />
+                ))}
+              </datalist>
+            </Field>
+            <Field label="Quiet hours start">
               <input
                 type="time"
                 value={p.quietStart}
                 onChange={(e) => update("quietStart", e.target.value)}
               />
             </Field>
-            <Field label="Quiet hours end · device time">
+            <Field label="Quiet hours end">
               <input
                 type="time"
                 value={p.quietEnd}

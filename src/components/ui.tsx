@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { getTheme, toggleTheme } from "../theme";
 const paths: Record<string, string> = {
   route:
     "M4 17a3 3 0 1 0 6 0 3 3 0 0 0-6 0m10-10a3 3 0 1 0 6 0 3 3 0 0 0-6 0M7 14V7a3 3 0 0 1 3-3h3m4 6v7a3 3 0 0 1-3 3h-3",
@@ -237,6 +238,24 @@ export function Section({
       </div>
       {children}
     </section>
+  );
+}
+/** Icon-only light/dark switch. Reflects and updates the document's `data-theme` attribute
+ * (see src/theme.ts); safe to mount more than once since each instance reads the live theme on
+ * click rather than trusting stale local state. */
+export function ThemeToggle({ className = "" }: { className?: string } = {}) {
+  const [theme, setThemeState] = useState(() => getTheme());
+  const label = theme === "light" ? "Switch to dark theme" : "Switch to light theme";
+  return (
+    <button
+      type="button"
+      className={`btn icon-only theme-toggle ${className}`}
+      onClick={() => setThemeState(toggleTheme())}
+      title={label}
+      aria-label={label}
+    >
+      <Icon name={theme === "light" ? "moon" : "sun"} size={18} />
+    </button>
   );
 }
 export function useAsync() {

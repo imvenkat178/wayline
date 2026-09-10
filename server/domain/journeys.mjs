@@ -48,6 +48,14 @@ export function preferences(input = {}) {
   }
   for (const k of ["quietStart", "quietEnd"])
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(out[k])) throw new DomainError(`Invalid ${k}.`);
+  // R07: quiet hours are evaluated against this zone (see notificationPolicy.mjs), so it has to
+  // be one Intl actually recognizes -- the same validation records.mjs already uses for a
+  // ticket's timezone field.
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: out.timezone });
+  } catch {
+    throw new DomainError("Invalid timezone.");
+  }
   return out;
 }
 export function freshness(signal, now = Date.now()) {

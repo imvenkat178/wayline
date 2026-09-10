@@ -2,11 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- A same-origin file (not an inline script) so it runs under the app's CSP (script-src
+         'self', no 'unsafe-inline') -- see public/theme-init.js. Placed before every other
+         <head> entry: Vite injects the built stylesheet <link> at the end of <head>, so this
+         always runs first and the page never flashes the wrong theme on load. -->
+    <script src="/theme-init.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07111f" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-    <meta name="description" content="Wayline AI — multimodal journey assurance for public and intercity transportation." />
+    <meta
+      name="description"
+      content="Wayline AI — multimodal journey assurance for public and intercity transportation."
+    />
     <title>Wayline AI — Journey Assurance</title>
   </head>
   <body>

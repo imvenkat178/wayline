@@ -285,6 +285,16 @@ export const defaultPreferences = {
   pushDetails: false,
   quietStart: "22:00",
   quietEnd: "07:00",
+  // R07: the IANA zone quiet hours are evaluated in. A push notification is delivered by this
+  // server while the account's own device may be asleep or offline, so "device time" -- what the
+  // foreground UI used exclusively before this fix -- isn't something the server can observe;
+  // this is what makes quiet hours actually enforceable for push, not just in-app polling. The
+  // frontend also switches to formatting against this same zone (see src/App.tsx) so the two
+  // notification paths agree, instead of one using the browser's clock and the other guessing.
+  // Defaults to a reasonable fallback; Profile.tsx pre-fills it with the browser's own detected
+  // zone (Intl.DateTimeFormat().resolvedOptions().timeZone) for a new account, which is usually
+  // the same zone the old "device time" framing already implied.
+  timezone: "America/Los_Angeles",
   historyDays: 90,
   saveHistory: true,
   shareLocation: false,

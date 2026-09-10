@@ -37,3 +37,11 @@ test("Profile.tsx exposes the pushDetails preference, defaulting to the privacy-
   assert.match(profile, /update\("pushDetails"/);
   assert.match(profile, /p\.pushDetails/);
 });
+
+test("Profile.tsx exposes an editable account timezone that quiet hours are evaluated against (R07)", () => {
+  assert.match(profile, /update\("timezone"/);
+  assert.match(profile, /p\.timezone/);
+  // The old "device time" framing was misleading for anything server-delivered (a push arrives
+  // while this device may be asleep) -- the quiet-hour fields must no longer claim that.
+  assert.doesNotMatch(profile, /device time/i);
+});

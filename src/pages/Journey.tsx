@@ -17,6 +17,7 @@ import {
 } from "../components/ui";
 import { JourneyMap } from "../components/JourneyMap";
 import { saveOffline } from "../offline";
+import { shellReady } from "../serviceWorker";
 import { Scanner } from "../components/Scanner";
 export default function JourneyPage() {
   const { active, setActive, journeys, boot, navigate, refresh, notify, searchInput, openAgent } =
@@ -519,7 +520,16 @@ function OfflineModal({ journey: j, close }: { journey: Journey; close: () => vo
               },
               passphrase,
             );
-            notify("Encrypted offline pack saved. Remember your passphrase.");
+            // R08: the encrypted pack (IndexedDB) is only half of "safe to open offline" -- the
+            // app shell that boots the page in the first place is a separate mechanism
+            // (CacheStorage, public/sw.js), and confirming the pack alone would be a false
+            // promise if the shell hasn't actually finished precaching yet (e.g. this is the
+            // very first visit and installation is still in flight).
+            notify(
+              (await shellReady())
+                ? "Encrypted offline pack saved. Remember your passphrase."
+                : "Encrypted offline pack saved, but this browser hasn't finished preparing the app for offline use yet. Stay online a little longer, then check Offline mode before you rely on it.",
+            );
             close();
           });
         }}

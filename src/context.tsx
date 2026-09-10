@@ -66,6 +66,10 @@ export const defaultPreferences: Preferences = {
   pushDetails: false,
   quietStart: "22:00",
   quietEnd: "07:00",
+  // R07: this hardcoded fallback only ever shows before a real bootstrap response loads --
+  // Profile.tsx suggests the browser's own detected zone as a starting point for an account
+  // that hasn't set one explicitly.
+  timezone: "America/Los_Angeles",
   historyDays: 90,
   saveHistory: true,
   shareLocation: false,

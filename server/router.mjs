@@ -126,11 +126,23 @@ export async function handleApi(ctx) {
   // in -- see docs/FEATURE_STATUS.md and README.md for that gap). The response is identical
   // whether or not the email matches an account, so this endpoint can't be used to enumerate
   // registered emails.
+  //
+  // R09: the response text is chosen from emailProvider.real -- a static, deployment-wide
+  // capability flag, never a per-request outcome -- so it stays honest about whether this
+  // deployment can actually deliver a recovery email at all, without that choice ever depending
+  // on (and thereby leaking) whether the given address has an account. See server/email.mjs's
+  // module comment for why a per-message "delivered" result can't be used here instead.
   if (url.pathname === "/api/auth/recovery/request" && req.method === "POST") {
     rateLimit(`recovery:${req.socket.remoteAddress}`, 5, 900000);
     const resetToken = store.createRecoveryToken(b.email);
     if (resetToken) {
-      const link = `${url.origin}/#reset-password?token=${resetToken}`;
+      // Canonical origin, not the request's own Host header: production already requires
+      // PUBLIC_ORIGIN to be set (see server.mjs's startup check) and url.origin is built from it
+      // when present, but this makes the link's source unambiguous by inspection rather than
+      // relying on that indirection -- a reset link is exactly the kind of URL that must not be
+      // buildable from client-controlled input.
+      const origin = process.env.PUBLIC_ORIGIN ?? url.origin;
+      const link = `${origin}/#reset-password?token=${resetToken}`;
       await emailProvider.send({
         to: b.email,
         subject: "Reset your Wayline password",
@@ -139,10 +151,20 @@ export async function handleApi(ctx) {
 If you didn't request this, you can ignore this email.`,
       });
     }
-    return send(res, 200, {
-      ok: true,
-      message: "If that email has an account, a reset link has been sent to it.",
-    });
+    return send(
+      res,
+      200,
+      emailProvider.real
+        ? {
+            ok: true,
+            message: "If that email has an account, a reset link has been sent to it.",
+          }
+        : {
+            ok: false,
+            message:
+              "Email-based password recovery isn't available in this environment yet. Contact support for help regaining access to your account.",
+          },
+    );
   }
   if (url.pathname === "/api/auth/recovery/reset" && req.method === "POST") {
     rateLimit(`recovery-reset:${req.socket.remoteAddress}`, 10, 900000);
@@ -314,6 +336,15 @@ If you didn't request this, you can ignore this email.`,
         value.confidence = Math.min(1, (confirmations + 1) / MIN_REPORT_COHORT);
       }
       if (kind === "push-subscription") {
+        // R10: tag every subscription with the session that created it (the same id
+        // /api/sessions itself lists and /api/sessions/:id revokes -- store.mjs's sessions()
+        // returns the token hash as `id`). A Web Push subscription is scoped to this browser's
+        // origin, not to whichever Wayline account happens to be signed in, so without this a
+        // device's subscription would silently survive that session ending -- see store.mjs's
+        // logout()/revokeSession()/revokeOtherSessions(), which use this to detach it along with
+        // the session, and Profile.tsx, which uses it to tell a still-live browser subscription
+        // apart from one the CURRENT identity's own server records actually recognize.
+        value.sessionId = hashToken(token);
         // Re-subscribing the same device/browser (a token refresh, a service-worker update)
         // yields the same endpoint URL -- upsert on it so that produces one updated record, not
         // an ever-growing pile of stale duplicates that would each get their own delivery job.

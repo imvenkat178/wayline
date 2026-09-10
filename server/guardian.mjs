@@ -1,5 +1,7 @@
 import { digitalTwin, preferences } from "./domain/journeys.mjs";
 import { fanOutPush } from "./push.mjs";
+import { hashToken } from "./store.mjs";
+import { isNotificationAllowed } from "./domain/notificationPolicy.mjs";
 
 // A single in-process 30s timer sweeping every account (see server.mjs) is an accepted
 // pilot-scale constraint -- it is not leased or distributed across workers, and a crash
@@ -44,33 +46,61 @@ export function runGuardian(
     if (!user) continue;
     const p = preferences(user.preferences);
     const prior = new Set(store.list(userId, "alert").map((a) => a.dedupeKey));
+    // R06: creating the alert record and enqueueing its push-delivery jobs must commit
+    // together. Before this fix they were two separate, un-transacted writes -- a crash or DB
+    // error between them left a real alert on file with no push ever queued for it, silently
+    // (the in-app alert still worked fine, so nothing surfaced the gap), which is exactly what
+    // the R06 review reproduced. Wrapping both in one store.transaction() means either both
+    // commit or neither does.
+    //
+    // dedupeHash also gives the alert a real, database-enforced uniqueness constraint (see
+    // store.mjs), so a duplicate insert attempt for the same key -- whether from a genuine race
+    // between two overlapping sweeps, or from `prior` above missing it because an account has
+    // more than 1000 alerts on file (store.list's LIMIT) -- returns the existing row instead of
+    // crashing this sweep, and re-running fanOutPush against that existing alert self-heals any
+    // push-delivery job that a prior, pre-R06 write left missing (enqueueJob is itself
+    // idempotent per (alertId,subscriptionId) -- see jobs.mjs).
+    // R07: the alert record is ALWAYS created here, for every kind below, regardless of
+    // notifyCritical/notifyInfo/quiet hours -- those preferences only ever govern whether a push
+    // is also sent for it (isNotificationAllowed, checked right before fanOutPush), never whether
+    // it shows up in the account's own in-app alert history. Before this fix, gating was
+    // inconsistent per call site: twin alerts checked notifyInfo for everything except critical
+    // severity (which was always let through, regardless of notifyCritical), and leave/commute/
+    // pass reminders had no preference check at all -- see the review this closes.
     const add = (key, alert) => {
       if (prior.has(key)) return;
-      const created = store.put(
-        userId,
-        "alert",
-        {
-          ...alert,
-          read: false,
-          dedupeKey: key,
-          delivery: "in-app",
-          at: new Date(now).toISOString(),
-        },
-        { expiresAt: now + 7 * 86400000 },
-      );
-      prior.add(key);
-      // Fan out a durable push-delivery job (see push.mjs) to every device this account has
-      // subscribed, for every alert this function actually creates -- never for one that was
-      // filtered out above (e.g. an info-severity twin alert with notifyInfo off). A user with
-      // no push subscriptions enqueues nothing here.
-      fanOutPush(store, userId, created.id);
+      try {
+        store.transaction(() => {
+          const created = store.put(
+            userId,
+            "alert",
+            {
+              ...alert,
+              read: false,
+              dedupeKey: key,
+              delivery: "in-app",
+              at: new Date(now).toISOString(),
+            },
+            { expiresAt: now + 7 * 86400000, dedupeHash: hashToken(`${userId}:${key}`) },
+          );
+          // Fan out a durable push-delivery job (see push.mjs) to every device this account has
+          // subscribed, only when the unified notification policy actually allows it for this
+          // alert right now. A user with no push subscriptions enqueues nothing here either way.
+          if (isNotificationAllowed(created, p, now)) fanOutPush(store, userId, created.id);
+        });
+        prior.add(key);
+      } catch (e) {
+        // Never let one bad alert (a DB error unrelated to the dedupe race handled above, e.g.
+        // a full disk) abort the rest of this sweep -- every other account, and every other
+        // alert for this same account, still deserves its own attempt.
+        console.error(`Guardian: failed to create/deliver alert "${key}" for user ${userId}:`, e);
+      }
     };
     for (const j of store.list(userId, "journey")) {
       if (["ARRIVED", "CANCELLED"].includes(j.state)) continue;
       const twin = digitalTwin(j, { preferences: p });
       for (const alert of twin.alerts)
-        if (alert.severity === "critical" || p.notifyInfo)
-          add(`${j.id}:${alert.id}`, { ...alert, journeyId: j.id, dataMode: j.dataMode });
+        add(`${j.id}:${alert.id}`, { ...alert, journeyId: j.id, dataMode: j.dataMode });
       const leave = (Date.parse(twin.leave.leaveAt) - now) / 60000;
       if (leave >= -5 && leave <= 15)
         add(`${j.id}:leave`, {
@@ -129,4 +159,36 @@ export function runGuardian(
           kind: "renewal",
         });
   }
+}
+
+// R06: repairs alerts left behind by pre-fix code, where the alert record and its push-delivery
+// jobs were two separate, un-transacted writes -- a crash or DB error between them left a real
+// alert on file with no push ever queued for it. Safe to call on every server startup (see
+// server.mjs): it only looks at non-expired alerts that still have no push-deliver job of any
+// status referencing them, and the fanOutPush/enqueueJob calls it makes are themselves
+// idempotent (R06, jobs.mjs), so running this again against an already-consistent database, or
+// twice in a row, does nothing beyond one fast, empty query.
+//
+// An alert for an account with zero push subscriptions will always match "no push-deliver job
+// exists" (fanOutPush intentionally enqueues nothing for it) and so will keep being selected by
+// this query until it expires -- harmless (fanOutPush's own loop is a no-op), just not worth
+// special-casing at this pilot's scale.
+export function reconcileOrphanedAlerts(store, { now = Date.now(), limit = 500 } = {}) {
+  const orphans = store.db
+    .prepare(
+      `SELECT id, user_id FROM records
+       WHERE kind='alert' AND (expires_at IS NULL OR expires_at>?)
+       AND NOT EXISTS (
+         SELECT 1 FROM jobs WHERE kind='push-deliver' AND json_extract(jobs.payload,'$.alertId')=records.id
+       )
+       LIMIT ?`,
+    )
+    .all(now, limit);
+  let repaired = 0;
+  for (const { id, user_id: userId } of orphans) {
+    if (store.list(userId, "push-subscription").length === 0) continue;
+    fanOutPush(store, userId, id);
+    repaired++;
+  }
+  return repaired;
 }

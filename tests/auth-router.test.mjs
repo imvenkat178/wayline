@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { Store } from "../server/store.mjs";
 import { createApplication } from "../server/server.mjs";
 import { totp } from "../server/totp.mjs";
-import { LogEmailProvider } from "../server/email.mjs";
+import { TestCaptureEmailProvider } from "../server/email.mjs";
 
 function cookieOf(res) {
   const set = res.headers.get("set-cookie");
@@ -16,12 +16,18 @@ function cookieOf(res) {
 async function withServer(t, run) {
   const directory = mkdtempSync(join(tmpdir(), "wayline-test-"));
   const store = new Store({ directory, key: "78".repeat(32), production: false });
-  const emailProvider = new LogEmailProvider({ quiet: true });
+  // R09: this file's tests need to inspect what a recovery email would have contained (e.g. to
+  // extract the reset token and drive the rest of the flow), which the production default
+  // (LogEmailProvider) deliberately no longer retains -- see server/email.mjs. That default's
+  // own behavior (including its honest "not available" response text) is covered separately in
+  // tests/email.test.mjs.
+  const emailProvider = new TestCaptureEmailProvider();
   const { server } = createApplication({ store, production: false, quiet: true, emailProvider });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   t.after(async () => {
     await new Promise((resolve) => server.close(resolve));
+    store.close();
     rmSync(directory, { recursive: true, force: true });
   });
   return { base, store, emailProvider };
@@ -269,7 +275,7 @@ test("password recovery: request responds identically for a real and a fake emai
   assert.deepEqual(await knownRes.json(), await unknownRes.json());
 });
 
-test("password recovery: the LogEmailProvider records the reset email for a real account (not actually delivered)", async (t) => {
+test("password recovery: send() is attempted for a real account and not for an unknown one, though the public response never reveals which happened (not actually delivered)", async (t) => {
   const { base, store, emailProvider } = await withServer(t);
   let session = await freshSession(base);
   session = await registerAliceViaStore(store, session, base);

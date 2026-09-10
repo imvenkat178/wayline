@@ -39,11 +39,16 @@ export interface Preferences {
   visitor: boolean;
   notifyCritical: boolean;
   notifyInfo: boolean;
-  // Whether a push notification shows the real alert title/body, or a generic phrase (see
-  // server/push.mjs's GENERIC_BODY). Defaults off: push can surface on a locked screen.
+  // Whether a push or foreground notification shows the real alert title/body, or a generic
+  // phrase (see server/domain/notificationPolicy.mjs's GENERIC_BODY, mirrored in App.tsx).
+  // Defaults off: either can surface on a locked screen.
   pushDetails: boolean;
   quietStart: string;
   quietEnd: string;
+  // R07: the IANA zone quiet hours are evaluated in (see server/domain/notificationPolicy.mjs) --
+  // a push can arrive while this device is asleep, so quiet hours can't rely on this device's own
+  // clock the way foreground polling used to.
+  timezone: string;
   historyDays: number;
   saveHistory: boolean;
   shareLocation: boolean;
