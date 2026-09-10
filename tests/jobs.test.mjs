@@ -48,6 +48,37 @@ test("enqueueJob: a future runAt is not claimed until due", () => {
   assert.equal(claimDueJobs(store, { now: now + 60000 }).length, 1);
 });
 
+test("enqueueJob: a second push-deliver enqueue for the same (alertId,subscriptionId) pair returns the existing job instead of duplicating it (R06)", () => {
+  const store = temporaryStore(test);
+  const user = store.createGuest();
+  const payload = { userId: user.id, alertId: "alert-1", subscriptionId: "sub-1" };
+  const first = enqueueJob(store, "push-deliver", payload, { userId: user.id });
+  const second = enqueueJob(store, "push-deliver", { ...payload }, { userId: user.id });
+  assert.equal(second, first, "the pre-existing job's id should be returned, not a fresh one");
+  const rows = store.db.prepare("SELECT * FROM jobs WHERE kind='push-deliver'").all();
+  assert.equal(rows.length, 1);
+});
+
+test("enqueueJob: the push-deliver dedup constraint is scoped to (alertId,subscriptionId) -- a different pair still gets its own job (R06)", () => {
+  const store = temporaryStore(test);
+  const user = store.createGuest();
+  const first = enqueueJob(
+    store,
+    "push-deliver",
+    { userId: user.id, alertId: "alert-1", subscriptionId: "sub-1" },
+    { userId: user.id },
+  );
+  const second = enqueueJob(
+    store,
+    "push-deliver",
+    { userId: user.id, alertId: "alert-1", subscriptionId: "sub-2" },
+    { userId: user.id },
+  );
+  assert.notEqual(second, first);
+  const rows = store.db.prepare("SELECT * FROM jobs WHERE kind='push-deliver'").all();
+  assert.equal(rows.length, 2);
+});
+
 test("claimDueJobs: leases claimed jobs so a concurrent claim can't take them twice", () => {
   const store = temporaryStore(test);
   const now = Date.now();

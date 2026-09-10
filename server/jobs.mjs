@@ -24,6 +24,13 @@ import { randomUUID } from "node:crypto";
 export const DEFAULT_LEASE_MS = 60000;
 const MAX_BACKOFF_MS = 5 * 60000;
 
+// See store.mjs's identical helper -- duplicated rather than imported so this module keeps its
+// existing boundary of depending only on the `store` object passed into each function, never on
+// store.mjs's module itself.
+function isUniqueViolation(e) {
+  return e?.errcode === 2067 || /UNIQUE constraint failed/i.test(e?.message ?? "");
+}
+
 function backoffMs(attempts) {
   const base = Math.min(1000 * 2 ** attempts, MAX_BACKOFF_MS);
   return base + Math.floor(Math.random() * Math.min(1000, base));
@@ -31,6 +38,12 @@ function backoffMs(attempts) {
 
 // Enqueues a one-shot job. Safe to call inside the same transaction as the write that should
 // trigger it (the "outbox" half of the pattern): both commit together, or neither does.
+//
+// R06: a "push-deliver" job has a real database constraint -- one row per (alertId,
+// subscriptionId) pair (see store.mjs's migrateJobsColumns). Losing that race is not an error:
+// it means guardian.mjs already enqueued this exact delivery (a retried transaction, or the
+// startup orphan-reconciliation pass re-checking an alert that already has one), so this
+// returns the existing job's id instead of throwing.
 export function enqueueJob(
   store,
   kind,
@@ -38,12 +51,24 @@ export function enqueueJob(
   { runAt, maxAttempts = 8, id = randomUUID(), userId = null } = {},
 ) {
   const now = Date.now();
-  store.db
-    .prepare(
-      `INSERT INTO jobs(id,kind,payload,status,attempts,max_attempts,interval_ms,run_at,created_at,updated_at,user_id)
-       VALUES(?,?,?,'pending',0,?,NULL,?,?,?,?)`,
-    )
-    .run(id, kind, JSON.stringify(payload), maxAttempts, runAt ?? now, now, now, userId);
+  try {
+    store.db
+      .prepare(
+        `INSERT INTO jobs(id,kind,payload,status,attempts,max_attempts,interval_ms,run_at,created_at,updated_at,user_id)
+         VALUES(?,?,?,'pending',0,?,NULL,?,?,?,?)`,
+      )
+      .run(id, kind, JSON.stringify(payload), maxAttempts, runAt ?? now, now, now, userId);
+  } catch (e) {
+    if (isUniqueViolation(e)) {
+      const existing = store.db
+        .prepare(
+          "SELECT id FROM jobs WHERE kind=? AND json_extract(payload,'$.alertId')=? AND json_extract(payload,'$.subscriptionId')=?",
+        )
+        .get(kind, payload.alertId ?? null, payload.subscriptionId ?? null);
+      if (existing) return existing.id;
+    }
+    throw e;
+  }
   return id;
 }
 

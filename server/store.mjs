@@ -23,6 +23,13 @@ import {
 } from "./totp.mjs";
 const derive = promisify(scrypt);
 export const hashToken = (v) => createHash("sha256").update(v).digest("hex");
+// R06: node:sqlite doesn't give a typed "this was a UNIQUE violation" error class -- just a
+// generic ERR_SQLITE_ERROR with the driver's own message text and, usefully, the underlying
+// SQLite extended result code (2067 = SQLITE_CONSTRAINT_UNIQUE) on `errcode`. Checked in two
+// places below: put()'s alert dedupe-hash insert and jobs.mjs's push-deliver enqueue, both of
+// which treat "the row already exists" as a normal, idempotent outcome rather than an error.
+const isUniqueViolation = (e) =>
+  e?.errcode === 2067 || /UNIQUE constraint failed/i.test(e?.message ?? "");
 // Phase 8 (roadmap features 98/99, hardens 100/101): the minimum number of DISTINCT
 // contributing accounts before an aggregate report signal is shown at all -- shared by
 // /api/operator's per-type breakdown and /api/community's per-station view so both apply the
@@ -61,7 +68,7 @@ export class Store {
    CREATE INDEX IF NOT EXISTS idx_pending_logins_user ON pending_logins(user_id);
    CREATE TABLE IF NOT EXISTS recovery_tokens(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,expires_at INTEGER NOT NULL,used_at INTEGER) STRICT;
    CREATE INDEX IF NOT EXISTS idx_recovery_tokens_user ON recovery_tokens(user_id);
-   CREATE TABLE IF NOT EXISTS records(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,kind TEXT NOT NULL,payload TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,expires_at INTEGER) STRICT;
+   CREATE TABLE IF NOT EXISTS records(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,kind TEXT NOT NULL,payload TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,expires_at INTEGER,dedupe_hash TEXT) STRICT;
    CREATE INDEX IF NOT EXISTS idx_records_user_kind_time ON records(user_id,kind,updated_at DESC);
    CREATE INDEX IF NOT EXISTS idx_records_expiry ON records(expires_at) WHERE expires_at IS NOT NULL;
    CREATE TABLE IF NOT EXISTS shares(id TEXT PRIMARY KEY,token_hash TEXT UNIQUE NOT NULL,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,journey_id TEXT NOT NULL REFERENCES records(id) ON DELETE CASCADE,scopes TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT;
@@ -75,6 +82,24 @@ export class Store {
     this.migrateSessionColumns();
     this.migrateJobsColumns();
     this.migrateMfaColumns();
+    this.migrateRecordsColumns();
+  }
+  // R06: a database created before alert dedup had a real database constraint has no
+  // dedupe_hash column -- every existing row is NULL there, which the partial unique index
+  // below already excludes (`WHERE dedupe_hash IS NOT NULL`), so nothing pre-existing can ever
+  // conflict with it; only a new alert insert going through the fixed guardian.mjs sets a
+  // non-null value from here on. A fresh install already has the column from CREATE TABLE
+  // above, making the ALTER a no-op there.
+  migrateRecordsColumns() {
+    const columns = this.db
+      .prepare("PRAGMA table_info(records)")
+      .all()
+      .map((c) => c.name);
+    if (!columns.includes("dedupe_hash"))
+      this.db.exec("ALTER TABLE records ADD COLUMN dedupe_hash TEXT");
+    this.db.exec(
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_records_alert_dedupe ON records(user_id,dedupe_hash) WHERE kind='alert' AND dedupe_hash IS NOT NULL",
+    );
   }
   // A database created before R01's fix (an already-active factor could be silently replaced by
   // calling mfaSetup again, and an accepted TOTP code could be replayed) has an mfa table without
@@ -143,6 +168,33 @@ export class Store {
     this.db.exec(
       "CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(user_id) WHERE user_id IS NOT NULL",
     );
+    // R06: one push-delivery job per (alert, subscription) pair, enforced by the database --
+    // guardian.mjs's fanOutPush and jobs.mjs's enqueueJob rely on this to make a repeated
+    // fan-out attempt (a retried transaction, or the startup orphan-reconciliation pass) a safe
+    // no-op instead of a duplicate delivery. A database that somehow already has duplicate
+    // push-deliver rows for the same pair -- only possible from pre-R06 code, since nothing
+    // after this fix can create one -- would make CREATE UNIQUE INDEX fail outright, so any
+    // duplicates are resolved first (keeping the oldest row per pair) before the constraint is
+    // added; a fresh/clean database never takes that branch.
+    try {
+      this.db.exec(
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_push_dedupe
+         ON jobs(kind,json_extract(payload,'$.alertId'),json_extract(payload,'$.subscriptionId'))
+         WHERE kind='push-deliver'`,
+      );
+    } catch {
+      this.db.exec(
+        `DELETE FROM jobs WHERE kind='push-deliver' AND rowid NOT IN (
+           SELECT MIN(rowid) FROM jobs WHERE kind='push-deliver'
+           GROUP BY json_extract(payload,'$.alertId'), json_extract(payload,'$.subscriptionId')
+         )`,
+      );
+      this.db.exec(
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_push_dedupe
+         ON jobs(kind,json_extract(payload,'$.alertId'),json_extract(payload,'$.subscriptionId'))
+         WHERE kind='push-deliver'`,
+      );
+    }
   }
   encrypt(value) {
     const iv = randomBytes(12);
@@ -562,9 +614,17 @@ export class Store {
       throw new DomainError("Record not found.", 404, "NOT_FOUND");
     return this.decode(row);
   }
-  put(userId, kind, value, { id = randomUUID(), expectedVersion, expiresAt } = {}) {
+  // R06: `dedupeHash` gives a caller (currently only guardian.mjs's alert creation) a real,
+  // database-enforced uniqueness constraint for a kind, scoped per-user -- see the partial
+  // unique index on records in migrateRecordsColumns. Guardian's own in-memory "have I already
+  // made this alert" check only ever sees the newest 1000 alerts per account (this.list's
+  // LIMIT), so it cannot catch a duplicate beyond that window by itself; the database can. When
+  // a caller passes dedupeHash and loses that race, this returns the row that already holds it
+  // instead of throwing -- the same "this already happened, that's fine" idempotence the R02
+  // password-reset fix and R05's lease_token guard both rely on elsewhere in this file.
+  put(userId, kind, value, { id = randomUUID(), expectedVersion, expiresAt, dedupeHash } = {}) {
     const existing = this.db
-      .prepare("SELECT user_id,version,kind,expires_at FROM records WHERE id=?")
+      .prepare("SELECT user_id,version,kind,expires_at,dedupe_hash FROM records WHERE id=?")
       .get(id);
     if (existing && (existing.user_id !== userId || existing.kind !== kind))
       throw new DomainError("Record not found.", 404);
@@ -581,6 +641,7 @@ export class Store {
       throw new DomainError("Account storage limit reached. Export and remove old items.", 429);
     const now = Date.now();
     const expiration = expiresAt === undefined ? (existing?.expires_at ?? null) : expiresAt;
+    const dedupe = dedupeHash === undefined ? (existing?.dedupe_hash ?? null) : dedupeHash;
     const payload = { ...value };
     delete payload.id;
     delete payload.version;
@@ -589,13 +650,23 @@ export class Store {
     if (existing) {
       this.db
         .prepare(
-          "UPDATE records SET payload=?,version=version+1,updated_at=?,expires_at=? WHERE id=? AND user_id=?",
+          "UPDATE records SET payload=?,version=version+1,updated_at=?,expires_at=?,dedupe_hash=? WHERE id=? AND user_id=?",
         )
-        .run(this.encrypt(payload), now, expiration, id, userId);
+        .run(this.encrypt(payload), now, expiration, dedupe, id, userId);
     } else {
-      this.db
-        .prepare("INSERT INTO records VALUES(?,?,?,?,1,?,?,?)")
-        .run(id, userId, kind, this.encrypt(payload), now, now, expiration);
+      try {
+        this.db
+          .prepare("INSERT INTO records VALUES(?,?,?,?,1,?,?,?,?)")
+          .run(id, userId, kind, this.encrypt(payload), now, now, expiration, dedupe);
+      } catch (e) {
+        if (dedupe != null && isUniqueViolation(e)) {
+          const row = this.db
+            .prepare("SELECT id FROM records WHERE user_id=? AND kind=? AND dedupe_hash=?")
+            .get(userId, kind, dedupe);
+          if (row) return this.get(userId, row.id, kind);
+        }
+        throw e;
+      }
     }
     this.audit(userId, `${kind.toUpperCase()}_${existing ? "UPDATED" : "CREATED"}`, id);
     return this.get(userId, id, kind);

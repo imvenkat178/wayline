@@ -7,7 +7,7 @@ import { Store } from "./store.mjs";
 import { DomainError } from "./domain/journeys.mjs";
 import { handleApi } from "./router.mjs";
 import { providerHealth } from "./adapters/providers.mjs";
-import { runGuardian } from "./guardian.mjs";
+import { runGuardian, reconcileOrphanedAlerts } from "./guardian.mjs";
 import { processJobs, ensureRecurringJob } from "./jobs.mjs";
 import { configureWebPush, deliverPush } from "./push.mjs";
 import { LogEmailProvider } from "./email.mjs";
@@ -107,6 +107,9 @@ export function createApplication({
   // The periodic sweep is itself a durable job now (see server/jobs.mjs), not a bare function
   // call from the timer below -- seeding it is idempotent, so this is safe on every startup.
   ensureRecurringJob(store, "guardian-sweep", {}, 30000);
+  // R06: repair any alert left orphaned (no push-delivery job ever queued for it) by pre-fix
+  // code -- see guardian.mjs. Idempotent, so safe on every startup.
+  reconcileOrphanedAlerts(store);
   // Generates (on first boot) or loads the persisted VAPID keypair and sets it process-wide --
   // see push.mjs. Must run before any request can read bootstrap's pushPublicKey field, and
   // before the "push-deliver" jobs below can actually send anything.
