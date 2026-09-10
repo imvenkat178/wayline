@@ -40,10 +40,7 @@ test("mbtaPaginated: a single short page is not marked coverage-limited", async 
 });
 
 test("mbtaPaginated: follows a full page with a partial one and collects both, in order", async (t) => {
-  const callCount = mockPages(t, [
-    { data: [{ id: "1" }, { id: "2" }] },
-    { data: [{ id: "3" }] },
-  ]);
+  const callCount = mockPages(t, [{ data: [{ id: "1" }, { id: "2" }] }, { data: [{ id: "3" }] }]);
   const { rows, coverageLimited } = await mbtaPaginated("/vehicles", { limit: 2, maxPages: 5 });
   assert.deepEqual(
     rows.map((r) => r.id),

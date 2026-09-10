@@ -130,14 +130,19 @@ test("failJob: a one-shot job retries with backoff until max_attempts, then dead
 
 test("failJob: a recurring job never dead-letters, no matter how many times it fails", () => {
   const store = temporaryStore(test);
-  const now = Date.now();
-  ensureRecurringJob(store, "sweep", {}, 30000);
-  let job = claimDueJobs(store, { now })[0];
+  let now = Date.now();
+  ensureRecurringJob(store, "sweep", {}, 30000, now);
   for (let i = 0; i < 20; i++) {
+    // Re-claim before each failure (rather than reusing one claim's lease_token across the whole
+    // loop) -- R05 ties completeJob/failJob to the lease_token they were claimed under, and a
+    // real worker always re-claims between attempts too, since failJob itself clears the lease
+    // and reschedules run_at into the future.
+    const [job] = claimDueJobs(store, { now });
+    assert.ok(job, `iteration ${i} should have a due job to claim`);
     failJob(store, job, new Error(`attempt ${i}`), now);
     const row = jobRow(store, job.id);
     assert.notEqual(row.status, "dead");
-    job = { ...job, attempts: row.attempts };
+    now = row.run_at; // advance the clock to exactly when backoff makes it due again
   }
 });
 
@@ -199,6 +204,63 @@ test("createApplication seeds the guardian-sweep recurring job on startup", () =
   assert.ok(row, "guardian-sweep should be seeded as a recurring job");
   assert.equal(row.interval_ms, 30000);
   assert.equal(row.status, "pending");
+});
+
+test("completeJob is a no-op if the job's lease has since been reclaimed by a newer claim (R05)", () => {
+  const store = temporaryStore(test);
+  const now = Date.now();
+  const id = enqueueJob(store, "test-kind", {}, { runAt: now });
+  const staleClaim = claimDueJobs(store, { now, workerId: "worker-a" })[0];
+  // Simulate worker-a's handler stalling well past its own lease -- a later drain reclaims the
+  // job under a fresh lease_token, exactly like claimDueJobs's existing "abandoned lease" path.
+  // (claimDueJobs's return value carries the pre-claim status/leased_until snapshot from its own
+  // SELECT, not what it just wrote -- read the real row back to get the lease it actually set.)
+  const reclaimAt = jobRow(store, id).leased_until + 1;
+  const freshClaim = claimDueJobs(store, { now: reclaimAt, workerId: "worker-b" })[0];
+  assert.notEqual(freshClaim.lease_token, staleClaim.lease_token);
+  // worker-a's handler finally finishes and tries to complete the job it originally claimed --
+  // this must NOT succeed (the job now belongs to worker-b's claim), and must not disturb it.
+  assert.equal(completeJob(store, staleClaim, reclaimAt + 1), false);
+  const row = jobRow(store, id);
+  assert.equal(row.status, "leased");
+  assert.equal(row.leased_by, "worker-b");
+  // worker-b completes it for real -- this succeeds, using its own valid lease_token.
+  assert.equal(completeJob(store, freshClaim, reclaimAt + 2), true);
+  assert.equal(jobRow(store, id).status, "done");
+});
+
+test("failJob is also a no-op on a stale (superseded) lease_token, leaving the newer claim's state untouched (R05)", () => {
+  const store = temporaryStore(test);
+  const now = Date.now();
+  const id = enqueueJob(store, "test-kind", {}, { runAt: now, maxAttempts: 5 });
+  const staleClaim = claimDueJobs(store, { now, workerId: "worker-a" })[0];
+  const reclaimAt = jobRow(store, id).leased_until + 1;
+  claimDueJobs(store, { now: reclaimAt, workerId: "worker-b" });
+  assert.equal(
+    failJob(store, staleClaim, new Error("worker-a finally gave up"), reclaimAt + 1),
+    false,
+  );
+  const row = jobRow(store, id);
+  assert.equal(row.attempts, 0); // untouched by the stale failure report
+  assert.equal(row.status, "leased");
+  assert.equal(row.leased_by, "worker-b");
+});
+
+test("processJobs treats a handler that outlives its deadline as a failure, not an indefinite hang (R05)", async () => {
+  const store = temporaryStore(test);
+  const now = Date.now();
+  enqueueJob(store, "stuck", {}, { runAt: now });
+  const results = await processJobs(
+    store,
+    { stuck: () => new Promise(() => {}) }, // never resolves
+    { now, handlerDeadlineMs: 20 },
+  );
+  assert.equal(results.length, 1);
+  assert.equal(results[0].ok, false);
+  assert.match(results[0].error, /exceeded its lease/);
+  const row = store.db.prepare("SELECT * FROM jobs WHERE kind='stuck'").get();
+  assert.equal(row.status, "pending");
+  assert.equal(row.attempts, 1);
 });
 
 test("guardian-sweep still produces real alerts when run through the durable job queue", async () => {

@@ -16,6 +16,7 @@ import { DomainError } from "./domain/journeys.mjs";
 import {
   generateSecret,
   verifyTotp,
+  matchTotpCounter,
   otpauthUrl,
   generateRecoveryCodes,
   normalizeRecoveryCode,
@@ -55,7 +56,7 @@ export class Store {
    CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,csrf TEXT NOT NULL,expires_at INTEGER NOT NULL,created_at INTEGER NOT NULL DEFAULT 0,user_agent TEXT,last_seen_at INTEGER NOT NULL DEFAULT 0) STRICT;
    CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
    CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
-   CREATE TABLE IF NOT EXISTS mfa(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,secret TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 0,recovery_codes TEXT,created_at INTEGER NOT NULL,confirmed_at INTEGER) STRICT;
+   CREATE TABLE IF NOT EXISTS mfa(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,secret TEXT NOT NULL,enabled INTEGER NOT NULL DEFAULT 0,recovery_codes TEXT,created_at INTEGER NOT NULL,confirmed_at INTEGER,pending_secret TEXT,pending_created_at INTEGER,last_counter INTEGER) STRICT;
    CREATE TABLE IF NOT EXISTS pending_logins(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,expires_at INTEGER NOT NULL) STRICT;
    CREATE INDEX IF NOT EXISTS idx_pending_logins_user ON pending_logins(user_id);
    CREATE TABLE IF NOT EXISTS recovery_tokens(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,expires_at INTEGER NOT NULL,used_at INTEGER) STRICT;
@@ -67,12 +68,31 @@ export class Store {
    CREATE INDEX IF NOT EXISTS idx_shares_user ON shares(user_id);
    CREATE TABLE IF NOT EXISTS audit(id TEXT PRIMARY KEY,user_id TEXT,action TEXT NOT NULL,resource_id TEXT,at INTEGER NOT NULL) STRICT;
    CREATE INDEX IF NOT EXISTS idx_audit_user_time ON audit(user_id,at DESC);
-   CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,kind TEXT NOT NULL,payload TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,max_attempts INTEGER NOT NULL DEFAULT 8,interval_ms INTEGER,run_at INTEGER NOT NULL,leased_until INTEGER,leased_by TEXT,last_error TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,user_id TEXT REFERENCES users(id) ON DELETE CASCADE) STRICT;
+   CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,kind TEXT NOT NULL,payload TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,max_attempts INTEGER NOT NULL DEFAULT 8,interval_ms INTEGER,run_at INTEGER NOT NULL,leased_until INTEGER,leased_by TEXT,lease_token TEXT,last_error TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,user_id TEXT REFERENCES users(id) ON DELETE CASCADE) STRICT;
    CREATE INDEX IF NOT EXISTS idx_jobs_status_run ON jobs(status,run_at);
    CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_recurring_kind ON jobs(kind) WHERE interval_ms IS NOT NULL;
    INSERT OR IGNORE INTO schema_version VALUES(1,datetime('now')); PRAGMA optimize;`);
     this.migrateSessionColumns();
     this.migrateJobsColumns();
+    this.migrateMfaColumns();
+  }
+  // A database created before R01's fix (an already-active factor could be silently replaced by
+  // calling mfaSetup again, and an accepted TOTP code could be replayed) has an mfa table without
+  // pending_secret/pending_created_at (the in-flight "replace my factor" enrollment, kept
+  // separate from the active secret/enabled columns so the old factor keeps working until the
+  // new one is confirmed) or last_counter (the RFC 6238 Section 5.2 replay watermark). A fresh
+  // install already has all three from the CREATE TABLE above, making this a no-op there.
+  migrateMfaColumns() {
+    const columns = this.db
+      .prepare("PRAGMA table_info(mfa)")
+      .all()
+      .map((c) => c.name);
+    if (!columns.includes("pending_secret"))
+      this.db.exec("ALTER TABLE mfa ADD COLUMN pending_secret TEXT");
+    if (!columns.includes("pending_created_at"))
+      this.db.exec("ALTER TABLE mfa ADD COLUMN pending_created_at INTEGER");
+    if (!columns.includes("last_counter"))
+      this.db.exec("ALTER TABLE mfa ADD COLUMN last_counter INTEGER");
   }
   // A database created before session device-management existed (feature 95/96, Phase 3) has a
   // 4-column sessions table; a fresh one already has the 7-column version from the CREATE TABLE
@@ -110,6 +130,12 @@ export class Store {
          WHERE user_id IS NULL AND json_extract(payload,'$.userId') IN (SELECT id FROM users)`,
       );
     }
+    // R05: a database created before the lease-token ownership check existed has no lease_token
+    // column -- any row it already has is, at worst, leased under the old scheme (no token to
+    // check), so claimDueJobs's normal expiry/reclaim logic still applies to it unchanged; it
+    // simply gets a real token the next time it's claimed.
+    if (!columns.includes("lease_token"))
+      this.db.exec("ALTER TABLE jobs ADD COLUMN lease_token TEXT");
     // Created here (not in the main DDL block) because a legacy jobs table -- one that exists
     // already, just without user_id -- must get the column added above BEFORE an index on that
     // column can be created; a fresh install's jobs table already has the column from CREATE
@@ -281,52 +307,124 @@ export class Store {
   }
   // -- TOTP-based multi-factor authentication (roadmap feature 95) --
   mfaStatus(userId) {
-    const row = this.db.prepare("SELECT enabled FROM mfa WHERE user_id=?").get(userId);
-    return { enabled: Boolean(row?.enabled) };
+    const row = this.db
+      .prepare("SELECT enabled,pending_secret FROM mfa WHERE user_id=?")
+      .get(userId);
+    return {
+      enabled: Boolean(row?.enabled),
+      // A replacement enrollment is in flight (R01): the active factor above is still the one
+      // that works for login until this is confirmed or a fresh mfaSetup overwrites it again.
+      replacementPending: Boolean(row?.pending_secret),
+    };
   }
-  // Starts (or restarts) MFA enrollment: generates a fresh TOTP secret and returns it plus a
-  // scannable otpauth:// URL. Not enabled yet -- enabled flips to true only once mfaConfirm()
-  // proves the user actually has the secret loaded in an authenticator app.
-  mfaSetup(userId) {
+  // Starts (or restarts) MFA enrollment and returns a fresh TOTP secret plus a scannable
+  // otpauth:// URL. What happens to any EXISTING factor depends on whether one is active
+  // (R01 -- this used to unconditionally disable an active factor, letting a hijacked session
+  // downgrade account security with no proof of the old factor at all):
+  //   - No factor, or a never-confirmed one: replaces it outright, same as before. There is
+  //     nothing active to protect.
+  //   - An active (enabled) factor: this call proves nothing about the caller by itself, so the
+  //     active factor is left completely untouched -- still the one that satisfies login and
+  //     mfaDisable -- and the new secret is parked in pending_secret instead. `replaceCode` must
+  //     be a currently-valid code or unused recovery code for the EXISTING factor; only then does
+  //     the pending secret get written. Confirming it (mfaConfirm) later promotes pending_secret
+  //     into secret; never confirming it (or calling mfaSetup again) simply discards it, so
+  //     "cancel a replacement" needs no separate endpoint -- the old factor was never at risk.
+  // `now` defaults to the real clock but can be overridden (mirroring server/jobs.mjs's
+  // now-parameter pattern) so tests can exercise TOTP time-window behavior deterministically
+  // instead of racing real wall-clock seconds.
+  mfaSetup(userId, replaceCode, now = Date.now()) {
     const user = this.user(userId);
     if (!user) throw new DomainError("Account not found.", 404);
     const secret = generateSecret();
-    const now = Date.now();
-    this.db
-      .prepare(
-        `INSERT INTO mfa(user_id,secret,enabled,recovery_codes,created_at,confirmed_at) VALUES(?,?,0,NULL,?,NULL)
-         ON CONFLICT(user_id) DO UPDATE SET secret=excluded.secret,enabled=0,recovery_codes=NULL,created_at=excluded.created_at,confirmed_at=NULL`,
-      )
-      .run(userId, this.encrypt(secret), now);
+    const active = this.db.prepare("SELECT enabled FROM mfa WHERE user_id=?").get(userId);
+    if (active?.enabled) {
+      // Replacing an active factor requires proving possession of it first. Reject a missing
+      // code immediately with the same generic message mfaVerifyCode itself uses for a wrong
+      // one, rather than letting `undefined` fall through into its recovery-code branch.
+      // mfaVerifyCode itself throws 401 on a wrong code and consumes a recovery code if one was
+      // used, exactly like every other call that spends proof of the existing factor.
+      if (!replaceCode) throw new DomainError("Incorrect code.", 401);
+      this.mfaVerifyCode(userId, replaceCode, now);
+      this.db
+        .prepare("UPDATE mfa SET pending_secret=?,pending_created_at=? WHERE user_id=?")
+        .run(this.encrypt(secret), now, userId);
+    } else {
+      this.db
+        .prepare(
+          `INSERT INTO mfa(user_id,secret,enabled,recovery_codes,created_at,confirmed_at,pending_secret,pending_created_at,last_counter)
+           VALUES(?,?,0,NULL,?,NULL,NULL,NULL,NULL)
+           ON CONFLICT(user_id) DO UPDATE SET secret=excluded.secret,enabled=0,recovery_codes=NULL,created_at=excluded.created_at,confirmed_at=NULL,pending_secret=NULL,pending_created_at=NULL,last_counter=NULL`,
+        )
+        .run(userId, this.encrypt(secret), now);
+    }
     return { secret, otpauthUrl: otpauthUrl(secret, { accountName: user.email ?? user.id }) };
   }
-  // Confirms enrollment with a real code from the app, flips MFA on, and mints one-time recovery
-  // codes (shown to the user exactly once here -- only their hashes are ever persisted).
-  mfaConfirm(userId, code) {
-    const row = this.db.prepare("SELECT secret FROM mfa WHERE user_id=?").get(userId);
+  // Confirms enrollment with a real code from the app. Two cases, mirroring mfaSetup above:
+  //   - Fresh enrollment (no active factor yet): verifies against `secret` directly, flips
+  //     enabled on, and mints one-time recovery codes (shown to the user exactly once here --
+  //     only their hashes are ever persisted).
+  //   - Confirming a replacement (an active factor plus a pending_secret from mfaSetup above):
+  //     verifies against pending_secret instead, promotes it into secret, mints a fresh set of
+  //     recovery codes (the old ones are tied to the old factor and should not survive a
+  //     replacement), and clears the pending columns. The previously active factor is never
+  //     consulted here -- only the proof already spent back in mfaSetup guarded this path.
+  mfaConfirm(userId, code, now = Date.now()) {
+    const row = this.db
+      .prepare("SELECT secret,enabled,pending_secret FROM mfa WHERE user_id=?")
+      .get(userId);
     if (!row) throw new DomainError("Start MFA setup first.", 409);
-    if (!verifyTotp(this.decrypt(row.secret), code)) throw new DomainError("Incorrect code.", 401);
+    const replacing = Boolean(row.enabled) && row.pending_secret;
+    const secretToCheck = replacing ? row.pending_secret : row.secret;
+    if (!verifyTotp(this.decrypt(secretToCheck), code, { time: now }))
+      throw new DomainError("Incorrect code.", 401);
     const codes = generateRecoveryCodes();
     const hashed = codes.map((c) => hashToken(normalizeRecoveryCode(c)));
-    this.db
-      .prepare("UPDATE mfa SET enabled=1,confirmed_at=?,recovery_codes=? WHERE user_id=?")
-      .run(Date.now(), this.encrypt(hashed), userId);
-    this.audit(userId, "MFA_ENABLED", userId);
+    if (replacing) {
+      this.db
+        .prepare(
+          "UPDATE mfa SET secret=pending_secret,pending_secret=NULL,pending_created_at=NULL,last_counter=NULL,confirmed_at=?,recovery_codes=? WHERE user_id=?",
+        )
+        .run(now, this.encrypt(hashed), userId);
+      this.audit(userId, "MFA_FACTOR_REPLACED", userId);
+    } else {
+      this.db
+        .prepare("UPDATE mfa SET enabled=1,confirmed_at=?,recovery_codes=? WHERE user_id=?")
+        .run(now, this.encrypt(hashed), userId);
+      this.audit(userId, "MFA_ENABLED", userId);
+    }
     return codes;
   }
   // Verifies either a live TOTP code or an unused recovery code (consuming it on success -- each
   // recovery code works exactly once). Used both by the login MFA challenge and by mfaDisable().
-  mfaVerifyCode(userId, code) {
+  //
+  // R01 also closes a TOTP replay gap here: a plain HOTP/TOTP check alone accepts the SAME code
+  // repeatedly for its whole 30s-plus-drift validity window (RFC 6238 Section 5.2 explicitly
+  // requires rejecting a second use of an already-accepted time-step). last_counter persists the
+  // highest time-step counter ever accepted for this account; a match at or before it is treated
+  // as a replay and rejected with the same generic "Incorrect code." response as a wrong code, so
+  // a caller learns nothing about why a syntactically valid code failed. The UPDATE is written as
+  // a conditional compare-and-set (WHERE last_counter IS NULL OR last_counter<?) rather than a
+  // plain SELECT-then-UPDATE, so this stays correct even if this method were ever called
+  // concurrently for the same account from two connections instead of relying on Node's
+  // single-threaded synchronous execution to serialize it.
+  mfaVerifyCode(userId, code, now = Date.now()) {
     const row = this.db
-      .prepare("SELECT secret,recovery_codes FROM mfa WHERE user_id=? AND enabled=1")
+      .prepare("SELECT secret,recovery_codes,last_counter FROM mfa WHERE user_id=? AND enabled=1")
       .get(userId);
     if (!row) throw new DomainError("MFA is not enabled on this account.", 409);
-    if (
-      typeof code === "string" &&
-      /^\d{6}$/.test(code) &&
-      verifyTotp(this.decrypt(row.secret), code)
-    )
-      return true;
+    const counter = matchTotpCounter(this.decrypt(row.secret), code, { time: now });
+    if (counter !== null) {
+      const result = this.db
+        .prepare(
+          "UPDATE mfa SET last_counter=? WHERE user_id=? AND (last_counter IS NULL OR last_counter<?)",
+        )
+        .run(counter, userId, counter);
+      if (result.changes === 1) return true;
+      // A syntactically valid code whose time-step was already accepted -- reject exactly like a
+      // wrong code, not a distinct error, so this can't be used to probe for a real code's value.
+      throw new DomainError("Incorrect code.", 401);
+    }
     const normalized = normalizeRecoveryCode(code);
     if (!normalized) throw new DomainError("Incorrect code.", 401);
     const hash = hashToken(normalized);
@@ -342,8 +440,8 @@ export class Store {
   }
   // Turns MFA off -- requires proving possession of a valid code or recovery code first, so a
   // stolen session cookie alone can't downgrade account security.
-  mfaDisable(userId, code) {
-    this.mfaVerifyCode(userId, code);
+  mfaDisable(userId, code, now = Date.now()) {
+    this.mfaVerifyCode(userId, code, now);
     this.db.prepare("DELETE FROM mfa WHERE user_id=?").run(userId);
     this.audit(userId, "MFA_DISABLED", userId);
   }
@@ -396,27 +494,43 @@ export class Store {
   // Consumes a single-use reset token, sets a new password, and -- as a security practice, in
   // case the reset was itself triggered by an attacker who already had transient access -- signs
   // the account out everywhere.
+  //
+  // R02: token consumption must be atomic against concurrent use. The previous version did a
+  // plain SELECT (used_at IS NULL) to validate the token, then awaited the (async, event-loop-
+  // yielding) password derivation below, and only afterward wrote used_at -- so N concurrent
+  // requests carrying the same token could all pass the initial SELECT before any of them had
+  // written used_at, and every one of them would go on to "successfully" reset the password.
+  // Fixed by doing the derivation first (it doesn't depend on the token row at all) and only
+  // then claiming the token with a conditional UPDATE ... WHERE used_at IS NULL inside a single
+  // synchronous transaction alongside the password/session writes. Node's sqlite bindings run
+  // each statement synchronously and this callback contains no `await`, so once one caller's
+  // transaction() call starts, it runs to completion (COMMIT or ROLLBACK) before any other JS
+  // callback -- including another resetPassword's own transaction -- gets a turn. Whichever
+  // caller's UPDATE lands first is the only one whose WHERE clause can still match; every other
+  // concurrent caller's claim reports changes!==1 and is rejected the same as an already-used
+  // token.
   async resetPassword(rawToken, newPassword) {
     if (typeof rawToken !== "string" || !rawToken)
       throw new DomainError("Invalid or expired reset link.", 401);
-    const hash = hashToken(rawToken);
-    const row = this.db
-      .prepare(
-        "SELECT user_id AS userId FROM recovery_tokens WHERE token_hash=? AND used_at IS NULL AND expires_at>?",
-      )
-      .get(hash, Date.now());
-    if (!row) throw new DomainError("Invalid or expired reset link.", 401);
     if (typeof newPassword !== "string" || newPassword.length < 12 || newPassword.length > 128)
       throw new DomainError("Password must be 12-128 characters.");
+    const hash = hashToken(rawToken);
     const salt = randomBytes(16).toString("hex");
     const result = await derive(newPassword, salt, 64, { N: 16384, r: 8, p: 1 });
     this.transaction(() => {
+      const now = Date.now();
+      const claim = this.db
+        .prepare(
+          "UPDATE recovery_tokens SET used_at=? WHERE token_hash=? AND used_at IS NULL AND expires_at>?",
+        )
+        .run(now, hash, now);
+      if (claim.changes !== 1) throw new DomainError("Invalid or expired reset link.", 401);
+      const row = this.db
+        .prepare("SELECT user_id AS userId FROM recovery_tokens WHERE token_hash=?")
+        .get(hash);
       this.db
         .prepare("UPDATE users SET password_hash=? WHERE id=?")
         .run(`${salt}:${result.toString("hex")}`, row.userId);
-      this.db
-        .prepare("UPDATE recovery_tokens SET used_at=? WHERE token_hash=?")
-        .run(Date.now(), hash);
       this.db.prepare("DELETE FROM sessions WHERE user_id=?").run(row.userId);
       this.audit(row.userId, "PASSWORD_RESET", row.userId);
     });

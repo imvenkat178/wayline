@@ -137,16 +137,74 @@ function buildGroundedReply(state) {
   return { reply: built.reply, actions: built.actions, evidence: built.evidence };
 }
 
-// A deliberately conservative guard, not a fact-checker: it can only catch a rewrite that
-// dropped a number the original carried, or one that's implausibly long (a sign of padding in
-// unrelated content). It cannot verify new prose is true, so composeReply's system prompt is the
-// primary defense and this is the backstop for when a small local model doesn't follow it.
+// R04: words whose presence changes what a sentence actually asserts. A rewrite that silently
+// drops every one of these the original relied on may have flipped or overclaimed the original's
+// meaning (e.g. "no confirmed disruption" losing its "no" reads as confirming one). Matched on
+// word boundaries so "not" doesn't spuriously match inside "notice" or "notification"; the
+// contraction is matched as a plain substring since "n't" has no word boundary of its own.
+const NEGATION_MARKERS = [
+  "not",
+  "no",
+  "n't",
+  "never",
+  "without",
+  "cannot",
+  "unable",
+  "unavailable",
+];
+// Words that mark a claim as a sample, an estimate, or otherwise not a confirmed fact. Dropping
+// every one of these in a rewrite silently upgrades a hedge into a flat assertion.
+const UNCERTAINTY_MARKERS = [
+  "sample",
+  "illustrative",
+  "estimate",
+  "estimated",
+  "approximate",
+  "approximately",
+  "may",
+  "might",
+  "could",
+  "possibly",
+  "unverified",
+  "not verified",
+  "unconfirmed",
+  "unknown",
+  "self-reported",
+];
+function markerPattern(marker) {
+  const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return marker.includes("'") ? new RegExp(escaped) : new RegExp(`\\b${escaped}\\b`);
+}
+function markerCount(text, markers) {
+  const lower = text.toLowerCase();
+  return markers.filter((m) => markerPattern(m).test(lower)).length;
+}
+
+// A deliberately conservative guard, not a fact-checker: composeReply's system prompt (never add,
+// remove or change a fact/number/name/time/amount) is the primary defense, and this is the
+// backstop for when a small local model doesn't follow it. It cannot verify new prose is TRUE,
+// but it can and does verify the rewrite didn't (a) drop or add any number relative to the
+// original -- symmetric on both sides, so a rewrite that keeps every original number but tacks on
+// an unsupported extra one (e.g. an invented boarding platform) is caught just as surely as one
+// that drops a number outright, (b) silently drop every negation/hedge word the original carried,
+// which can flip or overclaim its meaning, or (c) implausibly balloon in length, a sign of padding
+// in unrelated content.
 function isSuspectRewrite(original, rewritten) {
   if (!rewritten || typeof rewritten !== "string") return true;
   const trimmed = rewritten.trim();
   if (!trimmed || trimmed.length > original.length * 3 + 200) return true;
-  const numbers = original.match(/\d+(\.\d+)?/g) ?? [];
-  return numbers.some((n) => !trimmed.includes(n));
+  const originalNumbers = new Set(original.match(/\d+(\.\d+)?/g) ?? []);
+  const rewrittenNumbers = new Set(trimmed.match(/\d+(\.\d+)?/g) ?? []);
+  for (const n of originalNumbers) if (!rewrittenNumbers.has(n)) return true;
+  for (const n of rewrittenNumbers) if (!originalNumbers.has(n)) return true;
+  if (markerCount(original, NEGATION_MARKERS) > 0 && markerCount(trimmed, NEGATION_MARKERS) === 0)
+    return true;
+  if (
+    markerCount(original, UNCERTAINTY_MARKERS) > 0 &&
+    markerCount(trimmed, UNCERTAINTY_MARKERS) === 0
+  )
+    return true;
+  return false;
 }
 
 async function composeReply(state) {

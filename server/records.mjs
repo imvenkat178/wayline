@@ -1,4 +1,5 @@
 import { DomainError, text, integer } from "./domain/journeys.mjs";
+import { isAllowedPushHost } from "./netGuard.mjs";
 export function validTime(value, label) {
   if (typeof value !== "string" || !Number.isFinite(Date.parse(value)))
     throw new DomainError(`Enter a valid ${label}.`);
@@ -19,6 +20,45 @@ function validateTicketDocument(doc) {
   if (doc.base64.length > 7_000_000) throw new DomainError("Document is too large.");
   if (!/^[A-Za-z0-9+/]+=*$/.test(doc.base64)) throw new DomainError("Invalid document data.");
   return { name, type, base64: doc.base64 };
+}
+// R03: a push subscription's `endpoint` is a URL this server will later make an unauthenticated
+// outbound HTTPS request to, on its own initiative, whenever an alert fires (see
+// server/push.mjs's sendPush) -- so accepting an arbitrary one from a guest session is a
+// server-side request forgery primitive, not just an odd input. Every check below narrows this
+// down to "looks like a real browser push service" rather than merely "isn't an obviously-private
+// address" (see server/netGuard.mjs for the shared allowlist and the complementary DNS-resolved
+// re-check push.mjs does right before it actually connects).
+function validatePushEndpoint(raw) {
+  if (typeof raw !== "string" || !raw || raw.length > 500)
+    throw new DomainError("Push endpoint is invalid.");
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new DomainError("Push endpoint is invalid.");
+  }
+  if (url.protocol !== "https:") throw new DomainError("Push endpoint must use HTTPS.");
+  if (url.username || url.password)
+    throw new DomainError("Push endpoint must not include credentials.");
+  if (url.port && url.port !== "443")
+    throw new DomainError("Push endpoint uses an unapproved port.");
+  if (!isAllowedPushHost(url.hostname))
+    throw new DomainError("Push endpoint is not a supported browser push service.");
+  return url.toString();
+}
+// Validates a Web Push key (p256dh or auth, RFC 8291) as base64url of exactly the byte length
+// the spec requires -- a "malformed key" (wrong length, wrong alphabet, or plain junk) is
+// rejected at registration rather than surfacing later as an obscure encryption failure at
+// delivery time. p256dh additionally must start with 0x04, the uncompressed-EC-point marker
+// every real subscription's key has.
+function validatePushKey(raw, label, expectedBytes, { uncompressedPoint = false } = {}) {
+  if (typeof raw !== "string" || !raw) throw new DomainError(`${label} is required.`);
+  if (raw.length > 200 || !/^[A-Za-z0-9_-]+$/.test(raw))
+    throw new DomainError(`${label} is malformed.`);
+  const decoded = Buffer.from(raw, "base64url");
+  if (decoded.length !== expectedBytes) throw new DomainError(`${label} is malformed.`);
+  if (uncompressedPoint && decoded[0] !== 0x04) throw new DomainError(`${label} is malformed.`);
+  return raw;
 }
 export function validateRecord(kind, b) {
   if (kind === "favorite")
@@ -155,9 +195,11 @@ export function validateRecord(kind, b) {
       // Stored via the same encrypted, owner-scoped `records` table every other kind uses, keyed
       // by endpoint (server/router.mjs upserts on endpoint so re-subscribing the same device
       // updates in place instead of accumulating duplicates).
-      endpoint: text(b.endpoint, "Push endpoint", 500),
-      p256dh: text(b.keys?.p256dh ?? b.p256dh, "Push key", 200),
-      auth: text(b.keys?.auth ?? b.auth, "Push auth secret", 200),
+      endpoint: validatePushEndpoint(b.endpoint),
+      p256dh: validatePushKey(b.keys?.p256dh ?? b.p256dh, "Push key", 65, {
+        uncompressedPoint: true,
+      }),
+      auth: validatePushKey(b.keys?.auth ?? b.auth, "Push auth secret", 16),
       userAgent: String(b.userAgent ?? "").slice(0, 200),
     };
   throw new DomainError("Unsupported record type.");

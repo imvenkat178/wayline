@@ -77,17 +77,37 @@ export function totp(secretBase32, { time = Date.now(), step = 30, digits = 6 } 
 // Verifies a user-entered code against the current time window and `window` windows on either
 // side (default 1 -- +/-30s, matching the clock-drift tolerance most authenticator apps and
 // verifiers use) so a slow phone clock or network delay between generating and submitting a code
-// doesn't spuriously fail. Uses a fixed-length string comparison order (compares the whole
-// window range rather than short-circuiting on the exact current window first) so this doesn't
-// leak, via timing, which window matched.
-export function verifyTotp(secretBase32, code, { time = Date.now(), step = 30, window = 1 } = {}) {
-  if (typeof code !== "string" || !/^\d{6}$/.test(code)) return false;
+// doesn't spuriously fail. Uses a fixed-length loop (checks every delta rather than
+// short-circuiting on the first match) so this doesn't leak, via timing, which window matched.
+//
+// Returns the matched HOTP counter (an integer, monotonically increasing over real time) rather
+// than a bare boolean -- callers that need RFC 6238 Section 5.2 replay protection (reject a
+// second use of an already-accepted time-step) persist this value and reject any future match
+// whose counter isn't strictly greater. Returns null on no match. If more than one window
+// happens to match (never observed in practice with real HMAC-SHA1 outputs, but not provably
+// impossible), the highest counter is returned so the persisted watermark still only moves
+// forward.
+export function matchTotpCounter(
+  secretBase32,
+  code,
+  { time = Date.now(), step = 30, window = 1 } = {},
+) {
+  if (typeof code !== "string" || !/^\d{6}$/.test(code)) return null;
   const counter = Math.floor(time / 1000 / step);
-  let matched = false;
+  let matchedCounter = null;
   for (let delta = -window; delta <= window; delta++) {
-    if (hotp(secretBase32, counter + delta) === code) matched = true;
+    if (hotp(secretBase32, counter + delta) === code) {
+      const candidate = counter + delta;
+      if (matchedCounter === null || candidate > matchedCounter) matchedCounter = candidate;
+    }
   }
-  return matched;
+  return matchedCounter;
+}
+
+// Boolean convenience wrapper over matchTotpCounter for callers that don't need replay
+// protection (e.g. a one-off code check with no persisted state to check it against).
+export function verifyTotp(secretBase32, code, options) {
+  return matchTotpCounter(secretBase32, code, options) !== null;
 }
 
 // The otpauth:// URI most authenticator apps can scan or import directly (as text, or turned

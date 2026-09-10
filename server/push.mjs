@@ -1,8 +1,11 @@
 import webpush from "web-push";
+import https from "node:https";
+import dns from "node:dns";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { preferences } from "./domain/journeys.mjs";
 import { enqueueJob } from "./jobs.mjs";
+import { isForbiddenAddress } from "./netGuard.mjs";
 
 // Web Push (RFC 8030) plus VAPID (RFC 8292) needs a keypair identifying this server to each
 // browser's push service. This is explicitly NOT a carrier or payment contract -- see the
@@ -26,6 +29,37 @@ const GENERIC_BODY = {
 };
 const GENERIC_TITLE = "Wayline alert";
 const GENERIC_FALLBACK_BODY = "Wayline has an update for you. Open the app for details.";
+
+// R03 (defense in depth): re-validates the actual DNS-resolved address right before the outbound
+// socket connects, so a hostname that passed registration-time validation (server/records.mjs's
+// allowlist) but resolves to a private/loopback/link-local address -- a rebound or compromised
+// DNS answer, or simply a subscription row written before this check existed -- still can't
+// actually be reached. Passed to https.Agent below as `lookup`, which every request made through
+// that agent uses in place of the default resolver, so this is the address the connection itself
+// uses, not a separate check that a later resolution could disagree with.
+export function safeLookup(hostname, options, callback) {
+  if (typeof options === "function") {
+    callback = options;
+    options = {};
+  }
+  dns.lookup(hostname, { ...options, all: true }, (err, addresses) => {
+    if (err) return callback(err);
+    const list = Array.isArray(addresses) ? addresses : [addresses];
+    const allowed = list.filter((a) => !isForbiddenAddress(a.address));
+    if (!allowed.length)
+      return callback(new Error(`Refusing to connect: ${hostname} has no public address`));
+    if (options.all) return callback(null, allowed);
+    callback(null, allowed[0].address, allowed[0].family);
+  });
+}
+
+// A dedicated agent (rather than Node's default global one) so the custom DNS lookup above, and a
+// bounded socket count, apply specifically to outbound push delivery.
+const pushAgent = new https.Agent({ lookup: safeLookup, keepAlive: false, maxSockets: 10 });
+
+// How long a single delivery attempt may run before it's treated as a failure. Without this, a
+// hostile or simply stalled push endpoint could hold a job-processing worker open indefinitely.
+const PUSH_TIMEOUT_MS = 10000;
 
 function vapidPath(directory) {
   return join(directory, VAPID_FILE);
@@ -87,6 +121,7 @@ export async function sendPush(subscription, payload) {
         keys: { p256dh: subscription.p256dh, auth: subscription.auth },
       },
       JSON.stringify(payload),
+      { agent: pushAgent, timeout: PUSH_TIMEOUT_MS },
     );
     return { ok: true };
   } catch (e) {

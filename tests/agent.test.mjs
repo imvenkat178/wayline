@@ -324,6 +324,81 @@ test("runAgentGraph keeps the original grounded reply, without crashing, if comp
   assert.doesNotMatch(result.mode, /composed/);
 });
 
+test("runAgentGraph rejects a rewrite that keeps every original fact but adds an unsupported one (R04, the review's exact repro)", async () => {
+  const journey = realJourney();
+  const provider = {
+    available: true,
+    model: "mock-add-platform",
+    async chat({ jsonSchema, messages }) {
+      if (jsonSchema) return JSON.stringify({ intent: "cost" });
+      // Every original number/word is preserved untouched -- only a brand new, unsupported claim
+      // (a confirmed boarding platform with a number nothing in the grounded reply carries) is
+      // appended. The old isSuspectRewrite only checked that original numbers survived, so this
+      // exact shape passed it; the fix also rejects any number the rewrite adds that the original
+      // never had.
+      return `${messages[1].content} By the way, your confirmed boarding platform is 99.`;
+    },
+  };
+  const result = await runAgentGraph({
+    input: "how much does this cost",
+    journey,
+    preferences: {},
+    history: [],
+    provider,
+  });
+  assert.doesNotMatch(result.mode, /composed/);
+  assert.doesNotMatch(result.reply, /platform is 99/);
+});
+
+test("runAgentGraph rejects a rewrite that silently drops every negation word, reversing a warning (R04)", async () => {
+  const journey = realJourney();
+  const provider = {
+    available: true,
+    model: "mock-flip-negation",
+    async chat({ jsonSchema }) {
+      if (jsonSchema) return JSON.stringify({ intent: "delay" });
+      // Strips "no" and "does not" from the grounded delay warning, reversing its meaning from
+      // "nothing confirmed, don't assume on-time" to "there IS a confirmed disruption... on time".
+      return "There is confirmed disruption attached to this itinerary. Missing live information does mean the service is on time.";
+    },
+  };
+  const result = await runAgentGraph({
+    input: "why is my train late",
+    journey,
+    preferences: {},
+    history: [],
+    provider,
+  });
+  assert.doesNotMatch(result.mode, /composed/);
+  assert.match(result.reply, /no confirmed disruption/);
+});
+
+test("runAgentGraph rejects a rewrite that drops the sample/illustrative-data disclosure (R04)", async () => {
+  const journey = realJourney();
+  assert.equal(journey.dataMode, "illustrative");
+  const provider = {
+    available: true,
+    model: "mock-drop-uncertainty",
+    async chat({ jsonSchema, messages }) {
+      if (jsonSchema) return JSON.stringify({ intent: "cost" });
+      // Removes every "sample" mention from the grounded reply's disclosure (the only
+      // uncertainty marker this reply carries) while leaving every number and everything else
+      // untouched -- a rewrite that upgrades a labeled sample into what reads like a confirmed,
+      // real price.
+      return messages[1].content.replace(/sample/gi, "confirmed");
+    },
+  };
+  const result = await runAgentGraph({
+    input: "how much does this cost",
+    journey,
+    preferences: {},
+    history: [],
+    provider,
+  });
+  assert.doesNotMatch(result.mode, /composed/);
+  assert.match(result.reply, /sample/i);
+});
+
 test("defaultChatProvider returns the no-op provider unless both OLLAMA_BASE_URL and OLLAMA_MODEL are set", () => {
   assert.equal(defaultChatProvider({}).available, false);
   assert.equal(defaultChatProvider({ OLLAMA_BASE_URL: "http://x" }).available, false);

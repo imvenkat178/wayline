@@ -244,7 +244,10 @@ test("export() now includes sessions, MFA status and shares, not just records an
   assert.ok(Array.isArray(exported.sessions));
   assert.equal(exported.sessions.length, 1);
   assert.equal(exported.sessions[0].userAgent, "TestAgent/1.0");
-  assert.deepEqual(exported.mfa, { enabled: false });
+  // R01 added a `replacementPending` flag alongside `enabled` (see server/store.mjs's
+  // mfaStatus) -- an export should reflect the real shape returned to the account, not a
+  // stale subset of it.
+  assert.deepEqual(exported.mfa, { enabled: false, replacementPending: false });
   assert.ok(Array.isArray(exported.shares));
   assert.equal(exported.shares.length, 1);
   assert.equal(exported.shares[0].journeyId, journey.id);

@@ -187,14 +187,80 @@ test("mfaConfirm without a prior mfaSetup call fails with Conflict, not a crash"
   assert.throws(() => store.mfaConfirm(user.id, "123456"), { status: 409 });
 });
 
-test("mfaVerifyCode accepts a live TOTP code repeatedly (it's not single-use)", (t) => {
+test("mfaVerifyCode rejects replaying the same accepted TOTP code (R01, RFC 6238 5.2)", (t) => {
   const store = temporaryStore(t);
   const user = store.createGuest();
   const setup = store.mfaSetup(user.id);
   store.mfaConfirm(user.id, totp(setup.secret));
-  const code = totp(setup.secret);
-  assert.equal(store.mfaVerifyCode(user.id, code), true);
-  assert.equal(store.mfaVerifyCode(user.id, code), true);
+  const now = Date.now();
+  const code = totp(setup.secret, { time: now });
+  assert.equal(store.mfaVerifyCode(user.id, code, now), true);
+  // The exact same code (same 30s time-step) must not verify a second time, even though it is
+  // still inside its normal +/-1-window validity period.
+  assert.throws(() => store.mfaVerifyCode(user.id, code, now), { status: 401 });
+  // A genuinely later code (a later time-step, as a real authenticator app would show after the
+  // window advances) still works -- this isn't a one-time-use-forever lockout.
+  const later = now + 30000;
+  const laterCode = totp(setup.secret, { time: later });
+  assert.equal(store.mfaVerifyCode(user.id, laterCode, later), true);
+});
+
+test("mfaSetup on an already-enrolled account requires proof of the existing factor (R01)", (t) => {
+  const store = temporaryStore(t);
+  const user = store.createGuest();
+  const setup = store.mfaSetup(user.id);
+  const codes = store.mfaConfirm(user.id, totp(setup.secret));
+  // Every step below uses a synthetic future `now` (rather than real sleeps) to get sequentially
+  // distinct 30s time-steps, so each `now` passed to totp() for code generation is threaded
+  // through to the matching store call that verifies it -- otherwise the store would check the
+  // code against the real wall clock, which hasn't actually advanced.
+  const base = Date.now();
+  // No proof at all: the active factor must be completely untouched, not silently disabled --
+  // this is the exact bug the review reproduced (POST /api/mfa/setup alone used to disable MFA).
+  assert.throws(() => store.mfaSetup(user.id), { status: 401 });
+  assert.equal(store.mfaStatus(user.id).enabled, true);
+  const t1 = base + 60000;
+  assert.equal(store.mfaVerifyCode(user.id, totp(setup.secret, { time: t1 }), t1), true);
+  // A wrong proof code is also rejected, and still leaves the old factor active.
+  assert.throws(() => store.mfaSetup(user.id, "000000"), { status: 401 });
+  assert.equal(store.mfaStatus(user.id).enabled, true);
+  assert.equal(store.mfaStatus(user.id).replacementPending, false);
+  // Correct proof (a fresh code) starts a replacement -- but the OLD factor still works for
+  // login/disable until the new one is actually confirmed.
+  const t2 = base + 90000;
+  const replacement = store.mfaSetup(user.id, totp(setup.secret, { time: t2 }), t2);
+  assert.notEqual(replacement.secret, setup.secret);
+  assert.equal(store.mfaStatus(user.id).replacementPending, true);
+  assert.equal(store.mfaStatus(user.id).enabled, true);
+  const t3 = base + 120000;
+  assert.equal(store.mfaVerifyCode(user.id, totp(setup.secret, { time: t3 }), t3), true);
+  // Confirming the replacement with the NEW secret's code promotes it, mints fresh recovery
+  // codes, and the old factor's codes no longer work.
+  const t4 = base + 150000;
+  const newCodes = store.mfaConfirm(user.id, totp(replacement.secret, { time: t4 }), t4);
+  assert.notEqual(newCodes[0], codes[0]);
+  assert.equal(store.mfaStatus(user.id).replacementPending, false);
+  const t5 = base + 180000;
+  assert.throws(() => store.mfaVerifyCode(user.id, totp(setup.secret, { time: t5 }), t5), {
+    status: 401,
+  });
+  const t6 = base + 210000;
+  assert.equal(store.mfaVerifyCode(user.id, totp(replacement.secret, { time: t6 }), t6), true);
+});
+
+test("mfaSetup replacement is safely abandoned by simply never confirming it (R01)", (t) => {
+  const store = temporaryStore(t);
+  const user = store.createGuest();
+  const setup = store.mfaSetup(user.id);
+  store.mfaConfirm(user.id, totp(setup.secret));
+  const base = Date.now();
+  const t1 = base + 30000;
+  store.mfaSetup(user.id, totp(setup.secret, { time: t1 }), t1);
+  assert.equal(store.mfaStatus(user.id).replacementPending, true);
+  // Never confirming it: the original factor still authenticates normally, exactly as if the
+  // abandoned replacement attempt had never happened.
+  const t2 = base + 60000;
+  assert.equal(store.mfaVerifyCode(user.id, totp(setup.secret, { time: t2 }), t2), true);
 });
 
 test("mfaVerifyCode accepts a recovery code exactly once, then rejects it", (t) => {
@@ -325,6 +391,40 @@ test("resetPassword actually changes the password (old fails, new succeeds) and 
   const relogged = await store.login("real4@example.com", "brandnewpassword42");
   assert.equal(relogged.id, user.id);
   assert.equal(store.sessions(user.id, null).length, 0);
+});
+
+test("resetPassword under concurrent use: exactly one of N simultaneous calls with the same token succeeds (R02)", async (t) => {
+  const store = temporaryStore(t);
+  await registeredUser(store, "race@example.com", "originalpassword1");
+  const token = store.createRecoveryToken("race@example.com");
+  const attempts = 8;
+  // Fire every call before any of them has a chance to resolve, so they genuinely race on the
+  // same token through the async scrypt derivation rather than running one at a time.
+  const results = await Promise.allSettled(
+    Array.from({ length: attempts }, (_, i) => store.resetPassword(token, `raceattempt${i}pw`)),
+  );
+  const fulfilled = results.filter((r) => r.status === "fulfilled");
+  const rejected = results.filter((r) => r.status === "rejected");
+  assert.equal(fulfilled.length, 1, "exactly one concurrent reset should win the race");
+  assert.equal(rejected.length, attempts - 1);
+  for (const r of rejected) assert.equal(r.reason.status, 401);
+  // The winning password actually took effect -- and only one of the raced passwords works.
+  const workingPasswords = [];
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await store.login("race@example.com", `raceattempt${i}pw`);
+      workingPasswords.push(i);
+    } catch {
+      // expected for every losing attempt
+    }
+  }
+  assert.equal(workingPasswords.length, 1);
+  // The original password no longer works, and the token is unusable a second time regardless.
+  await assert.rejects(
+    store.login("race@example.com", "originalpassword1"),
+    (e) => e.status === 401,
+  );
+  await assert.rejects(store.resetPassword(token, "anotherpassword99"), (e) => e.status === 401);
 });
 
 test("cleanup() expires stale pending logins and used/expired recovery tokens", async (t) => {

@@ -98,6 +98,9 @@ export function createApplication({
   // response that depends on it (the recovery/request endpoint's message, FEATURE_STATUS.md,
   // README.md). Passing a real provider here is the only change needed once one exists.
   emailProvider = new LogEmailProvider({ quiet }),
+  // Configurable purely so tests can exercise the drain loop's overlap-prevention (R05) on a
+  // real, tiny interval instead of either waiting 30 real seconds or reaching for mock timers.
+  drainIntervalMs = 30000,
 } = {}) {
   if (production && !process.env.PUBLIC_ORIGIN)
     throw new Error("PUBLIC_ORIGIN is required in production.");
@@ -272,26 +275,58 @@ export function createApplication({
   server.requestTimeout = 15000;
   server.headersTimeout = 10000;
   server.keepAliveTimeout = 5000;
-  const timer = setInterval(() => {
+  // R05: a bare setInterval fires on a fixed cadence no matter how long the previous drain took,
+  // so a slow batch -- or a hung handler; see jobs.mjs's per-handler deadline, the other half of
+  // this fix -- could still be running when the next tick fires, and the two would then process
+  // jobs concurrently in the same process (the review's exact reproduction: the same job executed
+  // twice before the first handler finished). This self-rescheduling setTimeout instead only ever
+  // schedules the NEXT drain once the current one has fully finished -- from actual completion
+  // time, not from when the last one started -- so at most one drain is ever in flight.
+  const DRAIN_INTERVAL_MS = drainIntervalMs;
+  let stoppingJobs = false;
+  let drainTimer = null;
+  let activeDrain = Promise.resolve();
+  async function drainOnce() {
     try {
       store.cleanup();
     } catch (e) {
       if (!quiet)
         console.error(JSON.stringify({ level: "error", message: "Cleanup failed", error: e.name }));
     }
-    processJobs(store, jobHandlers, { now: Date.now() }).catch((e) => {
+    try {
+      await processJobs(store, jobHandlers, { now: Date.now() });
+    } catch (e) {
       if (!quiet)
         console.error(
           JSON.stringify({ level: "error", message: "Job processing failed", error: e.name }),
         );
-    });
-  }, 30000);
-  timer.unref();
-  server.on("close", () => clearInterval(timer));
-  return { server, store };
+    }
+  }
+  function scheduleNextDrain() {
+    if (stoppingJobs) return;
+    drainTimer = setTimeout(() => {
+      activeDrain = drainOnce().finally(scheduleNextDrain);
+    }, DRAIN_INTERVAL_MS);
+    drainTimer.unref();
+  }
+  scheduleNextDrain();
+  // Stops claiming new work and waits for any drain already in flight to finish. Called from
+  // this process's shutdown handler below, before store.close(), so an in-flight handler's
+  // database statements never run against a database that's already been closed out from under
+  // it (R05) -- and by the CLI test harness's server.close() in some tests, harmlessly.
+  async function stopBackgroundJobs() {
+    stoppingJobs = true;
+    if (drainTimer) clearTimeout(drainTimer);
+    await activeDrain;
+  }
+  server.on("close", () => {
+    stoppingJobs = true;
+    if (drainTimer) clearTimeout(drainTimer);
+  });
+  return { server, store, stopBackgroundJobs };
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const { server, store } = createApplication();
+  const { server, store, stopBackgroundJobs } = createApplication();
   const port = Number(process.env.PORT ?? 4173);
   const host = process.env.HOST ?? "127.0.0.1";
   server.listen(port, host, () => console.log(`Wayline is ready at http://${host}:${port}`));
@@ -300,9 +335,17 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     process.on(signal, () => {
       if (shuttingDown) return;
       shuttingDown = true;
-      server.close(() => {
-        store.close();
-        process.exit(0);
+      server.close(async () => {
+        // R05: stop claiming new work and let any drain already in flight finish (or hit its own
+        // handler deadline) BEFORE the database is closed underneath it -- closing while a
+        // handler still has an open statement would otherwise throw out of that handler's own
+        // async callback after this process has already committed to exiting.
+        try {
+          await stopBackgroundJobs();
+        } finally {
+          store.close();
+          process.exit(0);
+        }
       });
       setTimeout(() => process.exit(1), 10000).unref();
     });

@@ -162,7 +162,11 @@ If you didn't request this, you can ignore this email.`,
   }
   // -- TOTP multi-factor authentication (roadmap feature 95) --
   if (url.pathname === "/api/mfa/setup" && req.method === "POST") {
-    const setup = store.mfaSetup(userId);
+    // Rate-limited like confirm/disable below: when a factor is already active, this call also
+    // checks a caller-supplied code (b.replaceCode) against it (see store.mfaSetup / R01), so
+    // it's a code-guessing surface just like those.
+    rateLimit(`mfa-setup:${userId}`, 10, 900000);
+    const setup = store.mfaSetup(userId, b.replaceCode);
     const qrCode = await QRCode.toDataURL(setup.otpauthUrl);
     return send(res, 200, { ...setup, qrCode });
   }
@@ -316,6 +320,13 @@ If you didn't request this, you can ignore this email.`,
         const existing = store
           .list(userId, "push-subscription")
           .find((s) => s.endpoint === value.endpoint);
+        // R03: a per-user cap on distinct subscriptions, independent of the account-wide 3000
+        // record limit -- nothing about a legitimate use of this feature needs more than a
+        // handful of devices, and without a dedicated cap a single account could otherwise
+        // register records.mjs's full text-length allowance in endpoint/key bytes thousands of
+        // times over, each one fanning out its own delivery job on every future alert.
+        if (!existing && store.list(userId, "push-subscription").length >= 20)
+          throw new DomainError("Too many push subscriptions on this account.", 429);
         return send(
           res,
           201,

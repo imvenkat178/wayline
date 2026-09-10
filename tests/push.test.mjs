@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { randomBytes } from "node:crypto";
 import webpush from "web-push";
 import { Store } from "../server/store.mjs";
 import { createApplication } from "../server/server.mjs";
@@ -30,6 +31,19 @@ function temporaryDirectory(t) {
   const directory = mkdtempSync(join(tmpdir(), "wayline-test-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   return directory;
+}
+
+// A real Web Push subscription's endpoint always lands on one of a small set of known browser
+// push services (server/netGuard.mjs's allowlist), and its keys are RFC 8291-shaped: p256dh a
+// 65-byte uncompressed EC point (leading 0x04), auth 16 random bytes, both base64url. Tests below
+// that go through the real HTTP route (which now validates both, per R03) need fixtures that
+// actually pass -- unlike the placeholder "p1"/"a1" strings used elsewhere in this file by tests
+// that call store.put() directly and so skip validateRecord entirely.
+function validPushKeys() {
+  return {
+    p256dh: Buffer.concat([Buffer.from([0x04]), randomBytes(64)]).toString("base64url"),
+    auth: randomBytes(16).toString("base64url"),
+  };
 }
 
 test("vapidKeys generates a keypair once and persists it across calls", (t) => {
@@ -297,8 +311,8 @@ test("POSTing a push subscription twice with the same endpoint upserts instead o
       "x-csrf-token": boot.csrf,
     };
     const body = JSON.stringify({
-      endpoint: "https://push.example/same-device",
-      keys: { p256dh: "p1", auth: "a1" },
+      endpoint: "https://fcm.googleapis.com/fcm/send/same-device",
+      keys: validPushKeys(),
       userAgent: "test-agent",
     });
     const first = await fetch(base + "/api/records/push-subscription", {
@@ -321,6 +335,111 @@ test("POSTing a push subscription twice with the same endpoint upserts instead o
       await fetch(base + "/api/records/push-subscription", { headers: { cookie } })
     ).json();
     assert.equal(list.length, 1);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("background job drain never overlaps itself, even once a hung handler's lease looks expired (R05)", async (t) => {
+  const store = temporaryStore(t);
+  const user = store.createGuest();
+  store.put(user.id, "push-subscription", {
+    endpoint: "https://push.example/a",
+    keys: { p256dh: "p1", auth: "a1" },
+  });
+  const alert = store.put(user.id, "alert", {
+    severity: "critical",
+    title: "x",
+    body: "y",
+    kind: "renewal",
+    read: false,
+    dedupeKey: "d1",
+    delivery: "in-app",
+    at: new Date().toISOString(),
+  });
+  fanOutPush(store, user.id, alert.id);
+  let calls = 0;
+  let resolveSend;
+  t.mock.method(webpush, "sendNotification", () => {
+    calls++;
+    return new Promise((resolve) => {
+      resolveSend = resolve;
+    });
+  });
+  // A real short drain interval (so several elapse quickly, in real time) combined with a
+  // controllable Date.now() (so this can jump straight past the 60s lease boundary without
+  // waiting 60 real seconds) reproduces the review's exact scenario: a handler still running
+  // when its lease would already look abandoned to a naive reclaim.
+  let mockedNow = Date.now();
+  t.mock.method(Date, "now", () => mockedNow);
+  const { server, stopBackgroundJobs } = createApplication({
+    store,
+    production: false,
+    quiet: true,
+    drainIntervalMs: 20,
+  });
+  try {
+    // Let the first drain fire, claim the job, and call the (now permanently hanging) handler.
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    assert.equal(calls, 1);
+    // Jump the logical clock well past the 60s default lease -- the still-in-flight job's lease
+    // now looks expired to anything that would (wrongly) attempt to reclaim it.
+    mockedNow += 120000;
+    // Let several more real drain intervals elapse while the handler is still hanging.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.equal(
+      calls,
+      1,
+      "an overlapping drain must not re-invoke the handler while it is still in flight",
+    );
+  } finally {
+    resolveSend?.({ statusCode: 201 });
+    await stopBackgroundJobs();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("a single account is capped at 20 push subscriptions (R03)", async (t) => {
+  const store = temporaryStore(t);
+  const { server } = createApplication({ store, production: false, quiet: true });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const bootResponse = await fetch(base + "/api/bootstrap");
+    const boot = await bootResponse.json();
+    const cookie = bootResponse.headers.get("set-cookie").split(";")[0];
+    const headers = { "content-type": "application/json", cookie, "x-csrf-token": boot.csrf };
+    for (let i = 0; i < 20; i++) {
+      const response = await fetch(base + "/api/records/push-subscription", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          endpoint: `https://fcm.googleapis.com/fcm/send/device-${i}`,
+          keys: validPushKeys(),
+        }),
+      });
+      assert.equal(response.status, 201, `subscription ${i} should be accepted`);
+    }
+    const overLimit = await fetch(base + "/api/records/push-subscription", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        endpoint: "https://fcm.googleapis.com/fcm/send/device-21",
+        keys: validPushKeys(),
+      }),
+    });
+    assert.equal(overLimit.status, 429);
+    // Re-subscribing an already-registered device (an upsert on its existing endpoint) is not
+    // subject to the cap -- only genuinely new subscriptions are.
+    const resubscribe = await fetch(base + "/api/records/push-subscription", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        endpoint: "https://fcm.googleapis.com/fcm/send/device-0",
+        keys: validPushKeys(),
+      }),
+    });
+    assert.equal(resubscribe.status, 201);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
