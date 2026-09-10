@@ -84,8 +84,14 @@ test("ensureRecurringJob: seeds exactly one row per kind, even if called twice",
 
 test("completeJob: a recurring job reschedules itself instead of finishing", () => {
   const store = temporaryStore(test);
+  // Passing the same `now` into ensureRecurringJob as the seeded run_at is what makes this
+  // deterministic: it used to call Date.now() internally, a moment after this test's own `now`
+  // was captured, so under load the seeded row's run_at could land a millisecond later than
+  // `now` -- making it not yet "due" by claimDueJobs's run_at<=now check, claiming nothing
+  // (`job` destructures to undefined, and completeJob throws). One shared `now` for both calls
+  // removes the race instead of just outrunning it.
   const now = Date.now();
-  ensureRecurringJob(store, "sweep", {}, 30000);
+  ensureRecurringJob(store, "sweep", {}, 30000, now);
   const [job] = claimDueJobs(store, { now });
   completeJob(store, job, now);
   const row = jobRow(store, job.id);
@@ -198,7 +204,7 @@ test("createApplication seeds the guardian-sweep recurring job on startup", () =
 test("guardian-sweep still produces real alerts when run through the durable job queue", async () => {
   const store = temporaryStore(test);
   const now = Date.now();
-  ensureRecurringJob(store, "guardian-sweep", {}, 30000);
+  ensureRecurringJob(store, "guardian-sweep", {}, 30000, now);
   const user = store.createGuest();
   store.put(user.id, "pass", {
     name: "Regression pass",

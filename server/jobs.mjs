@@ -41,12 +41,11 @@ export function enqueueJob(
 // of spawning a new row) if it doesn't already exist. Safe to call on every server startup: the
 // partial unique index on jobs(kind) WHERE interval_ms IS NOT NULL rejects a second row for the
 // same recurring kind, which this treats as "already seeded," not an error.
-export function ensureRecurringJob(store, kind, payload, intervalMs) {
+export function ensureRecurringJob(store, kind, payload, intervalMs, now = Date.now()) {
   const existing = store.db
     .prepare("SELECT id FROM jobs WHERE kind=? AND interval_ms IS NOT NULL")
     .get(kind);
   if (existing) return existing.id;
-  const now = Date.now();
   const id = randomUUID();
   try {
     store.db

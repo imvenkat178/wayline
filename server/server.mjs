@@ -167,7 +167,22 @@ export function createApplication({
             "SESSION_EXPIRED",
           );
         if (!["GET", "HEAD"].includes(req.method)) {
-          if (req.headers.origin && req.headers.origin !== origin)
+          // In the documented two-terminal dev workflow (README: `npm run dev` serving the
+          // frontend from Vite on one port, `npm start` serving this API on another), the
+          // browser's real Origin header is the Vite port, but this server's own computed
+          // `origin` above is itself -- a different port. Vite's proxy forwards the request
+          // (and, depending on version, may rewrite Host), but it can never rewrite the
+          // browser-set Origin header, so that mismatch is expected there, not a spoofed
+          // cross-site request. Allow exactly one additional, explicitly configured dev
+          // origin, and only when not in production -- production keeps the single strict
+          // PUBLIC_ORIGIN pin unchanged, with no dev bypass at all.
+          const devOrigin =
+            !production && (process.env.DEV_CLIENT_ORIGIN ?? "http://127.0.0.1:5173");
+          if (
+            req.headers.origin &&
+            req.headers.origin !== origin &&
+            req.headers.origin !== devOrigin
+          )
             throw new DomainError("Origin is not allowed.", 403);
           if (req.headers["sec-fetch-site"] === "cross-site")
             throw new DomainError("Cross-site requests are not allowed.", 403);
