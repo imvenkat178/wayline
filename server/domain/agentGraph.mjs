@@ -32,6 +32,8 @@ import { traced } from "../adapters/tracing.mjs";
 
 const AgentState = Annotation.Root({
   input: Annotation(),
+  toolRunner: Annotation(),
+  toolResponse: Annotation(),
   history: Annotation(),
   journey: Annotation(),
   preferences: Annotation(),
@@ -207,6 +209,31 @@ function isSuspectRewrite(original, rewritten) {
   return false;
 }
 
+// A small local model asked to "reply with only the rephrased message" still sometimes narrates
+// itself first ("Here's a rephrased version:") and/or wraps the actual reply in quotation marks.
+// This strips exactly that shape -- a single leading narration line ending in a colon, then a
+// matching pair of wrapping quotes -- so that leftover framing never reaches the user. It never
+// touches the wording of the reply itself, so it can't hide a fact-dropping rewrite from
+// isSuspectRewrite: the check above still runs on its output.
+function stripComposeWrapper(text) {
+  let out = text.trim();
+  const narrationLine = /^[A-Z][^\n]{0,80}:\s*\n+/;
+  if (narrationLine.test(out)) out = out.replace(narrationLine, "").trim();
+  const quotePairs = [
+    ['"', '"'],
+    ["'", "'"],
+    ["“", "”"],
+    ["‘", "’"],
+  ];
+  for (const [open, close] of quotePairs) {
+    if (out.startsWith(open) && out.endsWith(close) && out.length > 1) {
+      out = out.slice(1, -1).trim();
+      break;
+    }
+  }
+  return out;
+}
+
 async function composeReply(state) {
   const { provider, reply, mode } = state;
   if (!provider?.available) return {};
@@ -222,8 +249,9 @@ async function composeReply(state) {
       ],
       maxTokens: 400,
     });
-    if (isSuspectRewrite(reply, rewritten)) return {};
-    return { reply: rewritten.trim(), mode: `${mode} · composed` };
+    const cleaned = typeof rewritten === "string" ? stripComposeWrapper(rewritten) : rewritten;
+    if (isSuspectRewrite(reply, cleaned)) return {};
+    return { reply: cleaned, mode: `${mode} · composed` };
   } catch {
     return {};
   }
@@ -234,10 +262,12 @@ function shouldCompose(state) {
 }
 
 const graph = new StateGraph(AgentState)
+  .addNode("executeTravelTools", async state => ({ toolResponse: state.toolRunner ? await state.toolRunner(state) : null }))
   .addNode("classifyIntent", traced("classifyIntent", classifyIntent))
   .addNode("buildGroundedReply", buildGroundedReply)
   .addNode("composeReply", traced("composeReply", composeReply))
-  .addEdge(START, "classifyIntent")
+  .addEdge(START, "executeTravelTools")
+  .addConditionalEdges("executeTravelTools", state => state.toolResponse ? END : "classifyIntent", { [END]: END, classifyIntent: "classifyIntent" })
   .addEdge("classifyIntent", "buildGroundedReply")
   .addConditionalEdges("buildGroundedReply", shouldCompose, {
     composeReply: "composeReply",
@@ -249,16 +279,18 @@ const graph = new StateGraph(AgentState)
 // `provider` is injectable so tests can supply a mock/fake chat model without touching process
 // env or module-level state; it defaults to the real environment-driven provider (Ollama if
 // OLLAMA_BASE_URL/OLLAMA_MODEL are set, otherwise the no-op provider from adapters/llm.mjs).
-export async function runAgentGraph({ input, journey, preferences, history = [], provider }) {
+export async function runAgentGraph({ input, journey, preferences, history = [], provider, toolRunner }) {
   const parsed = parseRequest(input);
   const result = await graph.invoke({
     input,
+    toolRunner,
     history,
     journey,
     preferences,
     parsed,
     provider: provider ?? defaultChatProvider(),
   });
+  if (result.toolResponse) return { ...result.toolResponse, parsed };
   return {
     reply: result.reply,
     intent: result.intent,

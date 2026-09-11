@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useApp } from "../context";
 import { useT } from "../useT";
 import { api, money, duration, dateLabel, time, localInput } from "../api";
-import type { Journey, SearchInput, SearchResult, SavedItem } from "../types";
+import type { SearchInput, SearchResult, SavedItem, PendingAction } from "../types";
 import {
   Button,
-  Icon,
   Badge,
+  Icon,
   Field,
   Notice,
   Toggle,
@@ -16,6 +16,10 @@ import {
 } from "../components/ui";
 import { JourneyMap } from "../components/JourneyMap";
 import { JourneyCard } from "../components/JourneyCard";
+import { JourneyCover } from "../components/JourneyCover";
+import {ServiceStatus} from '../components/ServiceStatus';
+import {PlacePicker} from '../components/PlacePicker';
+import {ActionReview} from '../components/TripActions';
 export default function Planner() {
   const {
     boot,
@@ -26,7 +30,6 @@ export default function Planner() {
     setActive,
     active,
     navigate,
-    refresh,
     notify,
     openAgent,
   } = useApp();
@@ -36,7 +39,8 @@ export default function Planner() {
     [special, setSpecial] = useState<"airport" | "group" | null>(null);
   const [shortcuts, setShortcuts] = useState<SavedItem[]>([]);
   const started = useRef(false);
-  const [prompt, setPrompt] = useState("");
+
+  const [review,setReview]=useState<PendingAction|null>(null);
   const [privateTrip, setPrivateTrip] = useState(false);
   const selected = result?.journeys.find((j) => j.id === active?.id) ?? result?.journeys[0];
   const search = async (input = searchInput) => {
@@ -59,16 +63,7 @@ export default function Planner() {
   const save = () =>
     run(async () => {
       if (!selected || !result) return;
-      const saved = await api<Journey>(
-        "/journeys",
-        "POST",
-        { searchId: result.searchId, journeyId: selected.id, private: privateTrip },
-        { "idempotency-key": crypto.randomUUID() },
-      );
-      await refresh();
-      setActive(saved);
-      notify(t("planner.savedNotify"));
-      navigate("journey");
+      setReview(await api<PendingAction>('/agent/actions','POST',{kind:'add',searchId:result.searchId,candidateId:selected.id,private:privateTrip}));
     });
   const favorite = () =>
     run(async () => {
@@ -84,15 +79,13 @@ export default function Planner() {
     });
   return (
     <>
-      <div className="page-heading">
+      <div className="planning-board"><div className="page-heading planner-heading">
         <div>
-          <span className="eyebrow">YOUR NEXT CHAPTER</span>
+
           <h1>{t("planner.heading")}</h1>
-          <p>{t("planner.subheading")}</p>
+          <p>{t("planner.subheading")}</p><Button icon="spark" onClick={() => openAgent()}>{t("planner.assistantBadge")}</Button>
         </div>
-        <Badge tone="mint">
-          <Icon name="spark" size={15} /> {t("planner.assistantBadge")}
-        </Badge>
+        <img className="planner-art" src="/images/coastal-adventure.png" alt="Illustrated orange train winding along a sunny turquoise coast" />
       </div>
       <div className="planner-panel">
         <form
@@ -103,33 +96,31 @@ export default function Planner() {
         >
           <div className="location-row">
             <Field label={t("planner.from")}>
-              <div className="input-with-icon">
-                <Icon name="route" />
+              <div className="input-with-icon"><Icon name="route" />{searchInput.mode==='provider'?<PlacePicker label="Departure station" value={searchInput.from} place={searchInput.fromPlace} onChange={(v,p)=>setSearchInput(s=>({...s,from:v,fromPlace:p}))}/>:<>
                 <select value={searchInput.from} onChange={(e) => update("from", e.target.value)}>
                   {boot.cities.map((c) => (
                     <option value={c.id} key={c.id}>
                       {c.name}, {c.state}
                     </option>
                   ))}
-                </select>
+                </select></>}
               </div>
             </Field>
             <Button
               icon="swap"
               title={t("planner.swapTitle")}
               kind="swap icon-only"
-              onClick={() => setSearchInput((s) => ({ ...s, from: s.to, to: s.from }))}
+              onClick={() => setSearchInput((s) => ({ ...s, from: s.to, to: s.from,fromPlace:s.toPlace,toPlace:s.fromPlace }))}
             />
             <Field label={t("planner.to")}>
-              <div className="input-with-icon">
-                <Icon name="pin" />
+              <div className="input-with-icon"><Icon name="pin" />{searchInput.mode==='provider'?<PlacePicker label="Arrival station" value={searchInput.to} place={searchInput.toPlace} onChange={(v,p)=>setSearchInput(s=>({...s,to:v,toPlace:p}))}/>:<>
                 <select value={searchInput.to} onChange={(e) => update("to", e.target.value)}>
                   {boot.cities.map((c) => (
                     <option value={c.id} key={c.id}>
                       {c.name}, {c.state}
                     </option>
                   ))}
-                </select>
+                </select></>}
               </div>
             </Field>
             <Field label={t("planner.departureLabel")}>
@@ -137,8 +128,8 @@ export default function Planner() {
                 type="datetime-local"
                 required
                 value={localInput(new Date(searchInput.departure))}
-                onChange={(e) => {
-                  if (e.target.value) update("departure", new Date(e.target.value).toISOString());
+                onInput={(e) => {
+                  if (e.currentTarget.value) update("departure", new Date(e.currentTarget.value).toISOString());
                 }}
               />
             </Field>
@@ -175,7 +166,7 @@ export default function Planner() {
               </div>
             </Field>
             <Field label={t("planner.schedules")}>
-              <select value={searchInput.mode} onChange={(e) => update("mode", e.target.value)}>
+              <select value={searchInput.mode} onChange={(e) => setSearchInput(s=>({...s,mode:e.target.value,from:e.target.value==='provider'?'place-sstat':'la',to:e.target.value==='provider'?'place-harsq':'sj',fromPlace:undefined,toPlace:undefined}))}>
                 <option value="sample">{t("planner.sampleRoutes")}</option>
                 <option value="provider">{t("planner.connectedSchedules")}</option>
               </select>
@@ -184,16 +175,11 @@ export default function Planner() {
               <Button icon="filter" onClick={() => setFilters(!filters)}>
                 {filters ? t("planner.hidePreferences") : t("planner.tripPreferences")}
               </Button>
-              <Button icon="calendar" onClick={() => setSpecial("airport")}>
-                {t("planner.airportDeadline")}
-              </Button>
-              <Button icon="user" onClick={() => setSpecial("group")}>
-                {t("planner.meetTogether")}
-              </Button>
+
             </div>
           </div>
           {filters && (
-            <div className="filters">
+            <div className="filters"><div className="option-buttons"><Button icon="calendar" onClick={() => setSpecial("airport")}>{t("planner.airportDeadline")}</Button><Button icon="user" disabled={searchInput.mode === "provider"} title="Sample city comparison" onClick={() => setSpecial("group")}>{t("planner.meetTogether")}</Button></div>
               <div className="form-grid">
                 <Field label={t("planner.arriveByLabel")}>
                   <input
@@ -306,24 +292,8 @@ export default function Planner() {
             </div>
           )}
         </form>
-        <form
-          className="prompt-bar"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (prompt.trim()) openAgent(prompt);
-          }}
-        >
-          <Icon name="spark" />
-          <input
-            aria-label={t("planner.askAria")}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder={t("planner.askPlaceholder")}
-          />
-          <Button type="submit" kind="icon-only" icon="arrow" title={t("planner.askAria")} />
-        </form>
       </div>
-      <div className="shortcuts">
+      </div><div className="shortcuts">
         <span>{t("planner.quickRoutes")}</span>
         {shortcuts.slice(0, 4).map((s) => (
           <Button
@@ -339,11 +309,11 @@ export default function Planner() {
             {s.name}
           </Button>
         ))}
-        <Button icon="plus" kind="small subtle" onClick={() => void favorite()}>
+        <Button icon="plus" kind="small subtle" disabled={searchInput.mode === "provider"} title="City shortcuts are available for sample routes" onClick={() => void favorite()}>
           {t("planner.saveRoute")}
         </Button>
       </div>
-      {error && <Notice tone="error">{error}</Notice>}
+      <ServiceStatus/>{error && <Notice tone="error">{error}</Notice>}
       {result?.warning && <Notice tone="amber">{result.warning}</Notice>}
       <div className="results-layout">
         <section>
@@ -420,7 +390,7 @@ export default function Planner() {
         <aside className="route-aside">
           {selected ? (
             <>
-              <JourneyMap journey={selected} />
+              <JourneyCover journey={selected} compact /><JourneyMap journey={selected} />
               <div className="selected-detail">
                 <div className="section-title">
                   <h2>{t("planner.glanceTitle")}</h2>
@@ -437,7 +407,7 @@ export default function Planner() {
                   </div>
                   <div>
                     <span>{selected.reliability == null ? "—" : selected.reliability + "%"}</span>
-                    <small>{t("planner.sampleReliability")}</small>
+                    <small>{selected.dataMode === "provider" ? "Reliability unavailable" : t("planner.sampleReliability")}</small>
                   </div>
                 </div>
                 <div className="mini-timeline">
@@ -490,6 +460,7 @@ export default function Planner() {
           )}
         </aside>
       </div>
+      {review&&<Modal title="Review new trip" onClose={()=>setReview(null)}><ActionReview action={review} onApplied={()=>{setReview(null);navigate('journey');}}/></Modal>}
       {special === "airport" && (
         <AirportModal
           close={() => setSpecial(null)}

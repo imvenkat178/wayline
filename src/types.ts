@@ -10,7 +10,7 @@ export type Mode =
   | "drive"
   | "rideshare";
 export type Page =
-  "plan" | "journey" | "wallet" | "inbox" | "trips" | "commute" | "profile" | "lab" | "watch";
+  "plan" | "journey" | "wallet" | "inbox" | "trips" | "commute" | "profile" | "lab" | "watch" | "assistant";
 export type Risk = "low" | "moderate" | "high";
 export interface Preferences {
   priority: string;
@@ -80,6 +80,7 @@ export interface Capability {
   reason: string;
 }
 export interface Bootstrap {
+  pilot?: boolean;
   user: User;
   csrf: string;
   cities: City[];
@@ -116,6 +117,10 @@ export interface Tracking {
   position?: [number, number];
 }
 export interface Leg {
+  fromCoords?: [number, number]; toCoords?: [number, number];
+  fromStopId?: string | null; toStopId?: string | null;
+  serviceDate?: string | null; predictionObservedAt?: string | null; predictionStatus?: string;
+  predictedDeparture?: string | null; predictedArrival?: string | null; cancelled?: boolean;
   id: string;
   mode: Mode;
   operator: string;
@@ -179,6 +184,8 @@ export interface Leave {
   locationBased: boolean;
 }
 export interface Journey {
+  fromPlace?: Place; toPlace?: Place; source?: string; observedAt?: string; liveUpdatedAt?: string; liveSources?: {vehicles:string;disruptions:string};
+  disruptions?: {id: string; title: string; body: string; effect: string; updatedAt: string}[];
   id: string;
   version?: number;
   state?: string;
@@ -219,6 +226,7 @@ export interface Journey {
   events?: { id: string; type: string; at: string; from?: string; to?: string; source: string }[];
 }
 export interface SearchInput {
+  fromPlace?: Place; toPlace?: Place;
   from: string;
   to: string;
   departure: string;
@@ -231,6 +239,7 @@ export interface SearchInput {
   accessibilityOutage?: boolean;
 }
 export interface SearchResult {
+  source?: string; fetchedAt?: string; cache?: string;
   journeys: Journey[];
   excluded: { name: string; reason: string }[];
   reason?: string;
@@ -360,6 +369,8 @@ export interface Order {
   events: { id: string; type: string; from: string | null; to: string; at: string }[];
 }
 export interface AgentResult {
+  pendingActions?: PendingAction[]; results?: AgentToolResult[];
+  evidence?: {source?: string; observedAt?: string; updatedAt?: string; journeyId?: string; dataMode?: string}[];
   reply: string;
   intent: string;
   mode: string;
@@ -387,3 +398,8 @@ export interface Station {
   directions: string[];
   parking: { rateCents: number | null; availability: string; evChargers: string };
 }
+
+export interface Place { id: string; name: string; lat: number; lon: number; timezone: string; source?: string; }
+export interface PendingAction { searchId?:string; candidateId?:string; private?:boolean; id: string; kind: 'add'|'change'|'cancel'|'recovery'; journeyId: string|null; status: string; expiresAt: number; notice: string; candidate: Journey|null; before: {from:string;to:string;departure:string;arrival:string;totalCents:number|null}|null; }
+export interface Recovery { id:string; journeyId:string; searchId:string; alternative:Journey; state:string; observedAt:string; expiresAt:number; incrementalCostCents:number|null; costBasis:string; automatic:boolean; arrivalDifferenceMinutes?:number; }
+export type AgentToolResult = {type:'routes'; search:SearchResult; changeJourneyId?:string|null}|{type:'journeys';journeys:Journey[]}|{type:'document';url:string;label:string}|{type:'recovery';recovery:Recovery[]}|{type:'weather';source:string;fetchedAt:string;cache:string;periods:{name:string;shortForecast:string;temperature:number;temperatureUnit:string}[];alerts:{id:string;headline:string}[]}|{type:'status';journey:Journey;source:string;fetchedAt:string};

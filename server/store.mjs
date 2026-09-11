@@ -1,3 +1,4 @@
+import { createBackup, purgeBackupsAfterDeletion } from "./backups.mjs";
 import { DatabaseSync } from "node:sqlite";
 import {
   randomBytes,
@@ -42,9 +43,15 @@ export class Store {
     directory = process.env.DATA_DIR || resolve("data"),
     key = process.env.DATA_ENCRYPTION_KEY,
     production = process.env.NODE_ENV === "production",
+    backups = false,
   } = {}) {
     mkdirSync(directory, { recursive: true, mode: 0o700 });
+    if (existsSync(join(directory, ".restore-lock")))
+      throw new Error(
+        "A backup restoration is in progress. Wait for it to complete before starting Wayline.",
+      );
     this.directory = directory;
+    this.backupsEnabled = backups;
     if (!key) {
       if (production) throw new Error("DATA_ENCRYPTION_KEY is required in production.");
       const path = join(directory, ".encryption-key");
@@ -57,6 +64,8 @@ export class Store {
     this.key = Buffer.from(key, "hex");
     this.db = new DatabaseSync(join(directory, "wayline.sqlite"));
     chmodSync(join(directory, "wayline.sqlite"), 0o600);
+    if (backups && this.db.prepare("SELECT name FROM sqlite_master WHERE name='users'").get())
+      createBackup(this, { reason: "pre-migration" });
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;
    CREATE TABLE IF NOT EXISTS schema_version(version INTEGER PRIMARY KEY,applied_at TEXT NOT NULL) STRICT;
    CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,email_hash TEXT UNIQUE,password_hash TEXT,profile TEXT NOT NULL,created_at INTEGER NOT NULL) STRICT;
@@ -69,6 +78,7 @@ export class Store {
    CREATE TABLE IF NOT EXISTS recovery_tokens(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,expires_at INTEGER NOT NULL,used_at INTEGER) STRICT;
    CREATE INDEX IF NOT EXISTS idx_recovery_tokens_user ON recovery_tokens(user_id);
    CREATE TABLE IF NOT EXISTS records(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,kind TEXT NOT NULL,payload TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,expires_at INTEGER,dedupe_hash TEXT) STRICT;
+   CREATE TABLE IF NOT EXISTS journey_observations(journey_id TEXT PRIMARY KEY REFERENCES records(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,journey_version INTEGER NOT NULL,payload TEXT NOT NULL,observed_at INTEGER NOT NULL) STRICT;
    CREATE INDEX IF NOT EXISTS idx_records_user_kind_time ON records(user_id,kind,updated_at DESC);
    CREATE INDEX IF NOT EXISTS idx_records_expiry ON records(expires_at) WHERE expires_at IS NOT NULL;
    CREATE TABLE IF NOT EXISTS shares(id TEXT PRIMARY KEY,token_hash TEXT UNIQUE NOT NULL,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,journey_id TEXT NOT NULL REFERENCES records(id) ON DELETE CASCADE,scopes TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT;
@@ -209,14 +219,20 @@ export class Store {
     return JSON.parse(Buffer.concat([c.update(data), c.final()]).toString("utf8"));
   }
   transaction(fn) {
-    this.db.exec("BEGIN IMMEDIATE");
+    const depth = this.transactionDepth ?? 0;
+    const point = "wayline_nested_" + depth;
+    this.db.exec(depth ? "SAVEPOINT " + point : "BEGIN IMMEDIATE");
+    this.transactionDepth = depth + 1;
     try {
       const result = fn();
-      this.db.exec("COMMIT");
+      this.db.exec(depth ? "RELEASE " + point : "COMMIT");
       return result;
     } catch (e) {
-      this.db.exec("ROLLBACK");
+      this.db.exec(depth ? "ROLLBACK TO " + point : "ROLLBACK");
+      if (depth) this.db.exec("RELEASE " + point);
       throw e;
+    } finally {
+      this.transactionDepth = depth;
     }
   }
   emailHash(email) {
@@ -629,13 +645,50 @@ export class Store {
       .map((row) => this.decode(row));
   }
   decode(row) {
-    return {
+    const value = {
       ...this.decrypt(row.payload),
       id: row.id,
       version: row.version,
       createdAt: new Date(row.created_at).toISOString(),
       updatedAt: new Date(row.updated_at).toISOString(),
     };
+    if (row.kind === "journey") {
+      const observed = this.db
+        .prepare(
+          "SELECT payload,journey_version FROM journey_observations WHERE journey_id=? AND user_id=?",
+        )
+        .get(row.id, row.user_id);
+      if (observed?.journey_version === row.version) {
+        Object.assign(value, this.decrypt(observed.payload));
+        if (Date.now() - Date.parse(value.liveUpdatedAt) > 120000 && value.liveSources)
+          value.liveSources = Object.fromEntries(
+            Object.entries(value.liveSources).map(([key, status]) => [
+              key,
+              status === "fresh" ? "stale" : status,
+            ]),
+          );
+      }
+    }
+    return value;
+  }
+  recordObservation(userId, journey, observation, now = Date.now()) {
+    return this.transaction(() => {
+      const current = this.get(userId, journey.id, "journey");
+      if (current.version !== journey.version)
+        throw new DomainError("Journey changed during refresh.", 409, "VERSION_CONFLICT");
+      const payload = this.encrypt({
+        legs: observation.legs,
+        disruptions: observation.disruptions,
+        liveUpdatedAt: observation.liveUpdatedAt,
+        liveSources: observation.liveSources,
+      });
+      this.db
+        .prepare(
+          "INSERT INTO journey_observations VALUES(?,?,?,?,?) ON CONFLICT(journey_id) DO UPDATE SET journey_version=excluded.journey_version,payload=excluded.payload,observed_at=excluded.observed_at WHERE journey_observations.observed_at<=excluded.observed_at",
+        )
+        .run(journey.id, userId, journey.version, payload, now);
+      return this.get(userId, journey.id, "journey");
+    });
   }
   get(userId, id, kind) {
     const row = this.db
@@ -896,7 +949,7 @@ export class Store {
     this.transaction(() => {
       this.db
         .prepare(
-          "DELETE FROM records WHERE user_id=? AND kind IN ('journey','ticket','claim','alert','agent','report','search','recovery','idempotency','order','quote')",
+          "DELETE FROM records WHERE user_id=? AND kind IN ('journey','ticket','claim','alert','agent','report','search','recovery','idempotency','order','quote','pending-action')",
         )
         .run(userId);
       // Deleting 'alert' rows above can orphan a still-pending push-deliver job queued for
@@ -911,6 +964,7 @@ export class Store {
         .run(userId);
       this.audit(userId, "HISTORY_DELETED");
     });
+    if (this.backupsEnabled) purgeBackupsAfterDeletion(this);
   }
   // Every per-user table besides `audit` (kept deliberately, for a forensic trail that can
   // outlive one deletion) has a real FK to users with ON DELETE CASCADE -- sessions, mfa,
@@ -921,6 +975,7 @@ export class Store {
       this.db.prepare("DELETE FROM users WHERE id=?").run(userId);
       this.db.prepare("DELETE FROM audit WHERE user_id=?").run(userId);
     });
+    if (this.backupsEnabled) purgeBackupsAfterDeletion(this);
   }
   cleanup(now = Date.now()) {
     this.db.prepare("DELETE FROM sessions WHERE expires_at<=?").run(now);

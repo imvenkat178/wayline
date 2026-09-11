@@ -28,6 +28,7 @@ export const localeTags: Record<Locale, string> = {
 type Table = Record<string, string>;
 
 const en: Table = {
+  "nav.assistant": "Assistant", "nav.more": "More", "nav.planShort": "Plan", "nav.tripsShort": "Journeys",
   "nav.plan": "Plan a journey",
   "nav.guardian": "Journey Guardian",
   "nav.tickets": "Tickets",
@@ -37,8 +38,8 @@ const en: Table = {
   "nav.profile": "Profile & preferences",
   "nav.lab": "Open Transit Lab",
 
-  "app.footerTagline": "Find. Know. Arrive.",
-  "app.footerNote": "Sample data stays labeled. Your journey stays yours.",
+  "app.footerTagline": "Travel workspace",
+  "app.footerNote": "Sample routes are for planning, not valid tickets.",
   "app.brandAria": "Wayline home",
   "app.watchBadge": "GLANCE VIEW · WEB",
   "app.scheduledArrival": "Scheduled arrival · {tz}",
@@ -73,9 +74,9 @@ const en: Table = {
   "phrasebook.boarding.2": "Can you help me find my connection?",
   "phrasebook.boarding.3": "Is this the right platform for my train?",
 
-  "planner.heading": "Where are we heading?",
-  "planner.subheading": "Every connection. One complete journey.",
-  "planner.assistantBadge": "Journey assistant",
+  "planner.heading": "Where to next?",
+  "planner.subheading": "Find a route for your next little adventure.",
+  "planner.assistantBadge": "Plan with Assistant",
   "planner.from": "From",
   "planner.swapTitle": "Swap origin and destination",
   "planner.to": "To",
@@ -124,7 +125,7 @@ const en: Table = {
   "planner.quickRoutes": "QUICK ROUTES",
   "planner.saveRoute": "Save this route",
   "planner.findEyebrow": "LET’S FIND YOUR WAY",
-  "planner.waysToGetThere": "{n} ways to get there",
+  "planner.waysToGetThere": "{n} route options",
   "planner.findingJourney": "Finding your journey…",
   "planner.sort.balanced": "Recommended",
   "planner.sort.price": "Cheapest",
@@ -173,6 +174,7 @@ const en: Table = {
 };
 
 const es: Table = {
+  "nav.assistant": "Asistente", "nav.more": "Más", "nav.planShort": "Planificar", "nav.tripsShort": "Viajes",
   "nav.plan": "Planificar viaje",
   "nav.guardian": "Guardián del viaje",
   "nav.tickets": "Billetes",
@@ -182,8 +184,8 @@ const es: Table = {
   "nav.profile": "Perfil y preferencias",
   "nav.lab": "Datos de transporte",
 
-  "app.footerTagline": "Encuentra. Conoce. Llega.",
-  "app.footerNote": "Los datos de muestra siempre están etiquetados. Tu viaje es tuyo.",
+  "app.footerTagline": "Espacio de viajes",
+  "app.footerNote": "Las rutas de muestra sirven para planificar; no son boletos válidos.",
   "app.brandAria": "Inicio de Wayline",
   "app.watchBadge": "VISTA RÁPIDA · WEB",
   "app.scheduledArrival": "Llegada programada · {tz}",
@@ -220,7 +222,7 @@ const es: Table = {
   "phrasebook.boarding.3": "¿Es este el andén correcto para mi tren?",
 
   "planner.heading": "¿A dónde vamos?",
-  "planner.subheading": "Cada conexión. Un viaje completo.",
+  "planner.subheading": "Encuentra una ruta para tu próxima aventura.",
   "planner.assistantBadge": "Asistente de viaje",
   "planner.from": "Desde",
   "planner.swapTitle": "Intercambiar origen y destino",
@@ -270,7 +272,7 @@ const es: Table = {
   "planner.quickRoutes": "RUTAS RÁPIDAS",
   "planner.saveRoute": "Guardar esta ruta",
   "planner.findEyebrow": "ENCONTREMOS TU CAMINO",
-  "planner.waysToGetThere": "{n} formas de llegar",
+  "planner.waysToGetThere": "{n} opciones de ruta",
   "planner.findingJourney": "Buscando tu viaje…",
   "planner.sort.balanced": "Recomendado",
   "planner.sort.price": "Más económico",
@@ -322,6 +324,7 @@ const es: Table = {
 };
 
 const hi: Table = {
+  "nav.assistant": "सहायक", "nav.more": "अधिक", "nav.planShort": "योजना", "nav.tripsShort": "यात्राएँ",
   "nav.plan": "यात्रा की योजना",
   "nav.guardian": "यात्रा सहायक",
   "nav.tickets": "टिकट",

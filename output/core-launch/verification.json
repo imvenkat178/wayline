@@ -1,0 +1,64 @@
+{
+  "checkedAt": "2026-09-11T17:07:11.848Z",
+  "tests": {
+    "total": 394,
+    "passed": 394,
+    "failed": 0
+  },
+  "productionBuild": true,
+  "lint": {
+    "errors": 0,
+    "warnings": 6,
+    "scope": "Changed source files; existing hook/fast-refresh warnings"
+  },
+  "liveEndToEnd": {
+    "checkedAt": "2026-09-11T17:04:37.301Z",
+    "model": "llama3.2",
+    "flow": "HTTP chat → LangGraph → Ollama → stdio MCP → OTP / MBTA → review → idempotent confirmation → SQLite → refreshed journey → chat cancellation",
+    "routes": 5,
+    "tripIds": [
+      "77909750"
+    ],
+    "geometry": true,
+    "reviewBeforeMutation": true,
+    "repeatedConfirmationSameJourney": true,
+    "refreshedJourneyState": "CANCELLED",
+    "evidence": [
+      {
+        "source": "Boston routing",
+        "observedAt": "2026-09-11T17:04:36.523Z"
+      }
+    ]
+  },
+  "restore": {
+    "checkedAt": "2026-09-11T08:39:24.438Z",
+    "snapshotAt": "2026-09-11T08:38:19.615Z",
+    "integrity": "ok",
+    "encryptedRecordsVerified": 22,
+    "sessionsAfterRestore": 0,
+    "pendingActions": 0
+  },
+  "recovery": {
+    "legSpecificAlertTimes": true,
+    "confirmedClosuresExcluded": true,
+    "cancelledTripExclusion": true,
+    "recheckedBeforeConfirmation": true,
+    "staleDisruptionsRejected": true,
+    "newClosuresInvalidatePreparedAlternatives": true
+  },
+  "browser": {
+    "failedDynamicImport": "Verified with isolated HTTP 503: recovery screen, navigation and offline packs available; section reopened after connection restored",
+    "pushReadinessTimeout": "Verified in isolated browser with unavailable service worker",
+    "mobile": {
+      "viewport": 390,
+      "clientWidth": 375,
+      "contentWidth": 375
+    },
+    "pushDelivery": "Not exercised: the current in-app browser reports notifications blocked in site settings"
+  },
+  "runtime": {
+    "app": "http://127.0.0.1:4174/",
+    "routing": "http://127.0.0.1:8080/otp/gtfs/v1",
+    "restarted": true
+  }
+}

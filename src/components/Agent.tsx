@@ -1,15 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../context";
 import { api } from "../api";
-import type { AgentResult } from "../types";
+import type { AgentResult, AgentToolResult, PendingAction } from "../types";
 import { Modal, Icon, Button, Badge, Notice, useAsync } from "./ui";
-export function Agent({ initialPrompt, close }: { initialPrompt: string; close: () => void }) {
-  const { active, result, applyParsed, boot, notify } = useApp();
+import { ActionReview, RouteSummary, RecoveryOptions } from "./TripActions";
+export function Agent({
+  initialPrompt,
+  close,
+  inline = false,
+}: {
+  initialPrompt: string;
+  close: () => void;
+  inline?: boolean;
+}) {
+  const { active, result, applyParsed, boot, notify, journeys, setActive, navigate } = useApp();
   const [messages, setMessages] = useState<AgentResult[]>([]),
     [input, setInput] = useState(initialPrompt),
     [voice, setVoice] = useState(false);
   const { busy, error, run } = useAsync();
   const bottom = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setInput(initialPrompt);
+  }, [initialPrompt]);
   const recognition = useRef<{ stop: () => void } | null>(null);
   useEffect(() => {
     void api<AgentResult[]>("/agent/history")
@@ -17,19 +29,22 @@ export function Agent({ initialPrompt, close }: { initialPrompt: string; close: 
       .catch(() => {});
     return () => recognition.current?.stop();
   }, []);
-  useEffect(() => bottom.current?.scrollIntoView({ behavior: "smooth" }), [messages, busy]);
-  const send = () =>
+  useEffect(() => {
+    bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [messages, busy]);
+  const send = (text?: string, command?: string) =>
     run(async () => {
-      const query = input.trim();
+      const query = (text ?? input).trim();
       if (!query) return;
-      setInput("");
+
       const context = active?.version
         ? { journeyId: active.id }
         : result
           ? { searchId: result.searchId, candidateId: active?.id ?? result.journeys[0]?.id }
           : {};
-      const reply = await api<AgentResult>("/agent", "POST", { input: query, ...context });
+      const reply = await api<AgentResult>("/agent", "POST", { input: query, command, ...context });
       setMessages((m) => [...m, { ...reply, input: query }]);
+      setInput("");
     });
   const listen = () => {
     const host = window as unknown as {
@@ -61,23 +76,48 @@ export function Agent({ initialPrompt, close }: { initialPrompt: string; close: 
     r.start();
     setVoice(true);
   };
-  return (
-    <Modal title="Your journey companion" onClose={close}>
+  const content = (
+    <div className="agent-panel-body">
       <div className="agent-context">
         <span className="guardian-orb">
           <Icon name="spark" />
         </span>
         <div>
           <b>Wayline Assistant</b>
-          <small>{active ? `${active.from} → ${active.to}` : "Let’s get you there"}</small>
+          <small>{active ? `${active.from} → ${active.to}` : "Travel planning"}</small>
         </div>
-        <Badge>ADVICE & PLANNING</Badge>
+        <Badge>Plan & manage</Badge>
       </div>
-      <div className="agent-messages">
+      {journeys.length > 0 && (
+        <label className="agent-journey-picker">
+          Working on
+          <select
+            aria-label="Assistant journey"
+            value={active?.version ? active.id : ""}
+            onChange={(e) => setActive(journeys.find((j) => j.id === e.target.value) ?? null)}
+          >
+            <option value="">New journey</option>
+            {journeys.map((j) => (
+              <option key={j.id} value={j.id}>
+                {j.from} → {j.to} · {j.state}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <div
+        className="agent-messages"
+        role="log"
+        aria-label="Assistant conversation"
+        aria-live="polite"
+      >
         {!messages.length && (
           <div className="assistant-welcome">
-            <h3>A calm voice for the whole journey.</h3>
-            <p>Ask about a connection, a fare, a station, or what to do next.</p>
+            <h3>How can I help with your trip?</h3>
+            <p>
+              Find a route from South Station to Harvard tomorrow, manage a saved trip, or prepare
+              alternatives.
+            </p>
           </div>
         )}
         {messages.map((m, i) => (
@@ -85,10 +125,10 @@ export function Agent({ initialPrompt, close }: { initialPrompt: string; close: 
             <div className="message user-message">{m.input}</div>
             <div className="message assistant-message">
               <div className="section-title">
-                <Badge>
-                  <Icon name="spark" size={13} />
-                  {m.mode}
-                </Badge>
+                <span className="agent-response-label" title={m.mode}>
+                  <Icon name="spark" size={14} />{" "}
+                  {m.mode.toLowerCase().includes("rule") ? "Journey guidance" : "Wayline Assistant"}
+                </span>
                 <Button
                   icon="headphones"
                   kind="icon-only small"
@@ -106,18 +146,32 @@ export function Agent({ initialPrompt, close }: { initialPrompt: string; close: 
                 />
               </div>
               <p>{m.reply}</p>
-              {m.actions?.map((a, n) => (
-                <Button
-                  key={n}
-                  kind="primary small"
-                  onClick={() => {
-                    applyParsed(a.payload);
-                    close();
-                  }}
-                >
-                  {a.label}
-                </Button>
+              {m.pendingActions?.map((a) => (
+                <ActionReview key={a.id} action={a} />
               ))}
+              {m.results?.map((r, n) => (
+                <ToolResult key={n} result={r} />
+              ))}
+              {m.evidence?.map((e, n) => {
+                const observed = e.observedAt ?? e.updatedAt;
+                return <small className="tool-evidence" key={n}>
+                  {e.source ?? (e.dataMode === 'illustrative' ? 'Wayline sample itinerary' : 'Saved journey')} · {observed && Number.isFinite(Date.parse(observed)) ? new Date(observed).toLocaleString() : 'Observation time unavailable'}
+                </small>;
+              })}
+              {m.actions
+                ?.filter((a) => a.payload)
+                .map((a, n) => (
+                  <Button
+                    key={n}
+                    kind="primary small"
+                    onClick={() => {
+                      applyParsed(a.payload);
+                      close();
+                    }}
+                  >
+                    {a.label}
+                  </Button>
+                ))}
             </div>
           </div>
         ))}
@@ -130,14 +184,46 @@ export function Agent({ initialPrompt, close }: { initialPrompt: string; close: 
         )}
         <div ref={bottom} />
       </div>
+      <div className="trip-action-strip agent-actions" aria-label="Trip actions">
+        <Button disabled={busy} onClick={() => navigate("plan")}>
+          Add trip
+        </Button>
+        {[
+          ["Change trip", "change"],
+          ["Cancel trip", "cancel"],
+          ["Alternatives", "alternatives"],
+          ["Download PDF", "pdf"],
+        ].map(([label, command]) => (
+          <Button
+            key={command}
+            disabled={
+              busy ||
+              !active?.version ||
+              (["change", "cancel", "alternatives"].includes(command) &&
+                ["CANCELLED", "ARRIVED"].includes(active.state ?? ""))
+            }
+            onClick={() => void send(label, command)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+      {!active?.version && (
+        <small>
+          Select a saved journey to change, cancel, prepare alternatives, or download its PDF.
+        </small>
+      )}
+      {active?.version && ["CANCELLED", "ARRIVED"].includes(active.state ?? "") && <small>This journey is finished. Its PDF remains available; add a new trip to plan more travel.</small>}
       <div className="agent-prompts">
-        {["Will I make my connection?", "Where should I board?", "Explain the total cost"].map(
-          (q) => (
-            <button key={q} onClick={() => setInput(q)}>
-              {q}
-            </button>
-          ),
-        )}
+        {[
+          "List my trips",
+          "Find a trip from South Station to Harvard tomorrow",
+          "Weather forecast",
+        ].map((q) => (
+          <button key={q} onClick={() => setInput(q)}>
+            {q}
+          </button>
+        ))}
       </div>
       {error && <Notice tone="error">{error}</Notice>}
       <form
@@ -178,6 +264,13 @@ export function Agent({ initialPrompt, close }: { initialPrompt: string; close: 
         The assistant uses your selected journey and never purchases, rebooks or contacts someone.
         Voice recognition may use your browser’s speech service.
       </p>
+    </div>
+  );
+  return inline ? (
+    content
+  ) : (
+    <Modal title="Your journey companion" onClose={close}>
+      {content}
     </Modal>
   );
 }
@@ -188,4 +281,86 @@ interface SpeechRecognizer {
   onend: () => void;
   start: () => void;
   stop: () => void;
+}
+
+function ToolResult({ result: r }: { result: AgentToolResult }) {
+  const { setActive, setResult, navigate } = useApp();
+  const [review, setReview] = useState<PendingAction | null>(null);
+  const { busy, error, run } = useAsync();
+  return (
+    <div className="agent-tool-result">
+      {r.type === "routes" &&
+        r.search.journeys.map((j) => (
+          <article key={j.id} className="recovery-option">
+            <RouteSummary journey={j} />
+            <div className="button-row">
+              <Button
+                onClick={() => {
+                  setResult(r.search);
+                  setActive(j);
+                  navigate("plan");
+                }}
+              >
+                View map
+              </Button>
+              <Button
+                disabled={busy}
+                kind="primary small"
+                onClick={() =>
+                  void run(async () =>
+                    setReview(
+                      await api<PendingAction>("/agent/actions", "POST", {
+                        kind: r.changeJourneyId ? "change" : "add",
+                        journeyId: r.changeJourneyId,
+                        searchId: r.search.searchId,
+                        candidateId: j.id,
+                      }),
+                    ),
+                  )
+                }
+              >
+                Review {r.changeJourneyId ? "change" : "add"}
+              </Button>
+            </div>
+          </article>
+        ))}
+      {r.type === "journeys" &&
+        r.journeys.map((j) => (
+          <button className="assistant-trip" key={j.id} onClick={() => setActive(j)}>
+            <b>
+              {j.from} → {j.to}
+            </b>
+            <small>
+              {j.state} · {new Date(j.departure).toLocaleString()}
+            </small>
+          </button>
+        ))}
+      {r.type === "document" && (
+        <a className="btn primary" href={r.url} download>
+          {r.label}
+        </a>
+      )}
+      {r.type === "recovery" && <RecoveryOptions items={r.recovery} onReview={setReview} />}{" "}
+      {r.type === "weather" && (
+        <div className="weather-results">
+          {r.periods.slice(0, 4).map((p) => (
+            <div key={p.name}>
+              <b>
+                {p.name} · {p.temperature}°{p.temperatureUnit}
+              </b>
+              <p>{p.shortForecast}</p>
+            </div>
+          ))}
+          {r.alerts.map((a) => (
+            <Notice key={a.id} tone="amber">
+              {a.headline}
+            </Notice>
+          ))}
+        </div>
+      )}
+      {r.type === "status" && <RouteSummary journey={r.journey} />}{" "}
+      {review && <ActionReview key={review.id} action={review} />}{" "}
+      {error && <Notice tone="error">{error}</Notice>}
+    </div>
+  );
 }

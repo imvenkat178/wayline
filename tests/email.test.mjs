@@ -33,7 +33,7 @@ async function withServer(t, { emailProvider, publicOrigin } = {}) {
   if (publicOrigin !== undefined) process.env.PUBLIC_ORIGIN = publicOrigin;
   else delete process.env.PUBLIC_ORIGIN;
 
-  const { server } = createApplication({
+  const { server, stopBackgroundJobs } = createApplication({
     store,
     production: false,
     quiet: true,
@@ -43,6 +43,8 @@ async function withServer(t, { emailProvider, publicOrigin } = {}) {
   const base = `http://127.0.0.1:${server.address().port}`;
   t.after(async () => {
     await new Promise((resolve) => server.close(resolve));
+    await stopBackgroundJobs();
+    store.close();
     rmSync(directory, { recursive: true, force: true });
     if (prevPublicOrigin === undefined) delete process.env.PUBLIC_ORIGIN;
     else process.env.PUBLIC_ORIGIN = prevPublicOrigin;

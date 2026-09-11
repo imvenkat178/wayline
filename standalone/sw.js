@@ -18,11 +18,11 @@
 // to clean up. The literal value here only ever ships if that step is skipped -- it's never
 // registered under `vite dev` (see main.tsx), so this default is effectively unreachable in
 // practice, not a silent fallback to worry about.
-const CACHE_VERSION = "wayline-shell-4b567f976bce6db8";
+const CACHE_VERSION = "wayline-shell-c39a4ded69bb6bca";
 
 // Entry points whose URL does NOT change between builds -- always safe to precache regardless
 // of build content.
-const SHELL_URLS = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg", "/theme-init.js"];
+const SHELL_URLS = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg", "/theme-init.js", "/fonts/dm-sans-latin.woff2", "/fonts/manrope-latin.woff2"];
 
 // R08: the actual hashed entry JS/CSS (and their direct static dependencies) this build's
 // index.html references, rewritten by scripts/build-sw.mjs from the real build output. Before
@@ -35,7 +35,7 @@ const SHELL_URLS = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg", "/
 // same as this file's behavior always was before this fix -- not a crash, and not silently
 // wrong, since the fetch handler's cache-first branch below still opportunistically fills in
 // whatever a page actually requests.
-const BUILD_ASSETS = ["/assets/index-CorVlF1w.js","/assets/rolldown-runtime-C0FnF6B9.js","/assets/index-D4Cn4M2J.css"];
+const BUILD_ASSETS = ["/assets/index-6NrbdTGJ.js","/assets/rolldown-runtime-C0FnF6B9.js","/assets/ui-cvqmYFAQ.js","/assets/index-BvlG6KpM.css"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -30,14 +30,14 @@ function makeFixture(opts = {}) {
   const sw = "sw" in opts ? opts.sw : SW_TEMPLATE;
   const dir = mkdtempSync(join(tmpdir(), "build-sw-test-"));
   const outDir = join(dir, "standalone");
-  execFileSync("mkdir", ["-p", outDir]);
+  mkdirSync(outDir, {recursive:true});
   if (html !== undefined) writeFileSync(join(outDir, "index.html"), html);
   if (sw !== undefined) writeFileSync(join(outDir, "sw.js"), sw);
   return { dir, outDir };
 }
 
 function runBuildSw(cwd) {
-  return execFileSync("node", [scriptPath], { cwd, encoding: "utf8" });
+  return execFileSync(process.execPath, [scriptPath], { cwd, encoding: "utf8" });
 }
 
 test("build-sw.mjs rewrites CACHE_VERSION and BUILD_ASSETS from the real index.html asset references", () => {

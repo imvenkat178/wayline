@@ -73,7 +73,7 @@ export const defaultPreferences: Preferences = {
   historyDays: 90,
   saveHistory: true,
   shareLocation: false,
-  autoRecovery: false,
+  autoRecovery: true,
   recoveryLimitCents: 1000,
   emergencyMinutes: 45,
 };

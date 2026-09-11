@@ -27,6 +27,7 @@ async function withServer(t) {
   const base = `http://127.0.0.1:${server.address().port}`;
   t.after(async () => {
     await new Promise((resolve) => server.close(resolve));
+    store.close();
     rmSync(directory, { recursive: true, force: true });
   });
   return { base, store };

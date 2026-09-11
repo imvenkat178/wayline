@@ -8,7 +8,7 @@ export type Theme = "light" | "dark";
 const STORAGE_KEY = "wayline-theme";
 // Kept in sync with the <meta name="theme-color"> Wayline ships in index.html for each theme, so
 // the browser chrome (status bar, task switcher card) matches whichever theme is active.
-const META_COLOR: Record<Theme, string> = { dark: "#0a0e14", light: "#f7f8fa" };
+const META_COLOR: Record<Theme, string> = { dark: "#122e37", light: "#e8f2f5" };
 
 function systemTheme(): Theme {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return "dark";
@@ -26,10 +26,10 @@ function readStoredTheme(): Theme | null {
 
 /** The theme currently applied to the document (falls back to the system preference). */
 export function getTheme(): Theme {
-  if (typeof document === "undefined") return "dark";
+  if (typeof document === "undefined") return "light";
   const attr = document.documentElement.getAttribute("data-theme");
   if (attr === "light" || attr === "dark") return attr;
-  return readStoredTheme() ?? systemTheme();
+  return readStoredTheme() ?? "light";
 }
 
 /** True once the user has explicitly picked a theme, rather than following the system default. */

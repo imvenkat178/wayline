@@ -1,20 +1,11 @@
-// Applies the saved (or system-default) theme before the stylesheet paints, so the page never
-// flashes the wrong theme on load. Loaded as a plain same-origin <script src> (not inlined) so it
-// runs under the app's CSP, which has no 'unsafe-inline' for script-src; index.html references it
-// before the styles.css <link> Vite injects at the end of <head>, so this always runs first.
-// Kept deliberately tiny and defensive: localStorage/matchMedia can throw in locked-down embeds,
-// and a failure here must never block the app from loading.
+// Apply the saved choice before first paint. The approved Wayline design defaults to light.
 (function () {
+  var theme = 'light';
   try {
-    var stored = localStorage.getItem("wayline-theme");
-    var theme =
-      stored === "light" || stored === "dark"
-        ? stored
-        : window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
-          ? "light"
-          : "dark";
-    document.documentElement.setAttribute("data-theme", theme);
-  } catch (e) {
-    document.documentElement.setAttribute("data-theme", "dark");
-  }
+    var stored = localStorage.getItem('wayline-theme');
+    if (stored === 'light' || stored === 'dark') theme = stored;
+  } catch { /* The default remains usable when storage is unavailable. */ }
+  document.documentElement.setAttribute('data-theme', theme);
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#122e37' : '#e8f2f5');
 })();

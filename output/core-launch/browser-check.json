@@ -1,0 +1,40 @@
+{
+  "checkedAt": "2026-09-11T08:43:34.376Z",
+  "desktop": {
+    "viewport": 1440,
+    "passed": true,
+    "checks": [
+      "real routes",
+      "matched stop map",
+      "service freshness panel",
+      "review add/change/cancel"
+    ]
+  },
+  "mobile": {
+    "viewport": 390,
+    "contentWidth": 375,
+    "horizontalOverflow": false,
+    "passed": true,
+    "checks": [
+      "planner",
+      "chat composer",
+      "persistent options",
+      "legacy evidence"
+    ]
+  },
+  "offline": {
+    "browser": "Chrome",
+    "isolatedServerStopped": true,
+    "coldReload": true,
+    "passphraseRequiredAgain": true,
+    "decryptedGeometry": true
+  },
+  "pdf": {
+    "pages": 2,
+    "renderedAndInspected": 2
+  },
+  "push": {
+    "wiredAndRegressionTested": true,
+    "liveOsDeliveryVerified": false
+  }
+}

@@ -19,6 +19,7 @@ import { JourneyMap } from "../components/JourneyMap";
 import { saveOffline } from "../offline";
 import { shellReady } from "../serviceWorker";
 import { Scanner } from "../components/Scanner";
+import {JourneyActions} from '../components/TripActions';
 export default function JourneyPage() {
   const { active, setActive, journeys, boot, navigate, refresh, notify, searchInput, openAgent } =
     useApp();
@@ -27,6 +28,7 @@ export default function JourneyPage() {
     [delay, setDelay] = useState(0),
     [weather, setWeather] = useState("clear"),
     [outage, setOutage] = useState(false);
+  const [selectedLeg,setSelectedLeg]=useState<string|null>(null);
   const [modal, setModal] = useState<string | null>(null);
   const j = active?.version ? active : journeys[0];
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function JourneyPage() {
       </Empty>
     );
   const graph = twin?.graph ?? j.graph;
-  const nextStates = (boot.transitions[j.state ?? "PLANNED"] ?? []).filter((x) => x !== "BOOKED");
+  const nextStates = (boot.transitions[j.state ?? "PLANNED"] ?? []).filter((x) => x !== "BOOKED" && x !== "CANCELLED");
   const next = async (state: string) => {
     const updated = await api<Journey>(`/journeys/${j.id}/state`, "POST", {
       state,
@@ -119,16 +121,16 @@ export default function JourneyPage() {
         </Badge>
       </div>
       {error && <Notice tone="error">{error}</Notice>}
-      <div className="journey-layout">
+      <JourneyActions key={j.id} journey={j}/>{j.liveSources&&<p className="fine-print">Live check: {new Date(j.liveUpdatedAt!).toLocaleTimeString()} · Vehicles {j.liveSources.vehicles} · Disruptions {j.liveSources.disruptions}. Missing data does not imply cancellation.</p>}{j.disruptions?.map(d=><Notice key={d.id} tone="amber"><b>{d.title}</b><p>{d.body}</p><small>MBTA · {new Date(d.updatedAt).toLocaleString()}</small></Notice>)}<div className="journey-layout">
         <div className="stack">
-          <JourneyMap journey={j} />
+          <JourneyMap journey={j} selectedLeg={selectedLeg} onLegSelect={id=>{setSelectedLeg(id);document.getElementById("journey-leg-"+id)?.scrollIntoView({block:"center",behavior:"smooth"});}} />
           <Section
             title="Every step, in one place"
             action={<Badge>{j.dataMode === "illustrative" ? "SAMPLE" : "SCHEDULE"}</Badge>}
           >
             <div className="journey-timeline">
               {j.legs.map((leg, index) => (
-                <div className="leg" key={leg.id}>
+                <div className={"leg "+(selectedLeg===leg.id?"selected-leg":"")} id={"journey-leg-"+leg.id} key={leg.id}>
                   <div className="leg-time">
                     {time(leg.departure, j.timezone)}
                     <small>{duration(leg.durationMinutes)}</small>
@@ -141,13 +143,13 @@ export default function JourneyPage() {
                   </div>
                   <div className="leg-content">
                     <div className="section-title">
-                      <h3>{leg.service}</h3>
+                      <h3><button className="leg-select" onClick={()=>setSelectedLeg(leg.id)}>{leg.service}</button></h3>
                       <span>{leg.priceCents == null ? "Unknown fare" : money(leg.priceCents)}</span>
                     </div>
                     <p>
                       {leg.from} <span>→</span> {leg.to}
                     </p>
-                    <div className="leg-badges">
+                    <div className="leg-badges">{leg.predictionStatus&&<Badge>Predictions {leg.predictionStatus}{leg.predictionObservedAt?" · "+new Date(leg.predictionObservedAt).toLocaleTimeString():""}</Badge>}
                       <Badge tone="neutral">
                         {leg.tracking.source === "sample"
                           ? "Sample signal"
@@ -332,7 +334,7 @@ export default function JourneyPage() {
                 {a.body}
               </Notice>
             ))}
-            <Button kind="primary full" icon="route" onClick={() => setModal("recovery")}>
+            <Button kind="primary full" icon="route" onClick={() => document.querySelector(".journey-actions")?.scrollIntoView({behavior:"smooth"})}>
               Explore backup routes
             </Button>
             <Button
@@ -548,7 +550,7 @@ function OfflineModal({ journey: j, close }: { journey: Journey; close: () => vo
           />
         </Field>
         <Notice>
-          The pack includes a route diagram, not offline basemap tiles. A saved confirmation does
+          The pack includes route geometry and ticket details. Basemap tiles are not downloaded. A saved confirmation does
           not replace a carrier-issued barcode.
         </Notice>
         {error && <Notice tone="error">{error}</Notice>}

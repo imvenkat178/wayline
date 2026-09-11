@@ -66,7 +66,7 @@ test("src/serviceWorker.ts's shellReady() asks the ACTIVE worker via a real Mess
     serviceWorkerSource,
     /worker\.postMessage\(\{ type: "SHELL_STATUS" \}, \[channel\.port2\]\)/,
   );
-  assert.match(serviceWorkerSource, /setTimeout\(\(\) => resolve\(false\)/);
+  assert.match(serviceWorkerSource, /setTimeout\(\(\) => finish\(false\)/);
 });
 
 test("src/main.tsx registers the service worker immediately, not deferred to the window load event", () => {

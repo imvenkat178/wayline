@@ -15,9 +15,12 @@ import { api, setCsrf, time, readable } from "./api";
 import { Icon, Button, Badge, Notice, Empty, Section, ThemeToggle } from "./components/ui";
 import { useT } from "./useT";
 import { t as translate, type Locale } from "./i18n";
-import { Agent } from "./components/Agent";
+const AssistantPage = lazy(() => import("./pages/Assistant"));
+import { lockOffline, refreshUnlockedOffline } from "./offline";
+import type { Ticket } from "./types";
 import Planner from "./pages/Planner";
 import Offline from "./pages/Offline";
+import SectionErrorBoundary from "./components/SectionErrorBoundary";
 const JourneyPage = lazy(() => import("./pages/Journey"));
 const Wallet = lazy(() => import("./pages/Wallet"));
 const Trips = lazy(() => import("./pages/Trips"));
@@ -29,18 +32,19 @@ const Lab = lazy(() => import("./pages/Lab"));
 // be a raw positional array of translated strings per language; it is now built from the same
 // keyed i18n.ts catalog every other page pulls from, so navigation, the phrasebook and full-page
 // copy all come from one resource system instead of three separate ad hoc ones.
-const NAV_KEYS = [
-  "nav.plan",
-  "nav.guardian",
-  "nav.tickets",
-  "nav.inbox",
-  "nav.trips",
-  "nav.commute",
-  "nav.profile",
-  "nav.lab",
-];
+const NAV_KEYS: Record<string, string> = {
+  plan: "nav.plan",
+  trips: "nav.trips",
+  assistant: "nav.assistant",
+  journey: "nav.guardian",
+  wallet: "nav.tickets",
+  inbox: "nav.inbox",
+  commute: "nav.commute",
+  profile: "nav.profile",
+  lab: "nav.lab",
+};
 function navLabels(locale: Locale) {
-  return NAV_KEYS.map((k) => translate(locale, k));
+  return nav.map(([page]) => translate(locale, NAV_KEYS[page]));
 }
 
 export default function App() {
@@ -60,7 +64,6 @@ export default function App() {
     });
   const [error, setError] = useState(""),
     [toast, setToast] = useState(""),
-    [agentOpen, setAgentOpen] = useState(false),
     [prompt, setPrompt] = useState(""),
     [menu, setMenu] = useState(false),
     [offlineView, setOfflineView] = useState(false),
@@ -97,6 +100,27 @@ export default function App() {
     setMenu(false);
     history.pushState({}, "", "#offline");
   }, []);
+  const offlineUserId = boot?.user.id;
+  useEffect(() => {
+    if (!offlineUserId) return;
+    const timer = setInterval(() => {
+      if (!navigator.onLine) return;
+      void refreshUnlockedOffline(async (id) => {
+        const [journey, tickets] = await Promise.all([
+          api<Journey>("/journeys/" + id),
+          api<Ticket[]>("/records/ticket"),
+        ]);
+        return { journey, tickets: tickets.filter((t) => t.journeyId === id) };
+      });
+    }, 60000);
+    const lock = () => lockOffline();
+    window.addEventListener("pagehide", lock);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("pagehide", lock);
+      lockOffline();
+    };
+  }, [offlineUserId]);
   const refresh = useCallback(async () => {
     const epoch = sessionEpoch.current;
     const data = await api<Journey[]>("/journeys");
@@ -125,13 +149,13 @@ export default function App() {
   // by this point -- the login/register/mfa-verify response already applied its Set-Cookie) so
   // every field reflects the new identity, not just `user`.
   const switchIdentity = useCallback((next: { user: Bootstrap["user"]; csrf: string }) => {
+    lockOffline();
     sessionEpoch.current += 1;
     const epoch = sessionEpoch.current;
     setCsrf(next.csrf);
     setJourneys([]);
     setResult(null);
     setActive(null);
-    setAgentOpen(false);
     setPrompt("");
     notificationSeen.current.clear();
     setError("");
@@ -154,6 +178,10 @@ export default function App() {
   useEffect(() => {
     if (initial.current) return;
     initial.current = true;
+    if (resolveHash(location.hash.slice(1)).offline) {
+      setOfflineView(true);
+      return;
+    }
     if (shareToken) {
       void api<SharedJourney>(`/shared/${encodeURIComponent(shareToken)}`)
         .then(setShared)
@@ -166,7 +194,23 @@ export default function App() {
         data.user.preferences = { ...defaultPreferences, ...data.user.preferences };
         setBoot(data);
         setCsrf(data.csrf);
-        setSearchInput((s) => ({ ...s, preferences: data.user.preferences }));
+        setSearchInput((s) => ({
+          ...s,
+          ...(data.pilot
+            ? {
+                from: "place-sstat",
+                to: "place-harsq",
+                mode: "provider",
+                departure: (() => {
+                  const d = new Date();
+                  d.setHours(9, 0, 0, 0);
+                  if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1);
+                  return d.toISOString();
+                })(),
+              }
+            : {}),
+          preferences: data.user.preferences,
+        }));
         await refresh();
         const current = location.hash.slice(1);
         const match = resolveHash(current);
@@ -215,6 +259,7 @@ export default function App() {
       // switched AWAY from could still land and surface a notification (with that stale
       // account's preferences/timezone) after the new account is already active.
       const epoch = sessionEpoch.current;
+      void refresh().catch(() => {});
       void api<Alert[]>("/guardian/check", "POST")
         .then((alerts) => {
           if (sessionEpoch.current !== epoch) return; // identity changed while this was in flight
@@ -238,7 +283,7 @@ export default function App() {
   }, [boot]);
   const openAgent = (initialPrompt = "") => {
     setPrompt(initialPrompt);
-    setAgentOpen(true);
+    navigate("assistant");
   };
   const applyParsed = (p: ParsedRequest) => {
     setSearchInput((s) => {
@@ -378,9 +423,12 @@ export default function App() {
               a bare hashchange. The other Brand usages above render before boot/routing exist
               (loading, error, and shared-link views), so a plain anchor is harmless there. */}
           <Brand onClick={() => navigate("plan")} />
-          <div className="workspace-label">YOUR JOURNEY SPACE</div>
+          <Button kind="sidebar-new-trip" icon="plus" onClick={() => navigate("plan")}>
+            New journey
+          </Button>
+          <div className="workspace-label">Workspace</div>
           <nav aria-label="Main navigation">
-            {nav.slice(0, 6).map(([p, icon], i) => (
+            {nav.slice(0, 7).map(([p, icon], i) => (
               <button
                 key={p}
                 className={page === p ? "active" : ""}
@@ -393,25 +441,11 @@ export default function App() {
               </button>
             ))}
           </nav>
-          <button className="assistant-card" onClick={() => openAgent()}>
-            <span className="guardian-orb">
-              <Icon name="spark" />
-            </span>
-            <b>
-              A companion for
-              <br />
-              every connection.
-            </b>
-            <span>
-              Ask Wayline anything
-              <Icon name="arrow" size={16} />
-            </span>
-          </button>
           <div className="sidebar-bottom">
-            {nav.slice(6).map(([p, icon], i) => (
+            {nav.slice(7).map(([p, icon], i) => (
               <button key={p} className={page === p ? "active" : ""} onClick={() => navigate(p)}>
                 <Icon name={icon} size={19} />
-                {navigation[6 + i]}
+                {navigation[7 + i]}
               </button>
             ))}
             <button onClick={openOffline}>
@@ -449,7 +483,8 @@ export default function App() {
                 onClick={() => setMenu(!menu)}
               />
               <span className="breadcrumb">
-                Your workspace <Icon name="chevron" size={13} />{" "}
+                <span className="workspace-crumb">Workspace</span>
+                <Icon name="chevron" size={13} />{" "}
                 <b>{navigation[nav.findIndex(([p]) => p === page)] ?? "Glance view"}</b>
               </span>
             </div>
@@ -485,7 +520,8 @@ export default function App() {
               </button>
             </Notice>
           )}
-          <main id="main-content" tabIndex={-1} className="page-content">
+          <main id="main-content" tabIndex={-1} className={`page-content page-${page}`}>
+            <SectionErrorBoundary key={page} onOffline={openOffline}>
             <Suspense
               fallback={
                 <div className="loading-state">
@@ -494,7 +530,9 @@ export default function App() {
                 </div>
               }
             >
-              {page === "plan" ? (
+              {page === "assistant" ? (
+                <AssistantPage initialPrompt={prompt} key={boot.user.id} />
+              ) : page === "plan" ? (
                 <Planner />
               ) : page === "journey" ? (
                 <JourneyPage />
@@ -514,6 +552,7 @@ export default function App() {
                 <Watch />
               )}
             </Suspense>
+            </SectionErrorBoundary>
             {boot.user.preferences.visitor && (
               <Phrasebook language={boot.user.preferences.language} />
             )}
@@ -527,7 +566,34 @@ export default function App() {
           </main>
         </div>
       </div>
-      {agentOpen && <Agent initialPrompt={prompt} close={() => setAgentOpen(false)} />}
+      <nav className="mobile-bottom-nav" aria-label="Quick navigation">
+        {(["plan", "trips", "assistant", "wallet"] as Page[]).map((p) => (
+          <button
+            key={p}
+            className={page === p ? "active" : ""}
+            aria-current={page === p ? "page" : undefined}
+            onClick={() => navigate(p)}
+          >
+            <Icon name={nav.find(([item]) => item === p)?.[1] ?? "route"} size={20} />
+            <span>
+              {translate(
+                activeLocale,
+                p === "plan"
+                  ? "nav.planShort"
+                  : p === "trips"
+                    ? "nav.tripsShort"
+                    : p === "assistant"
+                      ? "nav.assistant"
+                      : "nav.tickets",
+              )}
+            </span>
+          </button>
+        ))}
+        <button onClick={() => setMenu(true)} aria-label="More navigation">
+          <Icon name="menu" size={20} />
+          <span>{translate(activeLocale, "nav.more")}</span>
+        </button>
+      </nav>
       <button
         className="mobile-agent"
         aria-label={translate(activeLocale, "app.openAgentAria")}
@@ -564,10 +630,18 @@ function Brand({ onClick }: { onClick?: () => void } = {}) {
         })
       }
     >
-      <img src="/icon.svg" alt="" />
-      <strong>
-        wayline<span>®</span>
-      </strong>
+      <span className="brand-symbol" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path
+            d="m3 5 4 14 5-10 5 10 4-14"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+      <strong>Wayline</strong>
     </a>
   );
 }

@@ -302,6 +302,30 @@ test("runAgentGraph accepts a rewrite that preserves every number from the groun
   assert.ok(result.reply.includes(`$${expectedTotal}`), result.reply);
 });
 
+test("runAgentGraph strips a model's self-narration and wrapping quotes from a composed reply", async () => {
+  const journey = realJourney();
+  const provider = {
+    available: true,
+    model: "mock-narrates",
+    async chat({ jsonSchema, messages }) {
+      if (jsonSchema) return JSON.stringify({ intent: "cost" });
+      const rephrased = messages[1].content.replace("recorded door-to-door total", "total fare");
+      return `Here's a rephrased version of the message in a warmer tone:\n"${rephrased}"`;
+    },
+  };
+  const result = await runAgentGraph({
+    input: "how much does this cost",
+    journey,
+    preferences: {},
+    history: [],
+    provider,
+  });
+  assert.match(result.mode, /composed/);
+  assert.doesNotMatch(result.reply, /Here's a rephrased/i);
+  assert.ok(!result.reply.startsWith('"'), result.reply);
+  assert.match(result.reply, /total fare/);
+});
+
 test("runAgentGraph keeps the original grounded reply, without crashing, if composeReply itself throws", async () => {
   const journey = realJourney();
   const provider = {

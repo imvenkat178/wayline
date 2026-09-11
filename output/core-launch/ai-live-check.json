@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-09-11T08:09:16.367Z",
+  "model": "llama3.2",
+  "input": "I need to reach Harvard starting in South Station tomorrow",
+  "intent": "search",
+  "mode": "Journey tools",
+  "reply": "Compare these routes, then choose one to review.",
+  "routes": 5,
+  "evidence": [
+    {
+      "source": "Boston routing",
+      "observedAt": "2026-09-11T08:09:16.351Z"
+    }
+  ]
+}

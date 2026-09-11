@@ -626,6 +626,10 @@ export function recoveryPosition(journey, now = Date.now()) {
   if (RECOVERY_NOT_YET_DEPARTED.has(journey.state))
     return { stopId: journey.fromId, earliestDeparture: now };
   const upcoming = journey.legs.find((l) => Date.parse(l.arrival) > now);
+  if (journey.dataMode === 'provider' && upcoming?.toStopId && upcoming.toCoords) {
+    const place = { id: upcoming.toStopId, name: upcoming.to, lat: upcoming.toCoords[1], lon: upcoming.toCoords[0], timezone: journey.timezone };
+    return { stopId: place.id, place, earliestDeparture: Math.max(now, Date.parse(upcoming.predictedArrival ?? upcoming.arrival)) };
+  }
   const lastLeg = journey.legs[journey.legs.length - 1];
   return {
     stopId: journey.toId,

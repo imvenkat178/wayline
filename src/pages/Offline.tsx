@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { listOffline, unlockOffline, deleteOffline, type OfflinePack } from "../offline";
+import {
+  lockOffline,
+  listOffline,
+  unlockOffline,
+  deleteOffline,
+  type OfflinePack,
+} from "../offline";
 import { Button, Field, Notice, Empty, Section, useAsync } from "../components/ui";
 import { time, dateLabel } from "../api";
 import { JourneyMap } from "../components/JourneyMap";
@@ -9,18 +15,32 @@ export default function Offline() {
     [pass, setPass] = useState(""),
     [selected, setSelected] = useState("");
   const { busy, error, run } = useAsync();
+  const [loadError, setLoadError] = useState("");
   useEffect(() => {
-    void run(async () => {
-      const data = await listOffline();
-      setPacks(data);
-      setSelected(data[0]?.id ?? "");
-    });
+    let mounted = true;
+    void listOffline()
+      .then((data) => {
+        if (mounted) {
+          setPacks(data);
+          setSelected(data[0]?.id ?? "");
+        }
+      })
+      .catch(() => {
+        if (mounted) setLoadError("Could not open local encrypted packs on this browser.");
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
   useEffect(() => {
     if (!unlocked) return;
-    const id = setTimeout(() => setUnlocked(null), 300000);
+    const id = setTimeout(() => {
+      lockOffline();
+      setUnlocked(null);
+    }, 300000);
     return () => clearTimeout(id);
   }, [unlocked]);
+  useEffect(() => () => lockOffline(), []);
   return (
     <div className="offline-page">
       <div className="page-heading">
@@ -41,12 +61,21 @@ export default function Offline() {
         Offline information is a snapshot. Live updates, new routes and purchases require a
         connection.
       </Notice>
-      {error && <Notice tone="error">{error}</Notice>}
+      {(error || loadError) && <Notice tone="error">{error || loadError}</Notice>}
       {unlocked ? (
         <>
           <Section
             title={`${unlocked.journey.from} → ${unlocked.journey.to}`}
-            action={<Button onClick={() => setUnlocked(null)}>Lock pack</Button>}
+            action={
+              <Button
+                onClick={() => {
+                  lockOffline();
+                  setUnlocked(null);
+                }}
+              >
+                Lock pack
+              </Button>
+            }
           >
             <p>
               {dateLabel(unlocked.journey.departure, unlocked.journey.timezone)} ·{" "}
@@ -59,7 +88,7 @@ export default function Offline() {
                 : "Provider schedule"}{" "}
               · Auto-locks after 5 minutes.
             </Notice>
-            <JourneyMap journey={unlocked.journey} />
+            <JourneyMap journey={unlocked.journey} offline />
             <div className="mini-timeline">
               {unlocked.journey.legs.map((l) => (
                 <div key={l.id}>
@@ -85,6 +114,18 @@ export default function Offline() {
                   <p>
                     {t.passenger} · {t.confirmation}
                   </p>
+                  <small>
+                    {t.origin} → {t.destination} · Seat {t.seat || "unassigned"} · Coach{" "}
+                    {t.coach || "unassigned"}
+                  </small>
+                  {t.barcodeText && <p>Imported reference: {t.barcodeText}</p>}
+                  {t.document && (
+                    <img
+                      className="offline-ticket-image"
+                      src={"data:" + t.document.type + ";base64," + t.document.base64}
+                      alt={"Imported ticket: " + t.document.name}
+                    />
+                  )}
                 </div>
               </div>
             ))}

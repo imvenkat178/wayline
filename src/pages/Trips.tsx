@@ -1,3 +1,4 @@
+import { SavedJourneyFeature } from "../components/JourneyCover";
 import { useEffect, useState } from "react";
 import { useApp } from "../context";
 import { api, money, time, duration, readable, download } from "../api";
@@ -25,7 +26,7 @@ interface Analytics {
   operatorPerformance: { operator: string; sampleSize: number; onTimeRate: number | null }[];
 }
 export default function Trips() {
-  const { journeys, setActive, navigate, refresh, notify } = useApp();
+  const { journeys, setActive, navigate, refresh, notify, openAgent } = useApp();
   const [filter, setFilter] = useState("all"),
     [q, setQ] = useState(""),
     [analytics, setAnalytics] = useState<Analytics | null>(null),
@@ -48,9 +49,9 @@ export default function Trips() {
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">PLACES YOU’RE GOING</span>
-          <h1>Your journeys</h1>
-          <p>A little more organized. A lot more freedom.</p>
+
+          <h1>My journeys</h1>
+          <p>Manage your itineraries, travel plans and journey history.</p>
         </div>
         <Button kind="primary" icon="plus" onClick={() => navigate("plan")}>
           Plan a journey
@@ -69,8 +70,8 @@ export default function Trips() {
         </div>
         <div>
           <Icon name="ticket" />
-          <strong>{money(analytics?.recordedBudgetCents ?? 0)}</strong>
-          <span>planned cost · includes samples</span>
+          <strong>{journeys.some(j => j.price.totalCents == null) ? "Incomplete" : money(analytics?.recordedBudgetCents ?? 0)}</strong>
+          <span>{journeys.some(j => j.price.totalCents == null) ? "Some route fares are unavailable" : "planned cost · includes samples"}</span>
         </div>
         <div>
           <Icon name="leaf" />
@@ -99,7 +100,8 @@ export default function Trips() {
         </div>
       </div>
       {error && <Notice tone="error">{error}</Notice>}
-      <div className="trip-list">
+      {filtered[0] && <SavedJourneyFeature journey={filtered[0]} open={() => { setActive(filtered[0]); navigate("journey"); }} assistant={() => { setActive(filtered[0]); openAgent(); }} />}
+<div className="trip-list">
         {filtered.map((j) => (
           <article className="trip-row" key={j.id}>
             <div className="trip-date">
@@ -144,7 +146,7 @@ export default function Trips() {
       {!filtered.length && (
         <Empty
           icon="route"
-          title={q ? "No journeys match your search" : "Good journeys start with a plan"}
+          title={q ? "No journeys match your search" : "No saved journeys yet"}
           action={<Button onClick={() => navigate("plan")}>Explore routes</Button>}
         >
           Your saved trips will appear here.

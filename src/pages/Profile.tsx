@@ -1,3 +1,4 @@
+import { readyRegistration } from "../serviceWorker";
 import { useEffect, useState } from "react";
 import { useApp } from "../context";
 import { api, readable, download } from "../api";
@@ -36,6 +37,7 @@ export default function Profile() {
     // null while the initial check (does this browser already have a live subscription?) is
     // still in flight, so the toggle doesn't briefly flash "off" before settling.
     [pushSubscribed, setPushSubscribed] = useState<boolean | null>(null),
+    [pushStatus, setPushStatus] = useState("Checking this device…"),
     [sessions, setSessions] = useState<Session[]>([]),
     // Set once the login form gets back { mfaRequired: true, pendingToken } instead of a
     // completed session -- switches the same "login" modal to a second, code-entry step
@@ -73,25 +75,32 @@ export default function Profile() {
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       setPushSubscribed(false);
+      setPushStatus("Push is unavailable in this browser. Use Chrome, Edge or another browser with Web Push support.");
       return;
     }
     let cancelled = false;
     void (async () => {
       try {
-        const registration = await navigator.serviceWorker.ready;
+        const registration = await readyRegistration();
+        if (!registration) throw new Error("Offline support is not ready. Reload Wayline while connected, then try again.");
         const subscription = await registration.pushManager.getSubscription();
         if (cancelled) return;
         if (!subscription) {
           setPushSubscribed(false);
+          setPushStatus("Notification" in window && Notification.permission === "denied" ? "Notifications are blocked in this browser’s site settings." : "Push is off for this device. Your alerts remain in Journey inbox.");
           return;
         }
         const records = await api<{ endpoint: string }[]>("/records/push-subscription");
         if (cancelled) return;
         const owned = records.some((r) => r.endpoint === subscription.endpoint);
         setPushSubscribed(owned);
+        setPushStatus(owned ? "This device is subscribed. Delivery depends on your browser and notification preferences." : "Push is off for this account on this device.");
         if (!owned) await subscription.unsubscribe().catch(() => {});
-      } catch {
-        if (!cancelled) setPushSubscribed(false);
+      } catch (e) {
+        if (!cancelled) {
+          setPushSubscribed(false);
+          setPushStatus(e instanceof Error ? e.message : "Unable to check this device’s push subscription.");
+        }
       }
     })();
     return () => {
@@ -104,7 +113,7 @@ export default function Profile() {
   // behind for an identity that's no longer signed in on this device (R10).
   const detachPushSubscription = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    const registration = await navigator.serviceWorker.ready.catch(() => null);
+    const registration = await readyRegistration();
     const subscription = await registration?.pushManager.getSubscription().catch(() => null);
     if (!subscription) return;
     try {
@@ -131,7 +140,10 @@ export default function Profile() {
         if (!boot.pushPublicKey) throw new Error("Push is not configured on this server yet.");
         if ("Notification" in window && Notification.permission === "default")
           await Notification.requestPermission();
-        const registration = await navigator.serviceWorker.ready;
+        if ("Notification" in window && Notification.permission !== "granted")
+          throw new Error("Allow notifications in this browser’s site settings to enable push.");
+        const registration = await readyRegistration();
+        if (!registration) throw new Error("Offline support is not ready. Reload Wayline while connected, then try again.");
         const existing = await registration.pushManager.getSubscription();
         const subscription =
           existing ??
@@ -146,10 +158,12 @@ export default function Profile() {
           userAgent: navigator.userAgent,
         });
         setPushSubscribed(true);
+        setPushStatus("This device is subscribed. Delivery depends on your browser and notification preferences.");
         notify("Push notifications are on for this device.");
       } else {
         await detachPushSubscription();
         setPushSubscribed(false);
+        setPushStatus("Push is off for this device. Your alerts remain in Journey inbox.");
         notify("Push notifications are off for this device.");
       }
     });
@@ -528,10 +542,12 @@ export default function Profile() {
       )}
       {tab === "notifications" && (
         <Section title="Real push notifications">
+          <p role="status">{pushStatus}</p>
           <Toggle
             label="Send push notifications to this device"
             description="Delivers alerts even when Wayline isn't open, using your browser's push service."
             checked={pushSubscribed === true}
+            disabled={busy || pushSubscribed === null || !("PushManager" in window) || !boot.pushPublicKey}
             onChange={(v) => void togglePush(v)}
           />
           <Toggle

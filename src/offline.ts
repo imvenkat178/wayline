@@ -5,6 +5,11 @@ export interface OfflinePack {
   savedAt: string;
   expiresAt: string;
 }
+const unlockedKeys = new Map<string, { key: CryptoKey; salt: number[]; until: number }>();
+export function lockOffline(id?: string) {
+  if (id) unlockedKeys.delete(id);
+  else unlockedKeys.clear();
+}
 interface EncryptedPack {
   id: string;
   salt: number[];
@@ -64,6 +69,7 @@ export async function saveOffline(pack: OfflinePack, passphrase: string) {
   const salt = crypto.getRandomValues(new Uint8Array(16)),
     iv = crypto.getRandomValues(new Uint8Array(12));
   const derived = await key(passphrase, salt);
+  unlockedKeys.set(pack.journey.id, { key: derived, salt: [...salt], until: Date.now() + 300000 });
   const bytes = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
     derived,
@@ -99,14 +105,58 @@ export async function unlockOffline(id: string, passphrase: string) {
       derived,
       new Uint8Array(pack.cipher),
     );
+    unlockedKeys.set(id, { key: derived, salt: pack.salt, until: Date.now() + 300000 });
     return JSON.parse(new TextDecoder().decode(decrypted)) as OfflinePack;
   } catch {
     throw new Error("Unable to unlock this pack. Check your passphrase.");
   }
 }
 export async function clearOffline() {
+  lockOffline();
   await operation("readwrite", (s) => s.clear());
 }
 export async function deleteOffline(id: string) {
+  lockOffline(id);
   await operation("readwrite", (s) => s.delete(id));
+}
+
+export async function refreshUnlockedOffline(
+  fetchPack: (id: string) => Promise<{ journey: Journey; tickets: Ticket[] }>,
+) {
+  for (const [id, entry] of unlockedKeys) {
+    if (entry.until <= Date.now()) {
+      unlockedKeys.delete(id);
+      continue;
+    }
+    try {
+      const data = await fetchPack(id);
+      if (unlockedKeys.get(id) !== entry) continue;
+      const existing = await operation<EncryptedPack>("readonly", (s) => s.get(id));
+      if (!existing) continue;
+      const pack: OfflinePack = {
+        ...data,
+        savedAt: new Date().toISOString(),
+        expiresAt: existing.expiresAt,
+      };
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const bytes = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv },
+        entry.key,
+        new TextEncoder().encode(JSON.stringify(pack)),
+      );
+      if (unlockedKeys.get(id) !== entry) continue;
+      await operation("readwrite", (s) =>
+        s.put({
+          id,
+          salt: entry.salt,
+          iv: [...iv],
+          cipher: [...new Uint8Array(bytes)],
+          savedAt: pack.savedAt,
+          expiresAt: pack.expiresAt,
+        }),
+      );
+    } catch {
+      /* Keep the last encrypted snapshot when connectivity fails. */
+    }
+  }
 }

@@ -1,3 +1,7 @@
+import { TravelClient } from "./travel/client.mjs";
+import { refreshActiveJourneys, scheduleLiveRefresh } from "./recovery.mjs";
+import { createBackup } from "./backups.mjs";
+import { readFileSync, writeFileSync, unlinkSync, existsSync } from "node:fs";
 import http from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { resolve, join, extname, sep } from "node:path";
@@ -90,7 +94,8 @@ export function addCookie(res, token, production) {
   );
 }
 export function createApplication({
-  store = new Store(),
+  store = new Store({ backups: true }),
+  travel = new TravelClient(),
   production = process.env.NODE_ENV === "production",
   quiet = false,
   // No real email provider is configured in this codebase yet (see server/email.mjs) -- this
@@ -100,7 +105,7 @@ export function createApplication({
   emailProvider = new LogEmailProvider({ quiet }),
   // Configurable purely so tests can exercise the drain loop's overlap-prevention (R05) on a
   // real, tiny interval instead of either waiting 30 real seconds or reaching for mock timers.
-  drainIntervalMs = 30000,
+  drainIntervalMs = 5000,
 } = {}) {
   if (production && !process.env.PUBLIC_ORIGIN)
     throw new Error("PUBLIC_ORIGIN is required in production.");
@@ -114,7 +119,33 @@ export function createApplication({
   // see push.mjs. Must run before any request can read bootstrap's pushPublicKey field, and
   // before the "push-deliver" jobs below can actually send anything.
   configureWebPush(store.directory);
+  if (process.env.OTP_GRAPHQL_URL) {
+    ensureRecurringJob(store, "live-refresh", {}, 60000);
+    ensureRecurringJob(store, "travel-probe", {}, 300000);
+  }
+  if (store.backupsEnabled) ensureRecurringJob(store, "database-backup", {}, 3600000);
   const jobHandlers = {
+    "live-refresh": (jobStore) => scheduleLiveRefresh(jobStore),
+    "travel-probe": () => travel.probe(),
+    "journey-refresh": (jobStore, payload, job) => {
+      const deadline = Date.now() + 48000;
+      return refreshActiveJourneys(jobStore, travel, {
+        journeyId: payload.journeyId,
+        canCommit: () =>
+          Date.now() < deadline &&
+          jobStore.db
+            .prepare("SELECT id FROM jobs WHERE id=? AND lease_token=? AND status='leased'")
+            .get(job.id, job.lease_token),
+      });
+    },
+    "database-backup": (jobStore) => {
+      try {
+        return createBackup(jobStore);
+      } catch (e) {
+        jobStore.backupStatus = { ...jobStore.backupStatus, status: "failed" };
+        throw e;
+      }
+    },
     "guardian-sweep": (jobStore) => runGuardian(jobStore),
     "push-deliver": (jobStore, payload) => deliverPush(jobStore, payload),
   };
@@ -140,7 +171,7 @@ export function createApplication({
           version: "2.0.0",
           uptimeSeconds: Math.floor(process.uptime()),
           ai: process.env.OLLAMA_MODEL ? "Ollama configured" : "Rules assistant",
-          providers: providerHealth(),
+          providers: [travel.status, ...providerHealth()],
           requestId,
         });
       if (url.pathname.startsWith("/api/shared/") && req.method === "GET") {
@@ -216,6 +247,7 @@ export function createApplication({
           send,
           addCookie,
           emailProvider,
+          travel,
         });
       }
       if (!["GET", "HEAD"].includes(req.method)) throw new DomainError("Method not allowed.", 405);
@@ -297,7 +329,7 @@ export function createApplication({
         console.error(JSON.stringify({ level: "error", message: "Cleanup failed", error: e.name }));
     }
     try {
-      await processJobs(store, jobHandlers, { now: Date.now() });
+      await processJobs(store, jobHandlers, { now: Date.now(), limit: 1 });
     } catch (e) {
       if (!quiet)
         console.error(
@@ -321,18 +353,41 @@ export function createApplication({
     stoppingJobs = true;
     if (drainTimer) clearTimeout(drainTimer);
     await activeDrain;
+    await travel.close();
   }
   server.on("close", () => {
     stoppingJobs = true;
     if (drainTimer) clearTimeout(drainTimer);
+    void travel.close();
   });
   return { server, store, stopBackgroundJobs };
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const activePidFile = join(process.env.DATA_DIR || resolve("data"), ".server-pid");
+  if (existsSync(activePidFile)) {
+    const pid = Number(readFileSync(activePidFile, "utf8"));
+    try {
+      process.kill(pid, 0);
+      throw new Error(
+        "Wayline is already running for this data directory. Stop the current server before starting another.",
+      );
+    } catch (e) {
+      if (e.code !== "ESRCH") throw e;
+    }
+  }
   const { server, store, stopBackgroundJobs } = createApplication();
+  const pidFile = join(store.directory, ".server-pid");
+
+  process.on("exit", () => {
+    if (existsSync(pidFile) && readFileSync(pidFile, "utf8") === String(process.pid))
+      unlinkSync(pidFile);
+  });
   const port = Number(process.env.PORT ?? 4173);
   const host = process.env.HOST ?? "127.0.0.1";
-  server.listen(port, host, () => console.log(`Wayline is ready at http://${host}:${port}`));
+  server.listen(port, host, () => {
+    writeFileSync(pidFile, String(process.pid));
+    console.log(`Wayline is ready at http://${host}:${port}`);
+  });
   let shuttingDown = false;
   for (const signal of ["SIGTERM", "SIGINT"])
     process.on(signal, () => {

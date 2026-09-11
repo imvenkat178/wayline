@@ -17,7 +17,7 @@ const profile = readFileSync(
 );
 
 test("Profile.tsx subscribes through the real PushManager API, not just Notification.requestPermission", () => {
-  assert.match(profile, /navigator\.serviceWorker\.ready/);
+  assert.match(profile, /readyRegistration\(\)/);
   assert.match(profile, /pushManager\.subscribe/);
   assert.match(profile, /applicationServerKey/);
   assert.match(profile, /boot\.pushPublicKey/);

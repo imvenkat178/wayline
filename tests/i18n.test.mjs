@@ -35,8 +35,8 @@ test("t() falls back to the bare key itself when no locale (including English) h
 });
 
 test("t() substitutes {var} placeholders from the vars argument", () => {
-  assert.equal(t("en", "planner.waysToGetThere", { n: 3 }), "3 ways to get there");
-  assert.equal(t("es", "planner.waysToGetThere", { n: 3 }), "3 formas de llegar");
+  assert.equal(t("en", "planner.waysToGetThere", { n: 3 }), "3 route options");
+  assert.equal(t("es", "planner.waysToGetThere", { n: 3 }), "3 opciones de ruta");
 });
 
 test("t() leaves an unmatched placeholder untouched rather than throwing", () => {

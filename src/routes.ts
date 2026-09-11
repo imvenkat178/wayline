@@ -1,16 +1,7 @@
 import type { Page } from "./types";
 
 // The app's known top-level pages, in sidebar order, paired with their icon name.
-export const nav: [Page, string][] = [
-  ["plan", "route"],
-  ["journey", "shield"],
-  ["wallet", "ticket"],
-  ["inbox", "bell"],
-  ["trips", "clock"],
-  ["commute", "refresh"],
-  ["profile", "user"],
-  ["lab", "globe"],
-];
+export const nav: [Page, string][] = [['plan', 'route'], ['trips', 'clock'], ['assistant', 'spark'], ['journey', 'shield'], ['wallet', 'ticket'], ['inbox', 'bell'], ['commute', 'refresh'], ['profile', 'user'], ['lab', 'globe']];
 
 export interface RouteMatch {
   page: Page;

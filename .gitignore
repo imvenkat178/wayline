@@ -10,3 +10,7 @@ coverage/
 .tsx-test-cache/
 models/
 .llm-smoke-test.Modelfile
+
+.runtime/
+backups/
+tmp/

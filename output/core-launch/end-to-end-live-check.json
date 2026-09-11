@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-09-11T17:04:37.301Z",
+  "model": "llama3.2",
+  "flow": "HTTP chat → LangGraph → Ollama → stdio MCP → OTP / MBTA → review → idempotent confirmation → SQLite → refreshed journey → chat cancellation",
+  "routes": 5,
+  "tripIds": [
+    "77909750"
+  ],
+  "geometry": true,
+  "reviewBeforeMutation": true,
+  "repeatedConfirmationSameJourney": true,
+  "refreshedJourneyState": "CANCELLED",
+  "evidence": [
+    {
+      "source": "Boston routing",
+      "observedAt": "2026-09-11T17:04:36.523Z"
+    }
+  ]
+}

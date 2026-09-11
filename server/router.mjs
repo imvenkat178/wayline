@@ -1,4 +1,6 @@
-import { randomUUID } from "node:crypto";
+import { handleCoreRoutes } from "./core-routes.mjs";
+import { searchTrips, saveTrip } from "./domain/tripActions.mjs";
+import { createToolRunner } from "./domain/agentTools.mjs";
 import { hashToken, MIN_REPORT_COHORT } from "./store.mjs";
 import {
   cities,
@@ -12,7 +14,6 @@ import {
   DomainError,
   text,
   preferences,
-  sampleSearch,
   fareCompare,
   airportDeadline,
   transitions,
@@ -27,7 +28,6 @@ import {
   weather,
   geocode,
   streetRoute,
-  otpSearch,
   commercialCapabilities,
   gtfsRealtime,
   configuredSources,
@@ -54,6 +54,7 @@ export async function handleApi(ctx) {
     emailProvider,
   } = ctx;
   const userId = session.userId;
+  if (await handleCoreRoutes(ctx)) return;
   const userAgent = String(req.headers["user-agent"] ?? "").slice(0, 200);
   if (url.pathname === "/api/bootstrap") {
     const user = store.user(userId);
@@ -61,6 +62,7 @@ export async function handleApi(ctx) {
       user: { ...user, preferences: preferences(user.preferences) },
       csrf: session.csrf,
       cities,
+      pilot: process.env.WAYLINE_BOSTON_PILOT === "true",
       states,
       capabilities: commercialCapabilities(),
       transitions,
@@ -229,21 +231,8 @@ If you didn't request this, you can ignore this email.`,
   if (url.pathname === "/api/audit" && req.method === "GET")
     return send(res, 200, store.audits(userId));
   if (url.pathname === "/api/search" && req.method === "POST") {
-    rateLimit(`search:${userId}`, 30);
-    const p = preferences({ ...store.user(userId).preferences, ...b.preferences });
-    const input = { ...b, preferences: p };
-    const result = b.mode === "provider" ? await otpSearch(input) : sampleSearch(input);
-    const search = store.put(
-      userId,
-      "search",
-      { input, result },
-      { expiresAt: Date.now() + 3600000 },
-    );
-    return send(res, 200, {
-      ...result,
-      searchId: search.id,
-      agencies: discoverAgencies(b.from, b.to),
-    });
+    rateLimit("search:" + userId, 30);
+    return send(res, 200, await searchTrips(store, userId, b, ctx.travel));
   }
   if (url.pathname === "/api/journeys" && req.method === "GET")
     return send(
@@ -251,55 +240,8 @@ If you didn't request this, you can ignore this email.`,
       200,
       store.list(userId, "journey").map((j) => withFreshTracking(j)),
     );
-  if (url.pathname === "/api/journeys" && req.method === "POST") {
-    const key = text(req.headers["idempotency-key"], "Idempotency key", 100);
-    const requestHash = hashToken(
-      JSON.stringify({ searchId: b.searchId, journeyId: b.journeyId, private: b.private }),
-    );
-    const result = store.transaction(() => {
-      const prior = store.list(userId, "idempotency").find((x) => x.key === key);
-      if (prior) {
-        if (prior.requestHash !== requestHash)
-          throw new DomainError("Idempotency key was used for a different request.", 409);
-        return store.get(userId, prior.journeyId, "journey");
-      }
-      const search = store.get(userId, b.searchId, "search");
-      const selected = search.result.journeys.find((j) => j.id === b.journeyId);
-      if (!selected) throw new DomainError("Journey not found in your search.", 404);
-      const p = preferences(store.user(userId).preferences);
-      const privateTrip = Boolean(b.private) || !p.saveHistory || p.historyDays === 0;
-      const expires = privateTrip
-        ? Date.parse(selected.arrival) + 86400000
-        : Date.now() + p.historyDays * 86400000;
-      const j = store.put(
-        userId,
-        "journey",
-        {
-          ...selected,
-          state: "PLANNED",
-          bookingConfirmed: false,
-          privateTrip,
-          events: [
-            {
-              id: randomUUID(),
-              at: new Date().toISOString(),
-              type: "JOURNEY_SAVED",
-              source: "traveler",
-            },
-          ],
-        },
-        { expiresAt: Math.max(Date.now() + 3600000, expires) },
-      );
-      store.put(
-        userId,
-        "idempotency",
-        { key, requestHash, journeyId: j.id },
-        { expiresAt: Date.now() + 86400000 },
-      );
-      return j;
-    });
-    return send(res, 201, result);
-  }
+  if (url.pathname === "/api/journeys" && req.method === "POST")
+    return send(res, 201, saveTrip(store, userId, b, req.headers["idempotency-key"]));
   if (url.pathname.startsWith("/api/journeys/")) return journeyRoutes(ctx);
   if (url.pathname.startsWith("/api/commerce/")) return commerceRoutes(ctx);
   if (url.pathname === "/api/shares" && req.method === "GET")
@@ -406,6 +348,12 @@ If you didn't request this, you can ignore this email.`,
     const reply = await runAgentGraph({
       input,
       journey,
+      toolRunner: createToolRunner({
+        store,
+        userId,
+        travel: ctx.travel,
+        context: { ...b, journeyId: journey?.version ? journey.id : null },
+      }),
       preferences: preferences(store.user(userId).preferences),
       history: history.flatMap((h) => [
         { role: "user", content: h.input },
@@ -421,7 +369,24 @@ If you didn't request this, you can ignore this email.`,
     return send(res, 200, reply);
   }
   if (url.pathname === "/api/agent/history" && req.method === "GET")
-    return send(res, 200, store.list(userId, "agent").slice(0, 30).reverse());
+    return send(
+      res,
+      200,
+      store
+        .list(userId, "agent")
+        .slice(0, 30)
+        .reverse()
+        .map((m) => ({
+          ...m,
+          pendingActions: m.pendingActions?.map((a) => {
+            try {
+              return store.get(userId, a.id, "pending-action");
+            } catch {
+              return { ...a, status: "expired", expiresAt: 0 };
+            }
+          }),
+        })),
+    );
   if (url.pathname === "/api/guardian/check" && req.method === "POST") {
     runGuardian(store, userId);
     return send(res, 200, store.list(userId, "alert"));

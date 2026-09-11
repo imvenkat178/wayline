@@ -15,6 +15,9 @@ export default tseslint.config(
     ignores: [
       "node_modules/**",
       "data/**",
+      ".runtime/**",
+      "tmp/**",
+      "output/**",
       "standalone/**",
       "public/ocr/**",
       "artifacts/**",
@@ -23,6 +26,7 @@ export default tseslint.config(
       "*.tsbuildinfo",
     ],
   },
+  {files:["public/theme-init.js"],languageOptions:{globals:globals.browser}},
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

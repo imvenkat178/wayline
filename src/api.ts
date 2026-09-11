@@ -27,7 +27,7 @@ export async function api<T>(
         ...headers,
       },
       body: method === "GET" ? undefined : JSON.stringify(data ?? {}),
-      signal: AbortSignal.timeout(25000),
+      signal: AbortSignal.timeout(path === "/agent" ? 65000 : 30000),
     });
   } catch {
     throw new ApiError(

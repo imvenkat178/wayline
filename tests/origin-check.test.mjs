@@ -34,6 +34,7 @@ async function withServer(t, { production = false, publicOrigin, devClientOrigin
 
   t.after(async () => {
     await new Promise((resolve) => server.close(resolve));
+    store.close();
     rmSync(directory, { recursive: true, force: true });
     if (prevPublicOrigin === undefined) delete process.env.PUBLIC_ORIGIN;
     else process.env.PUBLIC_ORIGIN = prevPublicOrigin;

@@ -1,9 +1,9 @@
+import { changeState } from "./domain/tripActions.mjs";
 import {
   DomainError,
   text,
   integer,
   digitalTwin,
-  transition,
   preferences,
   matchLiveTracking,
   withFreshTracking,
@@ -25,7 +25,7 @@ export async function journeyRoutes({ req, res, url, b, store, session, send }) 
   if (!action && req.method === "GET") return send(res, 200, withFreshTracking(j));
   if (!action && req.method === "DELETE") {
     store.transaction(() => {
-      for (const kind of ["ticket", "claim", "alert", "agent", "recovery"])
+      for (const kind of ["ticket", "claim", "alert", "agent", "recovery", "pending-action"])
         for (const r of store.list(userId, kind))
           if (r.journeyId === id) store.remove(userId, r.id);
       store.remove(userId, id);
@@ -33,18 +33,7 @@ export async function journeyRoutes({ req, res, url, b, store, session, send }) 
     return send(res, 200, { ok: true });
   }
   if (action === "state" && req.method === "POST") {
-    const next = transition(j, b.state);
-    if (b.version !== j.version)
-      throw new DomainError("Journey changed. Refresh and try again.", 409);
-    return send(
-      res,
-      200,
-      store.put(userId, "journey", next, {
-        id,
-        expectedVersion: b.version,
-        expiresAt: j.privateTrip && next.state === "ARRIVED" ? Date.now() + 3600000 : undefined,
-      }),
-    );
+    return send(res, 200, changeState(store, userId, id, b.state, b.version));
   }
   if (action === "twin" && req.method === "POST") {
     const delayMinutes = integer(b.delayMinutes ?? 0, "Delay", 0, 480);

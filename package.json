@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build && node scripts/build-sw.mjs",
+    "build": "node scripts/build.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "start": "node --env-file-if-exists=.env server/server.mjs",
     "start:free": "node --env-file-if-exists=.env server/server.mjs",
@@ -13,16 +13,21 @@
     "check": "tsc -b && node --experimental-strip-types --test tests/*.test.mjs",
     "package": "python3 scripts/package.py",
     "lint": "eslint .",
-    "llm-smoke-test": "node scripts/llm-smoke-test.mjs"
+    "llm-smoke-test": "node scripts/llm-smoke-test.mjs",
+    "transit:setup": "node scripts/setup-transit.mjs",
+    "transit:build": "node scripts/transit.mjs --build",
+    "transit:start": "node scripts/transit.mjs"
   },
   "dependencies": {
     "@langchain/core": "^1.2.9",
     "@langchain/langgraph": "^1.4.14",
+    "@modelcontextprotocol/sdk": "1.30.0",
     "@vitejs/plugin-react": "6.1.1",
     "@zxing/browser": "^0.1.5",
     "gtfs-realtime-bindings": "2.2.0",
     "langsmith": "^0.10.2",
     "maplibre-gl": "6.8.0",
+    "pdfkit": "0.17.2",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",

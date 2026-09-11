@@ -22,7 +22,7 @@ const CACHE_VERSION = "wayline-shell-v1";
 
 // Entry points whose URL does NOT change between builds -- always safe to precache regardless
 // of build content.
-const SHELL_URLS = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg", "/theme-init.js"];
+const SHELL_URLS = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg", "/theme-init.js", "/fonts/dm-sans-latin.woff2", "/fonts/manrope-latin.woff2"];
 
 // R08: the actual hashed entry JS/CSS (and their direct static dependencies) this build's
 // index.html references, rewritten by scripts/build-sw.mjs from the real build output. Before
