@@ -1,5 +1,13 @@
 # Feature implementation status
 
+## Product priority and review — 12 September 2026
+
+The main feature is **planning, comparing, customizing and managing the entire trip in a continuing LLM conversation**, with cheapest, fastest, more reliable and recommended options shown as interactive results. Flight, bus/train connections and recovery belong within this workspace. Follow S01–S08 in the [conversational workspace instructions](CONVERSATIONAL_TRIP_WORKSPACE.md), supported by the [multimodal engine plan](CHEAPEST_MULTIMODAL_TRAVEL_PLAN.md) and [repository review](REVIEW_2026-09-12.md). These documents change no application code and do not promote any historical feature row to completed.
+
+Fresh baseline at `0f02d7a`: 394 tests passed, typecheck/build passed, full-repository lint 0 errors and 14 warnings. Current Boston routes have unknown fares and no flight inventory; live search does not yet implement complete cheapest-price ranking. Recovery cash accounting and semantic AI fact integrity need the corrections in the review. In particular, the historical R04 numeric-guard fix below does not establish that all unsupported model claims are blocked.
+
+Implementation packages C01–C12 extend original features 1–3, 7–10, 18–20, 34–41, 46–51, 60–61, 75–79 and 87–90; S01–S08 now define their execution order around conversational state and editable trip drafts. Flight plus ground integration (61) remains in scope, while actual provider access and implementation remain outstanding. The original 105-feature register is preserved. The clarification review passed 55 focused agent/core tests and identified missing unsaved-draft follow-up context; no multi-turn editing capability is newly marked complete.
+
 ## Current checkpoint: Boston core launch — 11 September 2026
 
 The approved coastal UI now runs the Boston/MBTA pilot described in [CORE_LAUNCH.md](CORE_LAUNCH.md). This checkpoint supersedes older statements below that regional GTFS, AI trip mutations, itinerary PDFs or backups are not implemented. The original 105-feature roadmap remains separately tracked in the historical table; completion of this core launch does not mark every roadmap feature complete.
