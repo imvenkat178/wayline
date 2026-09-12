@@ -1,15 +1,16 @@
 # Wayline AI
 
-Wayline is a transportation planner and AI trip assistant built with React, TypeScript, Vite, Node.js and SQLite.
+Wayline is a transportation planner and AI trip assistant built with React, TypeScript, Vite, Node.js and SQLite. Its product direction is a conversational workspace where travelers compare and customize complete trips through chat and interactive itinerary cards.
 
 **Current implementation:** a Boston/MBTA transit pilot with reviewed trip changes, journey monitoring, recovery alternatives, itinerary PDFs, encrypted offline packs and encrypted database backups.
 
-**Next product priority:** find the cheapest complete journey across flights, buses, trains and their connections, then prepare practical backups when a leg is late, cancelled or missed. Flight shopping, complete live multimodal fares and carrier ticket issuance are planned work, not current capabilities.
+**Main product feature:** plan, compare, customize and manage an entire bus, train or flight trip in a continuing LLM conversation. Show cheapest, fastest, more reliable and recommended options in that workspace; let travelers edit individual legs, preserve preferences, compare scenarios and prepare recovery options. Persistent trip drafts, rich follow-up editing, flight shopping, complete live multimodal fares and carrier ticket issuance remain planned work.
 
 ## Start here
 
+- [Conversational trip workspace — clarified direction and next steps](docs/CONVERSATIONAL_TRIP_WORKSPACE.md)
 - [Current review and verified results — 12 September 2026](docs/REVIEW_2026-09-12.md)
-- [Cheapest multimodal travel and AI recovery implementation plan](docs/CHEAPEST_MULTIMODAL_TRAVEL_PLAN.md)
+- [Supporting multimodal pricing, flight and recovery implementation plan](docs/CHEAPEST_MULTIMODAL_TRAVEL_PLAN.md)
 - [Boston core launch, live evidence and restore procedures](docs/CORE_LAUNCH.md)
 - [Feature status and the original 105-feature register](docs/FEATURE_STATUS.md)
 - [Original requirements](docs/ORIGINAL_REQUIREMENTS.md) and [original supplied documents](docs/original/)
@@ -23,7 +24,7 @@ The archived README is preserved in full. Its dated validation counts, provider 
 | Area | Implemented foundation | Remaining boundary |
 | --- | --- | --- |
 | Local transit | Boston station lookup, OTP routes and geometry, MBTA predictions/vehicles/disruptions, NWS weather | Boston coverage; live route fares remain unknown; no carrier tickets issued |
-| AI and trip actions | LangGraph, optional Ollama, private travel MCP tools, server-owned add/change/cancel/recovery reviews and idempotent confirmation | Local plan changes are not carrier booking changes; legacy reply composition still needs stronger factual constraints |
+| AI and trip actions | Full Assistant page with chat/cards/map, LangGraph, optional Ollama, private travel MCP tools, reviewed add/change/cancel/recovery and idempotent confirmation | No conversation-owned persistent draft, reliable follow-up reference resolution or per-leg draft editing/undo; local plan changes are not carrier booking changes; legacy reply composition needs stronger factual constraints |
 | Monitoring and recovery | Durable jobs, separate live observations, disruption matching, prepared alternatives and service revalidation | No held backup inventory; recovery cash calculation needs correction before purchase recommendations |
 | Tickets and documents | Manual/photo/barcode imports, itinerary PDFs, encrypted offline packs | Imported documents do not establish ticket validity; no new airline ticket is created |
 | Accounts and privacy | Owner-scoped encrypted storage, sessions, TOTP/recovery codes, export/deletion and notification preferences | Real recovery-email delivery is not configured; external trace privacy and operating procedures need completion |
@@ -136,7 +137,9 @@ Fresh verification on 12 September 2026 at `0f02d7a`: **394 tests passed**, type
 
 ## Implementation priority
 
-Follow C01–C12 in the [cheapest complete-trip plan](docs/CHEAPEST_MULTIMODAL_TRAVEL_PLAN.md): cost and AI correctness; common offers; flight and priced ground adapters; multimodal search; connection validation; monitoring/recovery; agents across existing workflows; permitted watches; supplier commerce; release evidence.
+Follow S01–S08 in the [conversational workspace plan](docs/CONVERSATIONAL_TRIP_WORKSPACE.md): correctness and state contracts; persistent follow-up planning; editable chat workspace; flight/ground offers; multimodal comparison and recommendations; recovery in the same conversation; existing-feature and commerce integration; release evidence. C01–C12 in the [supporting travel plan](docs/CHEAPEST_MULTIMODAL_TRAVEL_PLAN.md) remain the technical inventory, with this clarified execution order taking precedence.
+
+First user-facing milestone: start a trip in chat, compare routes, revise an unsaved itinerary across several turns, inspect changes, undo, save, and reload the same conversation. Use the existing transit provider while commercial integrations are added. The clarification review reran 55 agent/core tests successfully and reproduced missing unsaved-draft follow-up context; see the workspace plan for scope.
 
 Keep normal user controls and clear provider limitations throughout. A review or saved itinerary must never be presented as a purchased ticket. A prepared backup is an option to revalidate, not a reserved seat.
 

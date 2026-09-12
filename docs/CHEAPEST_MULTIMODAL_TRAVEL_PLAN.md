@@ -1,12 +1,14 @@
 # Cheapest complete trips with flights and AI recovery
 
+Product clarification: the main feature is the [conversational trip workspace](CONVERSATIONAL_TRIP_WORKSPACE.md), where users compare and customize their whole journey in chat. This document specifies its supporting price, inventory, connection and recovery engines. S01–S08 in that workspace plan supersede the earlier cheapest-first execution order; all technical requirements below remain in scope.
+
 Status: implementation instructions approved in scope by the user on 12 September 2026; proposed capabilities below are not implemented by this documentation change.
 
 Baseline: main at `0f02d7a0f146ea07fb3999fdf66e3a725ef50727`. Read the [current code review](REVIEW_2026-09-12.md) before starting. The Boston implementation in [CORE_LAUNCH.md](CORE_LAUNCH.md) is the foundation. Keep the original [105 requirements](ORIGINAL_REQUIREMENTS.md); this plan changes implementation priority and expands flight coverage.
 
 ## 1 Product objective
 
-Wayline should find the lowest complete-trip cost among the valid offers it can actually search, explain the tradeoffs, and help the traveler recover if a flight, bus or train is late, cancelled or missed.
+Within the primary conversational workspace, Wayline should compare valid complete-trip options, let the traveler customize any supported part of the itinerary, explain cheapest/fastest/recommended and evidence-based reliability tradeoffs, and help the traveler recover if a flight, bus or train is late, cancelled or missed. Lowest complete-trip cost is one comparison objective within that experience.
 
 The primary search runs from the traveler's actual starting point to the final destination. Compare ground-only travel, flights with airport access, and mixed itineraries in the same results. A flight price alone is insufficient when the airport transfers cost more than the apparent saving.
 
@@ -207,11 +209,11 @@ For direct booking implement durable operation records, supplier idempotency, pa
 
 For separate ticket groups, refresh all offers, obtain holds where supported and disclose partial-booking risk. When holds are unavailable, require acknowledgment and define compensation/manual recovery if a later purchase fails. Do not claim cross-supplier atomic checkout. Supplier webhook signatures, timestamps and event IDs must be verified; duplicates and out-of-order events need stable handling.
 
-## 10 Ordered implementation packages
+## 10 Technical implementation packages
 
-Every package includes code, meaningful failure tests, updated capability docs and review evidence. Responsibilities below are roles to assign, not people already committed. Provider onboarding can proceed while the first packages are implemented.
+Every package includes code, meaningful failure tests, updated capability docs and review evidence. The IDs below retain the technical work inventory; execute it according to S01–S08 in [CONVERSATIONAL_TRIP_WORKSPACE.md](CONVERSATIONAL_TRIP_WORKSPACE.md), bringing conversation state and editable drafts forward. C09 does not mean postponing the primary chat experience until after all provider work. Responsibilities below are roles to assign, not people already committed. Provider onboarding can proceed alongside workspace implementation.
 
-| Order | Deliverable | Responsibility | Acceptance |
+| ID | Deliverable | Responsibility | Acceptance |
 | --- | --- | --- | --- |
 | C01 | Correct recovery economics and remove model control of operational facts; clarify unsupported live price controls | Backend + AI | $100 spent/$80 replacement yields $80 required now; name/negation injections cannot alter rendered facts; unknown fare never wins ranking |
 | C02 | Money, offers, passengers, places, service instances, ticket groups and connection schemas | Backend | Multi-passenger/tax/bag inclusions correct; currencies and timezones preserved; through-fares cannot be split illegally |
@@ -257,4 +259,4 @@ Prioritize transparent bag-inclusive price comparison, “leave one hour later t
 
 Later add round-trip airport combinations, verified student/senior fares, companion-aware baggage allocation, transit-pass eligibility, refundable-versus-cheaper fare comparisons and voluntary journey sharing. Predictive “buy now/wait” advice needs licensed history and calibration before it is presented as more than descriptive price history.
 
-Keep AR boarding, nationwide coverage claims and complex international self-transfers behind separate validated plans. The next milestone is a small set of complete, correctly priced, recoverable journeys that people can actually use.
+Keep AR boarding, nationwide coverage claims and complex international self-transfers behind separate validated plans. The next workspace milestone is a continuing chat that compares available routes and preserves the traveler's edits. The subsequent commercial milestone adds complete, correctly priced and recoverable journeys within that conversation.
