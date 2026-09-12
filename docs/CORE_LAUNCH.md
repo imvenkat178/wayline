@@ -1,5 +1,7 @@
 # Boston core launch — 11 September 2026
 
+Subsequent review: [12 September findings](REVIEW_2026-09-12.md). Next product scope: [cheapest flight, bus and train journeys with AI recovery](CHEAPEST_MULTIMODAL_TRAVEL_PLAN.md). The dated evidence below describes this checkpoint; it does not establish complete live fares or airline ticket issuance.
+
 This checkpoint implements the approved coastal application with real Boston transit planning, a local AI tool path, reviewed trip changes, recovery, PDFs, encrypted offline packs and encrypted database backups. The separate 105-feature roadmap in FEATURE_STATUS.md remains a historical inventory; this checkpoint does not claim national coverage or carrier commerce.
 
 ## Run locally
