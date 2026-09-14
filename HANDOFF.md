@@ -13,7 +13,7 @@
 - **Who:** Claude Code (Claude Opus 5)
 - **What happened:** Last, on 2026-09-14, PR 1 was closed without merging, with its three plans kept in `docs/history/` (commit `917cb7d`), and PR #2 was opened from `chore/agent-memory-kit` into `main` (https://github.com/imvenkat178/wayline/pull/2). Its first CI run (34879457353) failed in `npm test` because 15 flight workspace tests asserted a Windows-only path separator; the test was fixed and pushed. Before that, a push of `chore/agent-memory-kit` was first rejected for a missing `workflow` scope; after the owner granted it, the branch was pushed using the GitHub CLI credential. Open PR 1 was also compared with the branch for G1.3 (conflicts in `README.md` and `docs/FEATURE_STATUS.md`; the owner's decision is pending). Earlier on 2026-09-14 added goal G10 (Documentation, 11 sub-goals) to `ROADMAP.md` and delivered its first references: `docs/README.md` (index), `docs/reference/API.md` (every endpoint), `docs/reference/CONFIGURATION.md` (all 59 environment variables), and `tests/docs-reference.test.mjs`, which fails when a server API path or environment variable is undocumented. Fixed out-of-date statements in `START_HERE.md` and `README.md`, completed `.env.example`, and added the references to the `AGENTS.md` documentation map. Then, at the owner's request, committed all remaining work, the local-Llama product release and this documentation, as one commit on `chore/agent-memory-kit` (G1.2, G10.1).
   Earlier sessions (2026-09-13, see section 8): installed the agent memory kit and turned the launch-gap review into `ROADMAP.md`: 9 goals and 52 sub-goals, each with evidence checked against the code, docs, git or a test run. Then stored the current kit in `docs/agent-memory-kit/`, updated `scripts/check_handoff.py` to the kit version that adds `--base`, and added two generated pages, `docs/roadmap/index.html` and `docs/agent-memory-kit/index.html` (`npm run docs:memory`), published as private claude.ai artifacts. No application code changed.
-- **State left behind:** Everything is committed on branch `chore/agent-memory-kit`, created from `main` at 0f02d7a, pushed to origin on 2026-09-14 and open as PR #2 into `main`: `6b97a3d` (memory kit), `6529424` (local-Llama release and documentation), `917cb7d` (PR 1 plans kept as history), and a follow-up commit with the test portability fix and these notes. The CI result for that follow-up commit was not yet known when this was written; check PR #2. `main` and `origin/main` are unchanged.
+- **State left behind:** Everything is committed on branch `chore/agent-memory-kit`, created from `main` at 0f02d7a, pushed to origin on 2026-09-14 and open as PR #2 into `main`: `6b97a3d` (memory kit), `6529424` (local-Llama release and documentation), `917cb7d` (PR 1 plans kept as history), and a follow-up commit with the test portability fix and these notes. CI on that follow-up commit (`c4fc03d`) passed; a later commit records the result, and its own CI run is visible on PR #2. PR #2 is not merged. `main` and `origin/main` are unchanged.
 - **Resume by:**
   1. `git status --short` and compare it with section 2.
   2. `python scripts/roadmap.py next` to see actionable work and pending decisions.
@@ -27,8 +27,8 @@
 | Last commit | The CI test fix and handoff commit on `chore/agent-memory-kit` (2026-09-14), after `917cb7d` (PR 1 history), `6529424` (product release and documentation), `6b97a3d` (memory kit, 2026-09-13) and `0f02d7a` 2026-09-11 "Boston core launch: real transit planning, AI trip agent, recovery, PDFs, encrypted offline/backups" |
 | Uncommitted | None after the CI test fix commit (ignored paths such as `data/`, `tmp/`, `models/` and `.env` excluded). |
 | Toolchain verified here | Windows 11; Node v24.19.0; npm 11.17.0; Python 3.12.10 (`python`; `python3` is only the Microsoft Store alias); git 2.55.0 |
-| Last full test run | 2026-09-14 `npm test` under PowerShell: 704 tests, 702 passed; the 2 failures were the memory validator tests, run while the roadmap summary was stale before `roadmap.py write` (re-run afterwards below). Earlier, 2026-09-13 `npm test` in Git Bash: 699 tests, 695 passed, 4 failed (backup cases broken by Git Bash's `whoami.exe`, G7.7); `tests/core-launch.test.mjs` under PowerShell: 25/25 passed; `npx tsc -b` passed; `npm run lint` 0 errors, 15 warnings; `npm run build` not run this session |
-| CI | `.github/workflows/ci.yml`; last main run 34629463576 on 2026-09-11 succeeded. PR #2's first run 34879457353 (2026-09-14, head `917cb7d`) failed in `npm test`: 689 of 704 tests passed, and all 15 failures in `tests/workspace-flights.test.mjs` came from a cleanup assertion that hard-coded the Windows `\` separator; the build and memory validator steps were skipped. The fix is pushed and its CI result is not yet recorded (G7.1). The workflow triggers only on pushes to `main` and pull requests into `main`. |
+| Last full test run | 2026-09-14 GitHub Actions run 34879908288 on Linux (commit `c4fc03d`): `npm test` 704/704 passed. Earlier, 2026-09-14 `npm test` under PowerShell: 704 tests, 702 passed; the 2 failures were the memory validator tests, run while the roadmap summary was stale before `roadmap.py write` (re-run afterwards below). Earlier, 2026-09-13 `npm test` in Git Bash: 699 tests, 695 passed, 4 failed (backup cases broken by Git Bash's `whoami.exe`, G7.7); `tests/core-launch.test.mjs` under PowerShell: 25/25 passed; `npx tsc -b` passed; `npm run lint` 0 errors, 15 warnings; `npm run build` not run this session |
+| CI | `.github/workflows/ci.yml`; last main run 34629463576 on 2026-09-11 succeeded. PR #2's first run 34879457353 (2026-09-14, head `917cb7d`) failed in `npm test`: 689 of 704 tests passed, and all 15 failures in `tests/workspace-flights.test.mjs` came from a cleanup assertion that hard-coded the Windows `\` separator; the build and memory validator steps were skipped. Run 34879908288 on the fix commit `c4fc03d` succeeded: `tsc -b`, lint, `npm test` (704/704), `npm run build`, `roadmap.py check` and `check_handoff.py --strict` all passed. The workflow triggers only on pushes to `main` and pull requests into `main`. |
 
 ## 3. Done (capability ledger)
 
@@ -51,7 +51,7 @@ The complete goal tree lives in [ROADMAP.md](ROADMAP.md): goals, sub-goals and t
 
 Current focus, chosen by the last session:
 
-1. `G7.1` Check PR #2's CI run for the portability fix; when it passes, the memory validator steps have run on GitHub and G7.1.2 can be checked.
+1. `G7.1` CI passes on PR #2; add the `check_handoff.py --base origin/main` pull-request step (G7.1.3), and ask the owner whether to merge PR #2.
 2. `G6.1` The Launch 1 scope decides which hardening work matters; ask the owner to approve it.
 3. `G2.2` A container image unblocks deployment, OTP hosting and load testing, and needs no decision.
 4. `G3.5` IP rate limits break behind any reverse proxy; this is a code-only P0 fix.
@@ -74,7 +74,7 @@ Record new ideas in the "Ideas not yet goals" section of `ROADMAP.md`.
 - Many roadmap features display Sample or heuristic values (G6.2).
 - Web Push, cross-browser offline, OCR and barcode import are unverified on real devices (G7.3). There are no browser end-to-end tests in CI (G7.2).
 - In Git Bash on Windows, 4 backup tests fail because `whoami.exe` resolves to the GNU binary. Run tests in PowerShell or cmd until G7.7 is fixed.
-- `npm run build` was not re-run before the 2026-09-14 commit; the committed `standalone/` output comes from the local-Llama release session. CI builds it on push.
+- CI run 34879908288 built these commits successfully, but CI does not commit build output back, so the committed `standalone/` bundle still comes from the local-Llama release session (G1.4).
 - Since 2026-09-14 this repository authenticates to GitHub with a repository-scoped credential the owner supplied, stored in Windows Credential Manager for `https://github.com/imvenkat178/wayline.git`. `.git/config` resets `credential.helper` to `manager` and sets `credential.useHttpPath=true`; global git settings and other repositories are unchanged. An authenticated `git ls-remote` succeeded with it; pushing workflow changes with it is untested until the next push that touches `.github/workflows/`. Never write the credential into files, logs or chat.
 - On this machine `python3` is the Microsoft Store alias; use `python`. `tests/agent-memory.test.mjs` tries `python3`, then `python`.
 
@@ -103,6 +103,13 @@ Template. Copy it and keep the heading format exactly: date | agent | one-line t
 - **Not done / left broken:** anything incomplete, failing, or skipped, and why.
 - **Next agent should:** the first concrete thing to do.
 -->
+
+### 2026-09-14 | Claude Code (Claude Opus 5) | CI passed on PR 2
+- **Goal:** Confirm CI on PR #2 after the portability fix and record the result.
+- **Changed:** Checked G7.1.2 and updated G7.1's evidence in `ROADMAP.md`; updated sections 1, 2, 4 and 6 of this file; regenerated `docs/roadmap/index.html`.
+- **Verified:** `gh run watch 34879908288` exited 0; `gh run view` reported conclusion success for job build-and-test, with checkout, `npm ci`, `npx tsc -b`, `npm run lint`, `npm test`, `npm run build`, `python3 scripts/roadmap.py check` and `python3 scripts/check_handoff.py --strict` all successful. The run log showed 704 tests, 704 passed, 0 failed, "roadmap: ROADMAP.md OK" and "check_handoff: HANDOFF.md OK with ROADMAP.md (strict)".
+- **Not done / left broken:** PR #2 is not merged; merging is the owner's decision. G7.1.3 (branch check on pull requests) is open. The CI run for the commit carrying this entry is not recorded here.
+- **Next agent should:** Ask the owner whether to merge PR #2, then take G7.1.3 or the next item from `python scripts/roadmap.py next`.
 
 ### 2026-09-14 | Claude Code (Claude Opus 5) | Opened PR 2, closed PR 1 and fixed a Linux-only test failure
 - **Goal:** Open the pull request into `main`, close PR 1 as agreed, and get CI passing.
