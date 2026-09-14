@@ -39,6 +39,13 @@ jobs:
 
       - run: npm run build
 
+      # Shared agent memory (AGENTS.md): ROADMAP.md must be structurally valid with a fresh
+      # summary, and HANDOFF.md must cite only existing, open roadmap IDs and record the latest
+      # commit's session. ubuntu-latest ships Python 3.
+      - run: python3 scripts/roadmap.py check
+
+      - run: python3 scripts/check_handoff.py --strict
+
       # The repository ships a pre-built `standalone/` bundle checked into git (documented in
       # README.md as "a compiled checkpoint; rebuild after frontend changes"). CI rebuilds it
       # above as part of `npm run build`, but doesn't commit the result back -- verifying it

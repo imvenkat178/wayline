@@ -1,0 +1,342 @@
+<title>Wayline Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Manrope:wght@600;700;800&display=swap">
+<style>
+/* Wayline coastal theme tokens (src/premium.css), mapped to roadmap roles. */
+:root{
+  --ground:#e8f2f5;--panel:#fffdf9;--panel-2:#f4f5ed;--ink:#193f49;--muted:#526a73;
+  --line:#d8e3e2;--line-strong:#aec5c8;
+  --deep:#143f49;--deep-2:#1c4d58;--deep-ink:#f1f4e9;--deep-muted:#b4cad0;--signal:#ffb37c;
+  --accent:#b74623;--accent-soft:#fff0df;
+  --done:#47652c;--done-soft:#e8f1dc;--doing:#2e6275;--doing-soft:#e4f2f6;
+  --decision:#855515;--decision-soft:#fff4d3;--blocked:#ae3338;--blocked-soft:#ffe9e5;
+  --todo:#526a73;--todo-soft:#e4ece7;
+  --display:Manrope,"DM Sans","Segoe UI",sans-serif;
+  --body:"DM Sans","Segoe UI",-apple-system,sans-serif;
+  --mono:"DM Mono",Consolas,"Courier New",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0f2a31;--panel:#16363e;--panel-2:#1b3f47;--ink:#f1f4e9;--muted:#b4cad0;
+  --line:#2c4e56;--line-strong:#4f727a;
+  --deep:#0a1f25;--deep-2:#133038;--deep-ink:#f1f4e9;--deep-muted:#a7c0c7;--signal:#ffb37c;
+  --accent:#ffb37c;--accent-soft:#553b2d;
+  --done:#c6dfae;--done-soft:#3b5035;--doing:#abd9e9;--doing-soft:#254a59;
+  --decision:#f3d28c;--decision-soft:#494129;--blocked:#f6aea4;--blocked-soft:#543737;
+  --todo:#b4cad0;--todo-soft:#2b4e46;color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --ground:#0f2a31;--panel:#16363e;--panel-2:#1b3f47;--ink:#f1f4e9;--muted:#b4cad0;
+  --line:#2c4e56;--line-strong:#4f727a;
+  --deep:#0a1f25;--deep-2:#133038;--deep-ink:#f1f4e9;--deep-muted:#a7c0c7;--signal:#ffb37c;
+  --accent:#ffb37c;--accent-soft:#553b2d;
+  --done:#c6dfae;--done-soft:#3b5035;--doing:#abd9e9;--doing-soft:#254a59;
+  --decision:#f3d28c;--decision-soft:#494129;--blocked:#f6aea4;--blocked-soft:#543737;
+  --todo:#b4cad0;--todo-soft:#2b4e46;color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.6 var(--body);padding-inline:16px;padding-block:20px 64px}
+.page{max-width:1080px;margin:0 auto;display:grid;gap:28px}
+h1,h2,h3{margin:0;font-family:var(--display);line-height:1.2;text-wrap:balance}
+p{margin:0}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel-2);border:1px solid var(--line);padding:0 5px;border-radius:5px;overflow-wrap:anywhere}
+.num{font-family:var(--display);font-variant-numeric:tabular-nums}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Masthead: the three horizons drawn as stations on one line. */
+.masthead{background:var(--deep);color:var(--deep-ink);border-radius:20px;padding:28px clamp(18px,4vw,36px) 26px;display:grid;gap:22px}
+.masthead :focus-visible{outline-color:var(--signal)}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--signal)}
+.intro{display:grid;gap:10px}
+.intro h1{font-size:clamp(28px,4.4vw,40px);font-weight:800;letter-spacing:-.02em}
+.intro p{color:var(--deep-muted);max-width:64ch}
+.intro code{background:var(--deep-2);border-color:#ffffff1f;color:var(--deep-ink)}
+.totals{display:flex;flex-wrap:wrap;gap:6px 26px;font-size:14px;color:var(--deep-muted)}
+.totals b{font-size:20px;color:var(--deep-ink);margin-right:6px;font-weight:700}
+
+.line{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;position:relative}
+.line::before{content:"";position:absolute;left:24px;right:24px;top:19px;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--signal),var(--signal) 34%,#ffb37c80 34%,#ffb37c80 67%,#ffb37c40 67%)}
+.station{position:relative;width:100%;text-align:left;background:none;border:0;padding:0;cursor:pointer;display:grid;gap:10px;color:var(--deep-ink)}
+.stop{width:42px;height:42px;border-radius:50%;background:var(--deep);border:4px solid var(--signal);display:grid;place-items:center;font:500 12px var(--mono);color:var(--signal)}
+.station .card{background:var(--deep-2);border:1px solid #ffffff14;border-radius:14px;padding:14px;display:grid;gap:8px;transition:border-color .15s}
+.station:hover .card{border-color:#ffffff40}
+.station[aria-pressed="true"] .card{border-color:var(--signal);box-shadow:0 0 0 1px var(--signal)}
+.station[aria-pressed="true"] .stop{background:var(--signal);color:var(--deep)}
+.station h2{font-size:17px;font-weight:700;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.station h2 small{font:400 12px var(--mono);color:var(--deep-muted)}
+.station .def{font-size:13px;color:var(--deep-muted)}
+.station .stats{display:flex;gap:18px;font-size:12.5px;color:var(--deep-muted)}
+.station .stats .num{display:block;font-size:22px;font-weight:700;color:var(--deep-ink);line-height:1.15}
+.station .stats .p0{color:var(--signal)}
+.mix{display:flex;height:6px;border-radius:3px;overflow:hidden;background:#ffffff1a}
+.mix span{height:100%}
+
+/* Owner queues */
+.queues{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start}
+.queue{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:grid;gap:12px}
+.queue h2{font-size:17px;display:flex;gap:10px;align-items:baseline}
+.queue h2 .num{font-size:14px;color:var(--muted);font-weight:600}
+.queue .lede{font-size:13.5px;color:var(--muted)}
+.queue ol{list-style:none;margin:0;padding:0;display:grid}
+.queue li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:4px 12px;padding:9px 0;border-top:1px solid var(--line);font-size:14px;align-items:baseline}
+.queue li:first-child{border-top:0;padding-top:0}
+.queue li .tag{grid-column:2;font:400 12px var(--mono);color:var(--muted)}
+.jump{background:none;border:0;padding:0;cursor:pointer;font:500 13px var(--mono);color:var(--accent);text-align:left}
+.jump:hover{text-decoration:underline}
+
+/* Controls */
+.controls{position:sticky;top:0;z-index:2;background:var(--ground);padding-block:10px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;padding:3px;gap:3px}
+.seg button{border:0;background:none;border-radius:7px;padding:5px 12px;font-size:13.5px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
+select,input[type="search"]{font-size:13.5px;background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;padding:7px 10px}
+input[type="search"]{flex:1 1 220px;min-width:0}
+.count{margin-left:auto;font-size:13px;color:var(--muted)}
+
+/* Sub-goal lists */
+#groups{display:grid;gap:30px}
+.group{display:grid;gap:10px}
+.group>h2{font-size:21px;font-weight:700;display:flex;gap:4px 12px;align-items:baseline;flex-wrap:wrap}
+.group>h2 small{font:400 13px var(--body);color:var(--muted)}
+.list{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+details{border-top:1px solid var(--line)}
+details:first-child{border-top:0}
+details[open]{background:linear-gradient(var(--panel-2),var(--panel) 90px)}
+summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:70px minmax(0,1fr) auto;gap:4px 14px;padding:13px 18px;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary:hover .title{color:var(--accent)}
+.id{font:500 12.5px var(--mono);font-variant-numeric:tabular-nums;justify-self:start;padding:1px 7px;border-radius:6px;background:var(--panel-2);border:1px solid var(--line);color:var(--ink)}
+.title{font-weight:600;display:block}
+.goal{display:block;font-size:12.5px;color:var(--muted)}
+.meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.tasks-n,.hz{font:400 12px var(--mono);color:var(--muted);white-space:nowrap}
+.prio{font:500 12px var(--mono);padding:0 6px;border-radius:5px;border:1px solid var(--line-strong);color:var(--muted)}
+.prio.P0{color:var(--accent);border-color:currentColor;background:var(--accent-soft)}
+.pill{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.s-todo{background:var(--todo-soft);color:var(--todo)}
+.s-doing{background:var(--doing-soft);color:var(--doing)}
+.s-decision{background:var(--decision-soft);color:var(--decision)}
+.s-blocked{background:var(--blocked-soft);color:var(--blocked)}
+.s-done{background:var(--done-soft);color:var(--done)}
+.s-dropped{background:var(--todo-soft);color:var(--muted);text-decoration:line-through}
+.body{padding:0 18px 18px 102px;display:grid;gap:14px;font-size:14px}
+.body dl{margin:0;display:grid;grid-template-columns:118px minmax(0,1fr);gap:7px 16px}
+.body dt{font:500 11.5px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding-top:3px}
+.body dd{margin:0;max-width:72ch}
+.body dd.ask{color:var(--decision);font-weight:600}
+.body dd.stop-note{color:var(--blocked);font-weight:600}
+.tasks{margin:0;padding:12px 0 0;list-style:none;display:grid;gap:7px;border-top:1px dashed var(--line-strong)}
+.tasks li{display:grid;grid-template-columns:18px 70px minmax(0,1fr);gap:8px;align-items:baseline}
+.box{width:14px;height:14px;border:1.5px solid var(--line-strong);border-radius:4px;display:inline-block;transform:translateY(2px)}
+.box.on{background:var(--done);border-color:var(--done)}
+.tasks .tid{font:400 12px var(--mono);color:var(--muted)}
+.tasks li.done span:last-child{color:var(--muted)}
+.needs{display:flex;flex-wrap:wrap;gap:6px 12px}
+.empty{padding:28px;text-align:center;color:var(--muted);background:var(--panel);border:1px dashed var(--line-strong);border-radius:16px}
+footer{font-size:13px;color:var(--muted);display:grid;gap:6px;max-width:78ch}
+
+@media (max-width:820px){
+  .queues{grid-template-columns:1fr}
+}
+@media (max-width:700px){
+  .line{grid-template-columns:1fr;gap:12px}
+  .line::before{left:19px;right:auto;top:20px;bottom:20px;width:4px;height:auto;background:linear-gradient(180deg,var(--signal),var(--signal) 34%,#ffb37c80 34%,#ffb37c80 67%,#ffb37c40 67%)}
+  .station{grid-template-columns:42px minmax(0,1fr);gap:12px;align-items:start}
+  summary{grid-template-columns:62px minmax(0,1fr)}
+  .meta{grid-column:2;justify-content:flex-start}
+  .body{padding-left:18px}
+  .body dl{grid-template-columns:1fr;gap:2px}
+  .body dd{margin-bottom:8px}
+  .tasks li{grid-template-columns:18px 62px minmax(0,1fr)}
+  .count{margin-left:0;width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <div class="intro">
+      <span class="eyebrow">Goal tree snapshot · Boston pilot</span>
+      <h1>Wayline Roadmap</h1>
+      <p>Every goal, sub-goal and task between today's local build and a product travelers can rely on, placed on the route from Launch 1 to growth. Generated from <code>ROADMAP.md</code>, which stays the source of truth.</p>
+      <div class="totals" id="totals"></div>
+    </div>
+    <ol class="line" id="line" aria-label="Horizons, click one to filter"></ol>
+  </header>
+
+  <section class="queues" aria-label="Waiting on the owner">
+    <div class="queue">
+      <h2>Decisions waiting on you <span class="num" id="decision-count"></span></h2>
+      <p class="lede">Only the owner can settle these. Agents ask, record the answer in <code>HANDOFF.md</code> section 7, then move the work forward.</p>
+      <ol id="decisions"></ol>
+    </div>
+    <div class="queue">
+      <h2>Blocked by partners <span class="num" id="blocked-count"></span></h2>
+      <p class="lede">Built or specified, but waiting on an account, licence or contract outside the code.</p>
+      <ol id="blocked"></ol>
+    </div>
+  </section>
+
+  <div class="controls" role="toolbar" aria-label="Filter the roadmap">
+    <div class="seg" id="view" aria-label="Group by">
+      <button type="button" id="view-horizon" data-view="horizon" aria-pressed="true">By horizon</button>
+      <button type="button" id="view-goal" data-view="goal" aria-pressed="false">By goal</button>
+    </div>
+    <select id="status" aria-label="Status">
+      <option value="open">Open work</option>
+      <option value="decision">Needs a decision</option>
+      <option value="blocked">Blocked</option>
+      <option value="done">Done</option>
+      <option value="all">All statuses</option>
+    </select>
+    <input type="search" id="search" placeholder="Search IDs, titles, evidence, tasks" aria-label="Search">
+    <span class="count" id="count" aria-live="polite"></span>
+  </div>
+
+  <main id="groups"></main>
+
+  <footer>
+    <span id="snapshot"></span>
+    <span>Priority runs from P0, critical, to P3, low. Regenerate this page with <code>npm run docs:memory</code> after editing <code>ROADMAP.md</code>.</span>
+  </footer>
+</div>
+
+<script>
+const DATA = /*DATA:start*/[{"id":"G1","title":"Repository hygiene and agent coordination","line":166,"subgoals":[{"id":"G1.1","title":"Shared agent memory system","line":170,"horizon":"short-term","priority":"P0","status":"done","needs":[],"body":["Why: project context lived in long documents and chat, with no protocol for handing work between sessions and tools.","Evidence: before 2026-09-13 the repository had no AGENTS.md, CLAUDE.md, HANDOFF.md or ROADMAP.md (checked with ls).","Done when: the kit files exist, both validators pass, and they run inside `npm test` and in `.github/workflows/ci.yml`.","From: Agent memory kit (claude.ai artifact 15174448, templates in the finpilot repository).","Adapted from: the kit's pytest files, replaced by `tests/agent-memory.test.mjs` because this repository tests with `node --test`; the two scripts are unmodified."],"tasks":[{"id":"G1.1.1","title":"Copy `scripts/roadmap.py`, `scripts/check_handoff.py` and the pull request template from the kit. (done 2026-09-13: cmp against the finpilot templates reported both scripts byte-identical)","done":true,"line":177},{"id":"G1.1.2","title":"Run both validators from `npm test` and CI. (done 2026-09-13: tests/agent-memory.test.mjs passed locally; two steps added to ci.yml)","done":true,"line":178},{"id":"G1.1.3","title":"Classify the launch-gap review into this goal tree with evidence. (done 2026-09-13: roadmap.py check and check_handoff.py --strict passed)","done":true,"line":179},{"id":"G1.1.4","title":"Store the current kit in `docs/agent-memory-kit/` and update `scripts/check_handoff.py` to the kit version with `--base`. (done 2026-09-13: cmp identical to the finpilot templates; check_handoff.py --base origin/main OK)","done":true,"line":180},{"id":"G1.1.5","title":"Publish browsable roadmap and kit pages generated from their sources. (done 2026-09-13: npm run docs:memory wrote docs/roadmap/index.html and docs/agent-memory-kit/index.html)","done":true,"line":181},{"id":"G1.1.6","title":"Commit the memory kit, its tests and CI steps, and both pages, without the unrelated product work. (done 2026-09-13: owner request; committed on branch chore/agent-memory-kit from 0f02d7a, not pushed)","done":true,"line":182}]},{"id":"G1.2","title":"Commit the uncommitted local work","line":184,"horizon":"short-term","priority":"P0","status":"decision","needs":[],"body":["Why: the whole local-Llama release exists only on one laptop; losing the disk loses it.","Evidence: `git status --short` listed 176 entries on 2026-09-13 (69 tracked files modified or deleted plus untracked modules, scripts and docs); HEAD is 0f02d7a from 2026-09-11.","Decision needed: whether to commit this work now, as one commit or several, on main or a branch, and whether to push to origin.","Done when: the working tree is committed with HANDOFF.md and ROADMAP.md, and the choice is recorded in HANDOFF.md section 7."],"tasks":[{"id":"G1.2.1","title":"Agree the commit grouping with the owner, then commit.","done":false,"line":190}]},{"id":"G1.3","title":"Resolve open pull request 1","line":192,"horizon":"short-term","priority":"P2","status":"decision","needs":[],"body":["Why: PR 1 edits documents that are also changed locally, so it will conflict the longer it stays open.","Evidence: `gh pr view 1` on 2026-09-13: branch docs/cheapest-multimodal-flight-plan, 2 commits, 7 documentation files, +871/-169. An outside audit claimed main holds no code; `git ls-tree origin/main` shows the full codebase at 0f02d7a, so PR 1 blocks nothing.","Decision needed: merge PR 1, rebase it onto the local work, or close it.","Done when: PR 1 is merged or closed and the reason is recorded in HANDOFF.md section 7."],"tasks":[{"id":"G1.3.1","title":"Compare PR 1's documents with the uncommitted local documents and report conflicts to the owner.","done":false,"line":198}]},{"id":"G1.4","title":"Generated build output in git","line":200,"horizon":"short-term","priority":"P3","status":"decision","needs":[],"body":["Why: hashed files in `standalone/` change on every frontend build and add noise to every diff.","Evidence: `git ls-files standalone` counts 39 tracked files; the local tree deletes 11 of them; README says Vite regenerates `standalone/`; ci.yml notes CI does not commit it back.","Decision needed: keep committing `standalone/` as a runnable checkpoint, or untrack it and build it in CI and deployment.","Done when: the choice is recorded and `.gitignore`, README and ci.yml match it."],"tasks":[{"id":"G1.4.1","title":"Apply the chosen policy to `.gitignore`, README and ci.yml.","done":false,"line":206}]}]},{"id":"G2","title":"Hosting and operations","line":208,"subgoals":[{"id":"G2.1","title":"Hosting platform and topology","line":212,"horizon":"short-term","priority":"P0","status":"decision","needs":[],"body":["Why: every deployment task depends on where the app, its persistent SQLite disk, the OTP server and the model run.","Evidence: README says deployment assumes one application instance with a persistent disk; no hosting configuration exists (see G2.2).","Decision needed: hosting provider and region for the Node app with a persistent volume, and whether OTP and the model share that host.","Done when: the choice and a monthly cost estimate are recorded in HANDOFF.md section 7."],"tasks":[{"id":"G2.1.1","title":"Compare two or three hosts that offer persistent volumes and optional GPUs on cost and effort, then ask the owner.","done":false,"line":218}]},{"id":"G2.2","title":"Container image and compose stack","line":220,"horizon":"short-term","priority":"P0","status":"todo","needs":[],"body":["Why: there is no reproducible production artifact; the app starts through `start.sh`, `start.bat` and npm scripts on a developer machine.","Evidence: Glob for Dockerfile, .dockerignore and docker-compose files found none on 2026-09-13; `infra/` holds only `infra/otp/build-config.json` and `infra/otp/router-config.json`.","Done when: `docker compose up` starts the app and OTP from a clean clone, `/api/health` returns ok, and data survives a container restart."],"tasks":[{"id":"G2.2.1","title":"Add a multi-stage Dockerfile on Node 24 that builds and runs as a non-root user, and a .dockerignore that excludes data, .env, models and node_modules.","done":false,"line":225},{"id":"G2.2.2","title":"Add docker-compose.yml with the app, an OTP 2.10 service built from `infra/otp`, named volumes for data and backups, and health checks.","done":false,"line":226},{"id":"G2.2.3","title":"Document the container workflow and required environment in README.md.","done":false,"line":227}]},{"id":"G2.3","title":"Deployment pipeline","line":229,"horizon":"short-term","priority":"P1","status":"todo","needs":["G2.1","G2.2"],"body":["Why: CI only verifies; nothing builds, publishes or deploys a release.","Evidence: `.github/workflows/ci.yml` runs install, typecheck, lint, tests, build and the memory validators only (read 2026-09-13).","Done when: merging to main publishes a tagged image and deploys it after a pre-deploy backup, with a rehearsed rollback."],"tasks":[{"id":"G2.3.1","title":"Add a workflow that builds and pushes the image to a registry from main.","done":false,"line":234},{"id":"G2.3.2","title":"Deploy to the chosen host with a pre-deploy encrypted backup and a health-gated switch.","done":false,"line":235},{"id":"G2.3.3","title":"Write and rehearse the rollback procedure.","done":false,"line":236}]},{"id":"G2.4","title":"Separate liveness and readiness probes","line":238,"horizon":"short-term","priority":"P1","status":"todo","needs":[],"body":["Why: a host must tell \"process alive\" apart from \"able to serve travelers\".","Evidence: `server/server.mjs:194` serves `/api/health`, which always returns `ok: true` with provider status; it does not check the database, migrations or job queue (read 2026-09-13).","Done when: separate liveness and readiness endpoints exist, readiness fails when SQLite or the job worker is unavailable, and tests cover both."],"tasks":[{"id":"G2.4.1","title":"Add readiness checks for database access, migration state and a job-queue heartbeat, with tests.","done":false,"line":243}]},{"id":"G2.5","title":"Structured request logs and metrics","line":245,"horizon":"short-term","priority":"P1","status":"todo","needs":[],"body":["Why: production incidents cannot be diagnosed from the current output.","Evidence: `server/server.mjs:313` logs one JSON line per 500 response with requestId and error name only; there are no request, latency or job metrics; FEATURE_STATUS row 84 is Partial.","Done when: every request logs method, route, status, latency and requestId as JSON without personal data, and route, job, provider and model latency metrics are exposed."],"tasks":[{"id":"G2.5.1","title":"Add a request log line with redaction and a test that tokens and email addresses never appear.","done":false,"line":250},{"id":"G2.5.2","title":"Expose counters and latency histograms for routes, jobs, provider calls and model calls.","done":false,"line":251}]},{"id":"G2.6","title":"Error tracking, uptime checks and paging","line":253,"horizon":"short-term","priority":"P1","status":"decision","needs":[],"body":["Why: nobody is told when the hosted app fails.","Evidence: no error-tracking SDK in package.json dependencies and no uptime configuration in the repository (read 2026-09-13).","Decision needed: which error-tracking and uptime or paging services to use, and who is on call.","Done when: an unhandled server or browser error reaches the tracker with personal data scrubbed, and a failed uptime check pages the owner."],"tasks":[{"id":"G2.6.1","title":"Wire the chosen tracker into `server/server.mjs` and a React error boundary.","done":false,"line":259}]},{"id":"G2.7","title":"Off-site encrypted backups and restore drill","line":261,"horizon":"short-term","priority":"P0","status":"todo","needs":["G2.1"],"body":["Why: local backups do not survive losing the disk or the host.","Evidence: `server/backups.mjs:18` writes only to BACKUP_DIR or the data directory; FEATURE_STATUS says local backups alone do not protect against losing the whole disk; backup tests passed 25/25 under PowerShell on 2026-09-13.","Done when: every encrypted snapshot is copied to off-site object storage, the recovery key is stored apart from the snapshots, and a timed restore on a fresh host is recorded."],"tasks":[{"id":"G2.7.1","title":"Add an off-site upload adapter for already-encrypted snapshots with retention matching the local policy.","done":false,"line":266},{"id":"G2.7.2","title":"Store the backup recovery key in a secrets manager separate from the snapshots.","done":false,"line":267},{"id":"G2.7.3","title":"Run and record a restore drill on a fresh host.","done":false,"line":268}]},{"id":"G2.8","title":"Secrets management and data-key rotation","line":270,"horizon":"short-term","priority":"P1","status":"todo","needs":["G2.1"],"body":["Why: one static data key protects every record, with no rotation path if it leaks.","Evidence: README lists key rotation as remaining release work; DATA_ENCRYPTION_KEY is a single 64-hex value in the configuration table.","Done when: production secrets come from the host's secret store and a tested command re-encrypts records under a new key ID."],"tasks":[{"id":"G2.8.1","title":"Document where every production secret lives and refuse file-generated keys in production.","done":false,"line":275},{"id":"G2.8.2","title":"Implement and test data-key rotation with key IDs.","done":false,"line":276}]},{"id":"G2.9","title":"Hosted OTP routing and scheduled GTFS refresh","line":278,"horizon":"short-term","priority":"P1","status":"todo","needs":["G2.1","G2.2"],"body":["Why: routing depends on a locally built OTP graph, and stale GTFS silently degrades plans.","Evidence: `scripts/setup-transit.mjs` downloads feeds and refreshes only when run with `--refresh` by hand; a search for scheduling code found none (2026-09-13).","Done when: the OTP graph is rebuilt on a schedule, validated with a known South Station to Harvard query before it replaces the live graph, and feed age is alerted on."],"tasks":[{"id":"G2.9.1","title":"Build the OTP graph in a container job from `infra/otp`.","done":false,"line":283},{"id":"G2.9.2","title":"Schedule the rebuild with a validation query and an atomic swap.","done":false,"line":284},{"id":"G2.9.3","title":"Alert when the active GTFS feed nears expiry.","done":false,"line":285}]},{"id":"G2.10","title":"Production AI model hosting","line":287,"horizon":"short-term","priority":"P0","status":"decision","needs":[],"body":["Why: the accepted model runs CPU-only on a laptop, and its tail latency is unusable for travelers.","Evidence: `docs/LOCAL_LLAMA_REPORT.md`: llama3.1:8b-instruct-q4_K_M on Ollama 0.34.0 with 0 bytes of VRAM; median 3678 ms, p95 13365 ms, maximum 4708853 ms, measured while build work ran concurrently.","Decision needed: a GPU host running Ollama, a hosted model API, or launching with the rules assistant and direct controls only.","Done when: the choice is recorded and the acceptance corpus is re-run on the production configuration."],"tasks":[{"id":"G2.10.1","title":"Price a GPU host and a hosted API for expected traffic, and present them next to the rules-only option.","done":false,"line":293}]},{"id":"G2.11","title":"Production map tile source","line":295,"horizon":"short-term","priority":"P1","status":"decision","needs":[],"body":["Why: the map uses the public OpenStreetMap tile server, whose usage policy does not permit heavy production traffic.","Evidence: FEATURE_STATUS map-fix entry (2026-09-12): the app and prototype share the canonical OSM tile endpoint. The policy limit comes from the linked OSM tile policy, not from measured traffic.","Decision needed: a commercial or self-hosted tile provider for production.","Done when: production uses the chosen tile source with correct attribution and the choice is recorded."],"tasks":[{"id":"G2.11.1","title":"Make the tile URL and attribution configurable and point production at the chosen source.","done":false,"line":301}]},{"id":"G2.12","title":"Scale beyond one instance","line":303,"horizon":"long-term","priority":"P3","status":"todo","needs":["G7.4"],"body":["Why: SQLite, the single-process job queue and in-memory rate-limit buckets restrict Wayline to one app process.","Evidence: README says deployment assumes one instance with a persistent disk and that Guardian is single-process; `server/server.mjs:43` keeps rate-limit buckets in a Map.","Done when: two app instances serve traffic against shared storage with correct jobs, rate limits and sessions under a load test."],"tasks":[{"id":"G2.12.1","title":"Use the capacity measurements to decide whether scale-out is needed, and choose the shared database and cache.","done":false,"line":308}]}]},{"id":"G3","title":"Accounts, security and privacy","line":310,"subgoals":[{"id":"G3.1","title":"Account security baseline","line":314,"horizon":"short-term","priority":"P0","status":"done","needs":[],"body":["Why: recorded so nobody rebuilds existing controls.","Evidence: README security section; `npm test` on 2026-09-13 passed 695 of 699 tests, and the 4 failures were environment-only backup cases (see G7.7).","Done when: password hashing, hashed sessions, CSRF, record encryption, MFA, session revocation, recovery tokens, export and deletion exist with passing tests."],"tasks":[{"id":"G3.1.1","title":"scrypt passwords, hashed session and share tokens, AES-256-GCM record encryption, CSRF and optimistic concurrency. (done 2026-09-13: README security section; npm test run 2026-09-13)","done":true,"line":319},{"id":"G3.1.2","title":"TOTP MFA, device sessions with revocation and enumeration-resistant password recovery. (done 2026-09-13: server/totp.mjs, server/store.mjs; npm test run 2026-09-13)","done":true,"line":320},{"id":"G3.1.3","title":"Data export plus history and account deletion that reach jobs, sessions and shares. (done 2026-09-13: tests/privacy-retention.test.mjs in the npm test run 2026-09-13)","done":true,"line":321}]},{"id":"G3.2","title":"Transactional email provider","line":323,"horizon":"short-term","priority":"P0","status":"decision","needs":[],"body":["Why: password recovery cannot reach travelers and addresses are never verified.","Evidence: `server/email.mjs` defines only LogEmailProvider and TestCaptureEmailProvider, both with `real = false` (read 2026-09-13).","Decision needed: which email provider to use and which sending domain.","Done when: the choice is recorded and the domain has SPF, DKIM and DMARC records."],"tasks":[{"id":"G3.2.1","title":"Present provider options with cost and deliverability notes to the owner.","done":false,"line":329}]},{"id":"G3.3","title":"Real email delivery and address verification","line":331,"horizon":"short-term","priority":"P0","status":"todo","needs":["G3.2"],"body":["Why: account recovery and trustworthy contact addresses need delivered mail.","Evidence: same as G3.2; README lists email verification as missing.","Done when: an adapter with `real = true` sends recovery mail, registration sends a verification link, unverified addresses cannot receive recovery links, and tests cover both."],"tasks":[{"id":"G3.3.1","title":"Implement the provider adapter behind the existing `send({to, subject, text})` seam.","done":false,"line":336},{"id":"G3.3.2","title":"Add an email verification token flow with expiry and single use.","done":false,"line":337}]},{"id":"G3.4","title":"Operator role provisioning","line":339,"horizon":"short-term","priority":"P1","status":"todo","needs":[],"body":["Why: nobody can use the operator dashboard or moderate reports in a real deployment.","Evidence: `server/router.mjs:494`, `:517` and `:523` require the operator role; README says registration always assigns traveler and tests promote users by writing to the store directly.","Done when: an audited command grants and revokes operator for an existing verified account, with tests."],"tasks":[{"id":"G3.4.1","title":"Add an admin script that grants and revokes operator and writes an audit event.","done":false,"line":344}]},{"id":"G3.5","title":"Proxy-aware rate limiting","line":346,"horizon":"short-term","priority":"P0","status":"todo","needs":[],"body":["Why: behind a reverse proxy, IP-based limits either lock out every traveler at once or limit nobody.","Evidence: `server/server.mjs:191` and `server/router.mjs:84` to `:178` key limits on `req.socket.remoteAddress` with no forwarded-header handling. That all clients would share the proxy address is inferred from the code, not reproduced.","Done when: a trusted-proxy setting derives the client address from a configured hop count, forwarded headers are ignored when it is off, and tests cover both."],"tasks":[{"id":"G3.5.1","title":"Add client-address resolution with a trusted hop count and use it for every IP-keyed limit.","done":false,"line":351},{"id":"G3.5.2","title":"Test spoofed X-Forwarded-For headers with and without a trusted proxy.","done":false,"line":352}]},{"id":"G3.6","title":"Supply-chain and secret scanning in CI","line":354,"horizon":"short-term","priority":"P1","status":"todo","needs":[],"body":["Why: vulnerable dependencies or a committed secret would go unnoticed.","Evidence: `.github` contains only `workflows/ci.yml`; there is no Dependabot configuration, dependency audit or secret-scanning step (checked 2026-09-13).","Done when: dependency updates are proposed automatically and CI fails on high-severity advisories or committed secrets."],"tasks":[{"id":"G3.6.1","title":"Add `.github/dependabot.yml` for npm and GitHub Actions.","done":false,"line":359},{"id":"G3.6.2","title":"Add a production dependency audit and a secret-scanning step to CI.","done":false,"line":360}]},{"id":"G3.7","title":"Independent security review","line":362,"horizon":"short-term","priority":"P0","status":"decision","needs":[],"body":["Why: the project's own documents say it is not approved for production passenger data.","Evidence: README: \"This checkpoint is not approved for production passenger data\" and formal security review remains release work; FEATURE_STATUS row 96 notes no external certification.","Decision needed: whether to commission an external penetration test or ASVS review before Launch 1, and with which vendor and budget.","Done when: a review report exists and every high finding is fixed or accepted in writing."],"tasks":[{"id":"G3.7.1","title":"Write a review scope covering auth, sessions, shares, webhooks, offline packs and backups.","done":false,"line":368}]},{"id":"G3.8","title":"Single sign-on","line":370,"horizon":"mid-term","priority":"P2","status":"decision","needs":[],"body":["Why: travelers expect Google or Apple sign-in, but each identity provider adds account-linking risk.","Evidence: README lists SSO as remaining release work.","Decision needed: whether to offer Google or Apple sign-in, and when.","Done when: the choice is recorded, and if adopted, SSO accounts pass the same MFA and deletion tests."],"tasks":[{"id":"G3.8.1","title":"Ask the owner once email verification has shipped.","done":false,"line":376}]}]},{"id":"G4","title":"Legal and compliance","line":378,"subgoals":[{"id":"G4.1","title":"Privacy policy and terms of service","line":382,"horizon":"short-term","priority":"P0","status":"decision","needs":[],"body":["Why: collecting accounts, locations and trip data from the public requires published terms.","Evidence: searching server, src, shared and public for \"privacy policy\" and \"terms of service\" found no matches on 2026-09-13.","Decision needed: who drafts or reviews the privacy policy and terms, and which legal entity operates Wayline.","Done when: both documents are published in the app and linked at registration, and each account stores the accepted version."],"tasks":[{"id":"G4.1.1","title":"Inventory the personal data collected, where it is stored and for how long, as input for counsel.","done":false,"line":388},{"id":"G4.1.2","title":"Add policy pages, a registration acceptance step and a stored acceptance version.","done":false,"line":389}]},{"id":"G4.2","title":"Data-source terms for production","line":391,"horizon":"short-term","priority":"P1","status":"todo","needs":[],"body":["Why: MBTA, NWS, OpenStreetMap and GBFS data carry usage and attribution terms that a public deployment must meet.","Evidence: map attribution is visible (FEATURE_STATUS map-fix entry); no review of commercial-use terms for the other feeds was found in docs. Inferred, not confirmed.","Done when: each production data source has its terms, key requirements, rate limits and attribution recorded in docs and met in the app."],"tasks":[{"id":"G4.2.1","title":"List every live data source and record its terms, limits and attribution requirements.","done":false,"line":396}]},{"id":"G4.3","title":"Card data compliance scope","line":398,"horizon":"mid-term","priority":"P1","status":"decision","needs":["G5.5"],"body":["Why: taking card payments brings PCI DSS obligations even when a provider hosts the fields.","Evidence: `docs/PROVIDER_READINESS.md`: Duffel Cards collects customer cards through protected components, and protected inputs are removed after submission.","Decision needed: the accepted PCI DSS scope for the chosen checkout flow and who signs the self-assessment.","Done when: the scope and self-assessment are recorded before any live card gate opens."],"tasks":[{"id":"G4.3.1","title":"Confirm with the payment provider which self-assessment questionnaire applies.","done":false,"line":404}]},{"id":"G4.4","title":"Retention matched to provider contracts","line":406,"horizon":"mid-term","priority":"P1","status":"blocked","needs":["G5.1"],"body":["Why: transaction and flight-status retention must follow the signed provider terms.","Evidence: `docs/PROVIDER_READINESS.md` requires DUFFEL_TRANSACTION_RETENTION_DAYS and FLIGHTAWARE_RETENTION_DAYS from granted terms.","Blocked by: signed Duffel and FlightAware terms that define retention.","Done when: configured retention values match the signed terms and a cleanup test runs at those values."],"tasks":[{"id":"G4.4.1","title":"Set retention configuration from the signed contracts and test expiry cleanup.","done":false,"line":412}]}]},{"id":"G5","title":"Partner integrations for flights, booking and payments","line":414,"subgoals":[{"id":"G5.1","title":"Duffel sandbox validation","line":418,"horizon":"mid-term","priority":"P1","status":"blocked","needs":[],"body":["Why: the booking adapter has only run against fixtures.","Evidence: `docs/PROVIDER_READINESS.md`: \"Supplier sandbox: not run\"; `docs/LOCAL_LLAMA_REPORT.md`: financial supplier responses are fixtures.","Blocked by: a Duffel account and test-mode access token.","Done when: search, pricing, order creation, cancellation, exchange, refund and webhook delivery pass in Duffel test mode, with results recorded."],"tasks":[{"id":"G5.1.1","title":"Register the webhook endpoint and run each order operation in test mode.","done":false,"line":424},{"id":"G5.1.2","title":"Exercise declines, 3DS challenges, delayed and duplicate webhooks and payment-without-ticket recovery.","done":false,"line":425}]},{"id":"G5.2","title":"Duffel Cards certification and live approval","line":427,"horizon":"mid-term","priority":"P1","status":"blocked","needs":["G5.1","G4.3"],"body":["Why: real purchases need Duffel's approval of booking, Cards and live mode.","Evidence: the approval and live gates in `docs/PROVIDER_READINESS.md` default to off.","Blocked by: Duffel approval of booking, Cards and live mode.","Done when: live access is granted and a first real low-value booking, cancellation and refund reconcile correctly."],"tasks":[{"id":"G5.2.1","title":"Complete Duffel's certification checklist and record the approval.","done":false,"line":433}]},{"id":"G5.3","title":"FlightAware AeroAPI licence","line":435,"horizon":"mid-term","priority":"P2","status":"blocked","needs":[],"body":["Why: flight status monitoring needs a licensed data source.","Evidence: `docs/PROVIDER_READINESS.md`: the adapter is disabled unless the API key, approval flag, licence ID and retention days are set.","Blocked by: a FlightAware AeroAPI Standard account with licensed uses and retention terms.","Done when: status monitoring runs against the licensed API within quota and retention limits."],"tasks":[{"id":"G5.3.1","title":"Validate status matching, alert delivery and quotas against the live account.","done":false,"line":441}]},{"id":"G5.4","title":"Distribusion rail and bus network adapter","line":443,"horizon":"mid-term","priority":"P2","status":"blocked","needs":[],"body":["Why: rail and bus offers need contracted inventory.","Evidence: `docs/PROVIDER_READINESS.md`: the network implementation is deferred until partner documents and permissions are supplied.","Blocked by: Distribusion partner documentation and granted US inventory.","Done when: the network adapter passes the existing contract tests and a partner sandbox run."],"tasks":[{"id":"G5.4.1","title":"Implement the network transport against the supplied documentation.","done":false,"line":449}]},{"id":"G5.5","title":"Payment path outside Duffel","line":451,"horizon":"mid-term","priority":"P1","status":"decision","needs":[],"body":["Why: non-flight purchases have no real way to take money.","Evidence: `server/adapters/payments.mjs` is a synthetic adapter; `docs/PROVIDER_READINESS.md` says no external checkout transport is configured.","Decision needed: whether non-flight purchases use a payment processor, an external checkout provider, or stay link-out only.","Done when: the choice is recorded and, if adopted, a real adapter replaces the synthetic one behind the existing state machine."],"tasks":[{"id":"G5.5.1","title":"Present processor, external checkout and link-out trade-offs to the owner.","done":false,"line":457}]},{"id":"G5.6","title":"Direct carrier ticketing","line":459,"horizon":"long-term","priority":"P3","status":"blocked","needs":[],"body":["Why: Amtrak, Greyhound, FlixBus and similar trips can only be linked out today.","Evidence: FEATURE_STATUS rows 35 to 39 and 41: official operator links only, with no issuance, seats or rebooking.","Blocked by: reseller or API agreements with carriers.","Done when: at least one carrier issues real tickets through Wayline."],"tasks":[{"id":"G5.6.1","title":"Choose the first carrier to approach using Launch 2 demand data.","done":false,"line":465}]},{"id":"G5.7","title":"Booking foundations","line":467,"horizon":"mid-term","priority":"P1","status":"done","needs":[],"body":["Why: recorded so nobody rebuilds the provider-independent booking machinery.","Evidence: `docs/PROVIDER_READINESS.md` describes review binding, webhook deduplication and durable reconciliation; the LOCAL_LLAMA_REPORT critical journeys cover purchase, exchange, refund and payment records.","Done when: review-bound booking, signed webhooks, deduplication and reconciliation exist and pass fixture journeys."],"tasks":[{"id":"G5.7.1","title":"Duffel adapter with exact review binding, signed webhooks, deduplication and durable reconciliation. (done 2026-09-13: docs/LOCAL_LLAMA_REPORT.md purchase, exchange and refund journeys passed twice with fixtures)","done":true,"line":472}]}]},{"id":"G6","title":"Launch 1 scope and data honesty","line":474,"subgoals":[{"id":"G6.1","title":"Confirm the Launch 1 scope","line":478,"horizon":"short-term","priority":"P0","status":"decision","needs":[],"body":["Why: hardening work should target only what launches.","Evidence: the 2026-09-13 gap review recommended Boston transit planning, the AI assistant, alerts and recovery suggestions, an imported-ticket wallet, and PDF and offline exports, with no booking or payment.","Decision needed: approve or change the Launch 1 feature list and the pilot audience size.","Done when: the approved scope is recorded in HANDOFF.md section 7."],"tasks":[{"id":"G6.1.1","title":"Ask the owner to approve or edit the list.","done":false,"line":484}]},{"id":"G6.2","title":"Hide or label sample-data features in production","line":486,"horizon":"short-term","priority":"P0","status":"todo","needs":["G6.1"],"body":["Why: illustrative numbers can be mistaken for real reliability, crowding, odds or carbon figures.","Evidence: `docs/FEATURE_STATUS.md` marks rows 3 to 6, 23, 24, 26, 48, 50 to 52, 62, 65, 66, 69, 80, 102 and 105 as Sample. Which screens still render them was not audited.","Done when: a production flag hides every sample-only surface outside the approved scope, the rest carry a visible estimate label, and a test enforces it."],"tasks":[{"id":"G6.2.1","title":"Inventory every page and component that renders sample or heuristic values.","done":false,"line":491},{"id":"G6.2.2","title":"Add a production feature-flag map and hide or label each surface.","done":false,"line":492},{"id":"G6.2.3","title":"Confirm booking and flight controls stay hidden while provider gates are off.","done":false,"line":493}]},{"id":"G6.3","title":"Complete Boston fare data","line":495,"horizon":"mid-term","priority":"P2","status":"todo","needs":[],"body":["Why: only part of the MBTA fare table is real, so some trip costs are unverified.","Evidence: FEATURE_STATUS 2026-09-12 entry: a versioned subset of MBTA adult fares; row 78 says discount fares are unverified.","Done when: every MBTA fare product used by planned routes, including reduced fares, comes from a versioned source with tests."],"tasks":[{"id":"G6.3.1","title":"Add commuter rail zone, ferry, express bus and reduced fares from MBTA's published tables.","done":false,"line":500}]},{"id":"G6.4","title":"Station accessibility and boarding data","line":502,"horizon":"mid-term","priority":"P3","status":"todo","needs":[],"body":["Why: accessible routing and boarding guidance need real facility data.","Evidence: FEATURE_STATUS rows 15, 26, 53 and 54: boarding locations, elevator outages, platforms and facilities are unverified.","Done when: Boston station facilities and elevator outages come from MBTA feeds with provenance and are used in accessible routing."],"tasks":[{"id":"G6.4.1","title":"Ingest MBTA facilities and elevator alerts and apply them to accessible routing.","done":false,"line":507}]}]},{"id":"G7","title":"Testing and quality","line":509,"subgoals":[{"id":"G7.1","title":"Continuous integration","line":513,"horizon":"short-term","priority":"P0","status":"doing","needs":[],"body":["Why: every change must be verified before it merges.","Evidence: `.github/workflows/ci.yml` runs npm ci, tsc -b, lint, npm test and build on pushes and pull requests to main; the memory validator steps were added on 2026-09-13 and have not run on GitHub yet.","Done when: CI runs typecheck, lint, tests, build and both memory validators, and a GitHub run passes with them."],"tasks":[{"id":"G7.1.1","title":"Typecheck, lint, test and build on every push and pull request. (done 2026-09-13: .github/workflows/ci.yml)","done":true,"line":518},{"id":"G7.1.2","title":"Confirm a GitHub Actions run passes with the memory validator steps.","done":false,"line":519},{"id":"G7.1.3","title":"Run `check_handoff.py --base origin/main` on pull requests, since `--strict` cannot see committed work in CI.","done":false,"line":520}]},{"id":"G7.2","title":"Browser end-to-end tests","line":522,"horizon":"short-term","priority":"P1","status":"todo","needs":[],"body":["Why: the Launch 1 journey is only verified by hand or by one-off scripts.","Evidence: no Playwright or Cypress configuration exists (Glob, 2026-09-13); browser checks in LOCAL_LLAMA_REPORT were not part of CI.","Done when: CI runs a Chromium test of plan, save, alert, PDF export and offline access, and a failure blocks merging."],"tasks":[{"id":"G7.2.1","title":"Add Playwright with a seeded test server and fixture providers.","done":false,"line":527},{"id":"G7.2.2","title":"Cover the Launch 1 critical journey and run it in CI.","done":false,"line":528}]},{"id":"G7.3","title":"Real-device verification","line":530,"horizon":"short-term","priority":"P1","status":"todo","needs":[],"body":["Why: push, offline and camera features have never run on real phones or other browsers.","Evidence: README known gaps 2, 3, 11 and 15, and FEATURE_STATUS: Web Push was never delivered to a real browser, the service worker was not tested across browsers, OCR never ran in a real browser, and barcode import only saw generated images.","Done when: push delivery, offline cold start, OCR and barcode import are verified on current Chrome, Firefox, Safari on iOS and Chrome on Android, with results recorded."],"tasks":[{"id":"G7.3.1","title":"Deliver a real Web Push notification on desktop and mobile.","done":false,"line":535},{"id":"G7.3.2","title":"Verify offline cold start and encrypted pack access on each browser.","done":false,"line":536},{"id":"G7.3.3","title":"Scan a real bus sign and a real ticket barcode photo.","done":false,"line":537}]},{"id":"G7.4","title":"Load and capacity test","line":539,"horizon":"short-term","priority":"P2","status":"todo","needs":["G2.2"],"body":["Why: single-instance capacity is unknown.","Evidence: no load-test scripts were found (Glob, 2026-09-13); `scripts/benchmark-conversation-latency.mjs` measures chat latency only.","Done when: throughput and p95 latency for bootstrap, planning and chat are measured on the production container and recorded."],"tasks":[{"id":"G7.4.1","title":"Write load scenarios for the busiest endpoints and record the results.","done":false,"line":544}]},{"id":"G7.5","title":"Assistive-technology audit","line":546,"horizon":"short-term","priority":"P2","status":"todo","needs":[],"body":["Why: automated checks cannot confirm the app works with screen readers.","Evidence: README item 18 and 23: axe-core ran in jsdom and Chromium only; no NVDA, JAWS or VoiceOver review.","Done when: the Launch 1 journey is completed with NVDA and VoiceOver and blocking issues are fixed."],"tasks":[{"id":"G7.5.1","title":"Run a screen-reader walkthrough and record each issue as a task.","done":false,"line":551}]},{"id":"G7.6","title":"Lint and bundle debt","line":553,"horizon":"mid-term","priority":"P3","status":"todo","needs":[],"body":["Why: warnings and disabled rules hide real render-purity and effect bugs.","Evidence: `npm run lint` on 2026-09-13: 0 errors, 15 warnings; LOCAL_LLAMA_REPORT notes a large-chunk build warning; `docs/adr/0006-eslint-scope-and-ts7-compat.md` keeps the React Compiler rules disabled.","Done when: lint reports 0 warnings with the React Compiler rules enabled and the build has no chunk-size warning."],"tasks":[{"id":"G7.6.1","title":"Fix the 15 lint warnings.","done":false,"line":558},{"id":"G7.6.2","title":"Enable the React Compiler rules and fix their findings.","done":false,"line":559},{"id":"G7.6.3","title":"Split the large chunk.","done":false,"line":560}]},{"id":"G7.7","title":"Backup tests fail under Git Bash on Windows","line":562,"horizon":"short-term","priority":"P3","status":"todo","needs":[],"body":["Why: contributors using Git Bash see four false test failures.","Evidence: `npm test` in Git Bash on 2026-09-13: 699 tests, 695 passed, 4 failed, all backup cases in `tests/core-launch.test.mjs`. `server/backups.mjs:22` runs `whoami.exe`, which Git Bash resolves to its own `/usr/bin/whoami.exe` before `C:\\Windows\\System32`; the same file passed 25/25 under PowerShell.","Done when: `npm test` passes in Git Bash on Windows."],"tasks":[{"id":"G7.7.1","title":"Resolve `whoami.exe` from the Windows system directory and add a regression test.","done":false,"line":567}]}]},{"id":"G8","title":"AI trip assistant","line":569,"subgoals":[{"id":"G8.1","title":"Local-Llama acceptance","line":573,"horizon":"short-term","priority":"P0","status":"done","needs":[],"body":["Why: recorded so the accepted configuration is not re-derived.","Evidence: `docs/LOCAL_LLAMA_REPORT.md` generated 2026-09-13: deterministic suite 699/699, corpus 512/518 (98.84%), 12/12 critical journeys.","Done when: the report's acceptance thresholds are met with real model inference."],"tasks":[{"id":"G8.1.1","title":"Pass the corpus and critical journeys with llama3.1:8b. (done 2026-09-13: docs/LOCAL_LLAMA_REPORT.md)","done":true,"line":578}]},{"id":"G8.2","title":"Latency budget and visible fallback in production","line":580,"horizon":"short-term","priority":"P1","status":"todo","needs":["G2.10"],"body":["Why: a traveler cannot wait minutes for a reply.","Evidence: LOCAL_LLAMA_REPORT: p95 13365 ms and maximum 4708853 ms. `server/adapters/llm.mjs:70` leaves the timeout undefined when OLLAMA_TIMEOUT_MS is unset; whether another layer bounds the call was not checked.","Done when: every model call has an enforced timeout, the interface shows the fallback within that budget, and p95 on production hardware is recorded against an owner-approved target."],"tasks":[{"id":"G8.2.1","title":"Enforce a default model timeout and test the visible fallback.","done":false,"line":585},{"id":"G8.2.2","title":"Re-run `npm run test:llama` and `npm run benchmark:chat` on the production model host.","done":false,"line":586}]},{"id":"G8.3","title":"Remaining recognition errors","line":588,"horizon":"mid-term","priority":"P2","status":"todo","needs":[],"body":["Why: four phrasings still route to the wrong action.","Evidence: LOCAL_LLAMA_REPORT lists \"Book this flight\", \"Export my itinerary PDF and download the calendar file\", \"Load the flight offers\" and \"Collect the current offers\".","Done when: those phrasings route correctly across two repeats without any family dropping below its threshold."],"tasks":[{"id":"G8.3.1","title":"Add the four phrasings to planner hints and re-run the corpus.","done":false,"line":593}]}]},{"id":"G9","title":"Coverage, prediction and growth","line":595,"subgoals":[{"id":"G9.1","title":"Next regions after Boston","line":599,"horizon":"long-term","priority":"P2","status":"decision","needs":[],"body":["Why: each new region needs its own GTFS feeds, OTP graph and hosting cost.","Evidence: FEATURE_STATUS: real routing uses the Boston/MBTA OTP graph only; rows 42 and 43 are curated seeds without automated ingestion.","Decision needed: which region to add next, and whether to pursue nationwide routing.","Done when: the next region is chosen and its data and OTP deployment are planned."],"tasks":[{"id":"G9.1.1","title":"Estimate hosting cost per OTP region to inform the choice.","done":false,"line":605}]},{"id":"G9.2","title":"Observed reliability and calibrated predictions","line":607,"horizon":"long-term","priority":"P2","status":"todo","needs":["G2.5"],"body":["Why: reliability, arrival confidence and disruption odds are heuristics today.","Evidence: FEATURE_STATUS rows 4, 5, 52 and 102 are Sample and explicitly uncalibrated.","Done when: those figures come from stored observations with published calibration error."],"tasks":[{"id":"G9.2.1","title":"Store anonymized predicted and actual arrival observations with consent.","done":false,"line":612},{"id":"G9.2.2","title":"Fit and validate a calibrated model before replacing the heuristics.","done":false,"line":613}]},{"id":"G9.3","title":"Full localization with native review","line":615,"horizon":"mid-term","priority":"P2","status":"todo","needs":[],"body":["Why: most pages ignore the selected language, and no translation has been reviewed.","Evidence: README item 16: Spanish covers navigation, shell, phrasebook and Planner; Hindi covers navigation and phrasebook; no native-speaker review.","Done when: every Launch 1 page is translated and a native speaker has reviewed each language."],"tasks":[{"id":"G9.3.1","title":"Migrate the remaining pages to i18n keys.","done":false,"line":620},{"id":"G9.3.2","title":"Arrange native-speaker review for Spanish and Hindi.","done":false,"line":621}]}]}]/*DATA:end*/;
+const META = /*META:start*/{"generated":"2026-09-13","source":"ROADMAP.md at 0f02d7a with uncommitted edits"}/*META:end*/;
+const HORIZONS = [
+  ["short-term", "Launch 1", "Hosted Boston pilot that plans, monitors and exports trips, without booking or payment"],
+  ["mid-term", "Launch 2", "Contracted flight booking and payments, operational maturity, fuller Boston data"],
+  ["long-term", "Growth", "New regions, calibrated predictions, scale-out and new platforms"],
+];
+const OPEN = new Set(["todo", "doing", "blocked", "decision"]);
+const STATUS_ORDER = ["done", "doing", "decision", "blocked", "todo", "dropped"];
+const STATUS_COLOR = {done:"#9fd08a", doing:"#abd9e9", decision:"#f3d28c", blocked:"#f6aea4", todo:"#ffffff40", dropped:"#ffffff20"};
+const PRIO = {P0:0, P1:1, P2:2, P3:3};
+const FIELDS = ["Decision needed", "Blocked by", "Why", "Evidence", "From", "Adapted from", "Done when"];
+
+const subs = [];
+DATA.forEach(g => g.subgoals.forEach(s => {
+  const fields = {};
+  s.body.forEach(line => { const key = FIELDS.find(n => line.startsWith(n + ":")); if (key) fields[key] = line.slice(key.length + 1).trim(); });
+  subs.push({...s, goal:g, fields, text:[s.id, s.title, g.title, ...s.body, ...s.tasks.map(t => t.id + " " + t.title)].join(" ").toLowerCase()});
+}));
+const byId = Object.fromEntries(subs.map(s => [s.id, s]));
+const horizonIndex = key => HORIZONS.findIndex(h => h[0] === key);
+const state = {view:"horizon", status:"open", horizon:null, q:""};
+
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+function rich(text) {
+  const frag = document.createDocumentFragment();
+  String(text).split("`").forEach((part, i) => frag.append(i % 2 ? el("code", null, part) : document.createTextNode(part)));
+  return frag;
+}
+const order = id => id.slice(1).split(".").map(Number);
+const cmpId = (a, b) => { const x = order(a), y = order(b); for (let i = 0; i < Math.max(x.length, y.length); i++) if ((x[i] ?? -1) !== (y[i] ?? -1)) return (x[i] ?? -1) - (y[i] ?? -1); return 0; };
+const byQueue = (a, b) => horizonIndex(a.horizon) - horizonIndex(b.horizon) || PRIO[a.priority] - PRIO[b.priority] || cmpId(a.id, b.id);
+const jump = id => { const b = el("button", "jump", id); b.type = "button"; b.title = byId[id] ? `${byId[id].title} (${byId[id].status})` : id; b.addEventListener("click", () => reveal(id)); return b; };
+
+function renderHeader() {
+  const tasks = subs.flatMap(s => s.tasks), doneTasks = tasks.filter(t => t.done).length;
+  const totals = document.getElementById("totals");
+  [[`${doneTasks}/${tasks.length}`, "tasks done"], [`${subs.filter(s => s.status === "done").length}/${subs.length}`, "sub-goals done"], [DATA.length, "goals"], [subs.filter(s => s.status === "decision").length, "decisions pending"]]
+    .forEach(([n, label]) => { const s = el("span"); s.append(el("b", "num", String(n)), document.createTextNode(label)); totals.append(s); });
+
+  const line = document.getElementById("line");
+  HORIZONS.forEach(([key, name, def], i) => {
+    const group = subs.filter(s => s.horizon === key), open = group.filter(s => OPEN.has(s.status));
+    const li = el("li"), b = el("button", "station"); b.type = "button"; b.id = "station-" + key; b.dataset.horizon = key; b.setAttribute("aria-pressed", "false");
+    const card = el("span", "card"), h = el("h2", null, name);
+    h.append(el("small", null, key));
+    const stats = el("span", "stats");
+    [[open.length, "open", ""], [open.filter(s => s.priority === "P0").length, "P0 open", "p0"], [group.filter(s => s.status === "done").length, "done", ""]]
+      .forEach(([n, label, cls]) => { const s = el("span"); s.append(el("span", "num " + cls, String(n)), document.createTextNode(label)); stats.append(s); });
+    const mix = el("span", "mix"); mix.setAttribute("aria-hidden", "true");
+    STATUS_ORDER.forEach(st => { const c = group.filter(s => s.status === st).length; if (c) { const seg = el("span"); seg.style.width = (100 * c / group.length) + "%"; seg.style.background = STATUS_COLOR[st]; mix.append(seg); } });
+    card.append(h, el("span", "def", def), stats, mix);
+    b.append(el("span", "stop", String(i + 1)), card);
+    b.addEventListener("click", () => { state.horizon = state.horizon === key ? null : key; render(); });
+    li.append(b); line.append(li);
+  });
+
+  [["decision", "decisions", "decision-count", "Decision needed"], ["blocked", "blocked", "blocked-count", "Blocked by"]].forEach(([status, listId, countId, field]) => {
+    const items = subs.filter(s => s.status === status).sort(byQueue), list = document.getElementById(listId);
+    document.getElementById(countId).textContent = String(items.length);
+    items.forEach(s => {
+      const li = el("li"), q = el("span");
+      q.append(el("strong", null, s.title + ". "), rich(s.fields[field] || ""));
+      li.append(jump(s.id), q, el("span", "tag", `${HORIZONS[horizonIndex(s.horizon)][1]} · ${s.priority}`));
+      list.append(li);
+    });
+  });
+  document.getElementById("snapshot").textContent = `Snapshot generated ${META.generated || "(not generated)"} from ${META.source || "ROADMAP.md"}. Edit the repository file, not this page.`;
+}
+
+function row(s) {
+  const d = el("details"); d.id = "sg-" + s.id;
+  const sum = el("summary"), t = el("span");
+  t.append(el("span", "title", s.title), el("span", "goal", `${s.goal.id}. ${s.goal.title}`));
+  const meta = el("span", "meta");
+  if (state.view === "goal") meta.append(el("span", "hz", HORIZONS[horizonIndex(s.horizon)][1]));
+  meta.append(el("span", "tasks-n", `${s.tasks.filter(x => x.done).length}/${s.tasks.length} tasks`), el("span", "prio " + s.priority, s.priority), el("span", "pill s-" + s.status, s.status));
+  sum.append(el("span", "id", s.id), t, meta);
+
+  const body = el("div", "body"), dl = el("dl");
+  FIELDS.forEach(k => {
+    if (!s.fields[k]) return;
+    const dd = el("dd", k === "Decision needed" ? "ask" : k === "Blocked by" ? "stop-note" : null);
+    dd.append(rich(s.fields[k])); dl.append(el("dt", null, k), dd);
+  });
+  if (s.needs.length) { const dd = el("dd", "needs"); s.needs.forEach(n => dd.append(jump(n))); dl.append(el("dt", null, "Needs"), dd); }
+  const ul = el("ul", "tasks");
+  s.tasks.forEach(task => {
+    const li = el("li", task.done ? "done" : null), box = el("span", "box" + (task.done ? " on" : ""));
+    box.setAttribute("role", "img"); box.setAttribute("aria-label", task.done ? "Done" : "Open");
+    const txt = el("span"); txt.append(rich(task.title));
+    li.append(box, el("span", "tid", task.id), txt); ul.append(li);
+  });
+  body.append(dl, ul); d.append(sum, body);
+  return d;
+}
+
+function matches(s) {
+  if (state.status === "open" && !OPEN.has(s.status)) return false;
+  if (!["open", "all"].includes(state.status) && s.status !== state.status) return false;
+  if (state.horizon && s.horizon !== state.horizon) return false;
+  return !state.q || s.text.includes(state.q);
+}
+
+function render() {
+  document.querySelectorAll("#view button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === state.view)));
+  document.querySelectorAll(".station").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.horizon === state.horizon)));
+  const shown = subs.filter(matches), root = document.getElementById("groups");
+  root.replaceChildren();
+  document.getElementById("count").textContent = `${shown.length} of ${subs.length} sub-goals`;
+  const groups = state.view === "horizon"
+    ? HORIZONS.map(([key, name, def]) => ({title:name, note:`${key} · ${def}`, items:shown.filter(s => s.horizon === key).sort((a, b) => PRIO[a.priority] - PRIO[b.priority] || cmpId(a.id, b.id))}))
+    : DATA.map(g => ({title:`${g.id}. ${g.title}`, note:"", items:shown.filter(s => s.goal === g).sort((a, b) => horizonIndex(a.horizon) - horizonIndex(b.horizon) || cmpId(a.id, b.id))}));
+  groups.filter(g => g.items.length).forEach(g => {
+    const sec = el("section", "group"), h = el("h2", null, g.title);
+    h.append(el("small", null, `${g.items.length} sub-goal${g.items.length === 1 ? "" : "s"}${g.note ? " · " + g.note : ""}`));
+    const list = el("div", "list"); g.items.forEach(s => list.append(row(s)));
+    sec.append(h, list); root.append(sec);
+  });
+  if (!shown.length) root.append(el("p", "empty", "No sub-goals match these filters. Clear the search or choose All statuses."));
+}
+
+function reveal(id) {
+  if (!byId[id]) return;
+  Object.assign(state, {status:"all", horizon:null, q:""});
+  document.getElementById("status").value = "all"; document.getElementById("search").value = "";
+  render();
+  const d = document.getElementById("sg-" + id);
+  if (d) { d.open = true; d.scrollIntoView({block:"center", behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"}); d.querySelector("summary").focus({preventScroll:true}); }
+}
+
+document.querySelectorAll("#view button").forEach(b => b.addEventListener("click", () => { state.view = b.dataset.view; render(); }));
+document.getElementById("status").addEventListener("change", e => { state.status = e.target.value; render(); });
+document.getElementById("search").addEventListener("input", e => { state.q = e.target.value.trim().toLowerCase(); render(); });
+renderHeader();
+render();
+</script>

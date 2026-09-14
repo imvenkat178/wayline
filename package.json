@@ -16,7 +16,8 @@
     "llm-smoke-test": "node scripts/llm-smoke-test.mjs",
     "transit:setup": "node scripts/setup-transit.mjs",
     "transit:build": "node scripts/transit.mjs --build",
-    "transit:start": "node scripts/transit.mjs"
+    "transit:start": "node scripts/transit.mjs",
+    "docs:memory": "node scripts/render-memory-pages.mjs"
   },
   "dependencies": {
     "@langchain/core": "^1.2.9",
