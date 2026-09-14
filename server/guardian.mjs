@@ -141,7 +141,7 @@ export function runGuardian(
         const localDate = new Intl.DateTimeFormat("en-CA", { timeZone: commute.timezone }).format(
           now,
         );
-        add(`${commute.id}:${localDate}`, {
+        add(`${commute.id}:${localDate}:${commute.time}:${commute.timezone}`, {
           severity: "info",
           title: `Check ${commute.name}`,
           body: "Your usual commute is coming up. Search current options before you leave.",
@@ -157,6 +157,7 @@ export function runGuardian(
           title: `${pass.name} renewal reminder`,
           body: "Review this self-reported pass with the operator. Wayline does not manage its billing.",
           kind: "renewal",
+          passId: pass.id,
         });
   }
 }

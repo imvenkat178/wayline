@@ -283,12 +283,13 @@ interface SpeechRecognizer {
   stop: () => void;
 }
 
-function ToolResult({ result: r }: { result: AgentToolResult }) {
+export function ToolResult({ result: r }: { result: AgentToolResult }) {
   const { setActive, setResult, navigate } = useApp();
   const [review, setReview] = useState<PendingAction | null>(null);
   const { busy, error, run } = useAsync();
   return (
     <div className="agent-tool-result">
+      {r.type === "shopping" && <div><p>{r.completeCount} complete prices · {r.incompleteCount} offers to verify · {r.savedCount} saved comparisons</p><p>Search status: {r.state}</p><Button onClick={()=>navigate("plan")}>Open flight comparison</Button></div>}
       {r.type === "routes" &&
         r.search.journeys.map((j) => (
           <article key={j.id} className="recovery-option">

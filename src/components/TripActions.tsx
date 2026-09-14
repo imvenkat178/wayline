@@ -64,7 +64,7 @@ export function ActionReview({
           Departure {Math.round((Date.parse(c.departure) - Date.parse(b.departure)) / 60000)} min ·
           Arrival {Math.round((Date.parse(c.arrival) - Date.parse(b.arrival)) / 60000)} min ·{" "}
           {c.price.totalCents != null && b.totalCents != null
-            ? "Fare difference " + money(c.price.totalCents - b.totalCents)
+            ? "Plan fare difference " + money(c.price.totalCents - b.totalCents)
             : "Cost difference unknown"}
         </p>
       )}
@@ -95,7 +95,7 @@ export function ActionReview({
               : "Confirm " + action.kind}
         </Button>
       )}
-      {!done&&(error||expired)&&<Button disabled={busy} onClick={()=>void run(async()=>setAction(await api<PendingAction>('/agent/actions','POST',{kind:action.kind,journeyId:action.journeyId,searchId:action.searchId,candidateId:action.candidateId,private:action.private})))}>Refresh review</Button>}
+      {!done&&(error||expired)&&<Button disabled={busy} onClick={()=>void run(async()=>setAction(await api<PendingAction>('/agent/actions','POST',{kind:action.kind,journeyId:action.journeyId,searchId:action.searchId,candidateId:action.candidateId,private:action.private,conversationId:action.conversationId,draftId:action.draftId,draftVersion:action.draftVersion})))}>Refresh review</Button>}
       {!done && <small>Review valid until {new Date(action.expiresAt).toLocaleTimeString()}</small>}
     </div>
   );
@@ -124,9 +124,10 @@ export function RecoveryOptions({
           </div>
           <RouteSummary journey={r.alternative} />
           <p>
-            Arrival difference: {r.arrivalDifferenceMinutes??'Unknown'} min · Extra cost: {money(r.incrementalCostCents)} · Checked{" "}
+            Arrival difference: {r.arrivalDifferenceMinutes??'Unknown'} min · Cash needed for replacement: {money(r.economics?.cashRequiredNowCents ?? null)} · Checked{" "}
             {new Date(r.observedAt).toLocaleTimeString()}
           </p>
+          <p className="fine-print">{r.economics ? <>Recorded payments: {money(r.economics.originalPaidCents)} · Total spent after replacement: {money(r.economics.totalSpentCents)}. Imported payments are traveler-reported; no refund or ticket reuse is assumed.</> : "Refresh this older alternative to calculate replacement cash."}</p>
           <Button
             disabled={busy || r.expiresAt <= Date.now() || r.state !== "prepared"}
             onClick={() =>
@@ -150,7 +151,7 @@ export function RecoveryOptions({
     </div>
   );
 }
-export function JourneyActions({ journey: j }: { journey: Journey }) {
+export function JourneyActions({ journey: j, compact = false }: { journey: Journey; compact?: boolean }) {
   const { navigate, boot, setBoot } = useApp();
   const { busy, error, run } = useAsync();
   const [review, setReview] = useState<PendingAction | null>(null),
@@ -158,6 +159,7 @@ export function JourneyActions({ journey: j }: { journey: Journey }) {
     [items, setItems] = useState<Recovery[]>([]);
   const finished = ["CANCELLED", "ARRIVED"].includes(j.state ?? "");
   useEffect(() => {
+    if (compact) return;
     let valid = true;
     const load = () => {
       void api<Recovery[]>("/journeys/" + j.id + "/recoveries")
@@ -172,7 +174,7 @@ export function JourneyActions({ journey: j }: { journey: Journey }) {
       valid = false;
       clearInterval(timer);
     };
-  }, [j.id, j.version]);
+  }, [j.id, j.version, compact]);
   return (
     <section className="journey-actions">
       <div className="trip-action-strip">
@@ -216,7 +218,7 @@ export function JourneyActions({ journey: j }: { journey: Journey }) {
           This journey is finished. Add a new trip to start monitoring again.
         </p>
       )}
-      <div className="recovery-heading">
+      {!compact && <><div className="recovery-heading">
         <div>
           <span className="eyebrow">A PLAN WHEN PLANS CHANGE</span>
           <h2>Your alternatives</h2>
@@ -246,11 +248,12 @@ export function JourneyActions({ journey: j }: { journey: Journey }) {
             : "No alternatives prepared yet. Use Alternatives to compare routes now."}
         </p>
       )}
+      </>}
       <RecoveryOptions items={items} onReview={setReview} />
       {error && <Notice tone="error">{error}</Notice>}
       {review && (
         <Modal title="Review journey update" onClose={() => setReview(null)}>
-          <ActionReview action={review} />
+          <ActionReview key={review.id} action={review} />
         </Modal>
       )}
       {changing && (
@@ -276,6 +279,7 @@ function ChangeTrip({
   onReview: (a: PendingAction) => void;
 }) {
   const { boot } = useApp();
+  const [from, setFrom] = useState(j.fromId), [fromPlace, setFromPlace] = useState<Place | undefined>(j.fromPlace);
   const [to, setTo] = useState(j.toId),
     [place, setPlace] = useState<Place | undefined>(j.toPlace),
     [date, setDate] = useState(localInput(new Date(j.departure))),
@@ -286,12 +290,13 @@ function ChangeTrip({
     <Modal title="Change your journey" onClose={close}>
       <form
         className="stack"
+        onChange={() => setRoutes(null)}
         onSubmit={(e) => {
           e.preventDefault();
           void run(async () =>
             setRoutes(
               await api<SearchResult>("/search", "POST", {
-                from: j.fromPlace ?? j.fromId,
+                from: fromPlace ?? from,
                 to: place ?? to,
                 departure: new Date(date).toISOString(),
                 travelers: j.travelers,
@@ -303,6 +308,10 @@ function ChangeTrip({
           );
         }}
       >
+        <Field label="Departure point">
+          {j.dataMode === "provider" ? <PlacePicker label="New departure point" value={from} place={fromPlace} onChange={(v, p) => { setFrom(v); setFromPlace(p); setRoutes(null); }} />
+            : <select value={from} onChange={e => setFrom(e.target.value)}>{boot.cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
+        </Field>
         <Field label="Destination">
           {j.dataMode === "provider" ? (
             <PlacePicker
@@ -312,6 +321,7 @@ function ChangeTrip({
               onChange={(v, p) => {
                 setTo(v);
                 setPlace(p);
+                setRoutes(null);
               }}
             />
           ) : (

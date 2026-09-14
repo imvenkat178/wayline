@@ -1,0 +1,37 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {supplierFixture} from './helpers/supplierFixture.mjs';
+import {serviceIdentity} from '../server/shopping/connections.mjs';
+import {checkSupplierMonitor,setSupplierMonitor,sweepSupplierMonitors} from '../server/shopping/supplierMonitoring.mjs';
+test('supplier status monitoring is consented, durable, deduplicated and isolated',async t=>{
+ let clock=Date.now(),status='scheduled',calls=0;
+ const provider={license:{id:'fixture-license',statusAllowed:true,rawRetentionDays:1},status:async s=>{calls++;return {provider:'flightaware-aeroapi',serviceIdentity:serviceIdentity(s),flightId:'fixture-status',origin:s.origin.iata,destination:s.destination.iata,scheduledDeparture:s.departure,scheduledArrival:s.arrival,observedAt:new Date(clock).toISOString(),status,actualDeparture:null,actualArrival:null,gate:'A1',sourceUrl:'https://www.flightaware.com/live/flight/FIXTURE'};}};
+ const f=await supplierFixture({after:fn=>t.after(fn),flightStatusProvider:provider}),booked=await f.book();
+ let order=f.store.get(f.user.id,booked.orderId,'supplier-order');
+ order=f.store.put(f.user.id,'supplier-order',{...order,itinerary:{...order.itinerary,services:order.itinerary.services.map(s=>({...s,departure:new Date(clock+3600000).toISOString(),arrival:new Date(clock+7200000).toISOString()}))}},{id:order.id,expectedVersion:order.version});
+ const body={orderId:order.id,orderVersion:order.version,enabled:true,consent:true};
+ assert.equal((await f.call('monitors',body,f.otherSession)).status,404);
+ assert.equal((await f.call('monitors',{...body,consent:false})).status,503);
+ const created=await f.call('monitors',body);assert.equal(created.status,200);
+ clock=Math.max(Date.now(),created.value.nextCheckAt);const monitorId=created.value.id;sweepSupplierMonitors(f.store,clock);sweepSupplierMonitors(f.store,clock);
+ assert.equal(f.store.db.prepare("SELECT count(*) AS n FROM jobs WHERE kind='supplier-monitor-check'").get().n,1);
+ await checkSupplierMonitor(f.store,{userId:f.user.id,monitorId},provider,()=>true,clock);
+ assert.equal(f.store.list(f.user.id,'alert').length,0);
+ clock+=600001;status='delayed';
+ await checkSupplierMonitor(f.store,{userId:f.user.id,monitorId},provider,()=>true,clock);
+ let alerts=f.store.list(f.user.id,'alert');assert.equal(alerts.length,1);assert.match(alerts[0].title,/delayed/);assert.ok(f.store.db.prepare('SELECT expires_at FROM records WHERE id=?').get(alerts[0].id).expires_at<=clock+86400000);
+ clock+=600001;await checkSupplierMonitor(f.store,{userId:f.user.id,monitorId},provider,()=>true,clock);
+ assert.equal(f.store.list(f.user.id,'alert').length,1);assert.equal(calls,3);
+ clock+=600001;status='cancelled';const original=provider.status;
+ provider.status=async s=>{setSupplierMonitor(f.store,f.user.id,{...body,enabled:false},provider,clock);return original(s);};
+ await checkSupplierMonitor(f.store,{userId:f.user.id,monitorId},provider,()=>true,clock);
+ assert.equal(f.store.list(f.user.id,'alert').length,1);
+ assert.equal((await f.call('monitors')).value.monitors[0].state,'paused');
+ assert.equal(f.state.submitted,1);assert.equal(f.store.get(f.user.id,order.id,'supplier-order').ticketState,'issued');
+ f.store.deleteHistory(f.user.id);assert.equal(f.store.list(f.user.id,'supplier-monitor').length,0);assert.equal(f.store.db.prepare("SELECT count(*) AS n FROM jobs WHERE kind='supplier-monitor-check'").get().n,0);
+});
+test('background status checks remain gated without licensed access',async t=>{
+ const f=await supplierFixture(t),booked=await f.book(),order=f.store.get(f.user.id,booked.orderId,'supplier-order');
+ assert.equal((await f.call('monitors',{orderId:order.id,orderVersion:order.version,enabled:true,consent:true})).status,503);
+ assert.equal((await f.call('monitors')).value.available,false);
+});

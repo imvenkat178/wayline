@@ -1,9 +1,11 @@
+import { createShoppingSearch, shoppingCapabilities } from "../shopping/service.mjs";
 import { z } from "zod";
 import { searchTrips, createAction } from "./tripActions.mjs";
 import { parseRequest } from "./agent.mjs";
 import { prepareRecovery, refreshActiveJourneys } from "../recovery.mjs";
 const commandSchema = z.object({
   intent: z.enum([
+    "compare",
     "search",
     "list",
     "add",
@@ -21,6 +23,7 @@ const commandSchema = z.object({
 });
 export function explicitCommand(input) {
   const q = input.toLowerCase();
+  if (/\b(flights?|airfares?|airlines?|price watch|flight comparison)\b/.test(q)) return "compare";
   if (/\b(cancel|stop monitoring)\b/.test(q) && !/[?]|how (do|can)|can (i|you) explain/.test(q))
     return "cancel";
   if (/\b(download|pdf|itinerary document)\b/.test(q)) return "pdf";
@@ -100,6 +103,19 @@ export function createToolRunner({ store, userId, travel, context }) {
     };
     const j = context.journeyId ? store.get(userId, context.journeyId, "journey") : null;
     const reply = (text) => ({ ...result, reply: text });
+    if (command.intent === "compare") {
+      const capabilities = shoppingCapabilities(travel);
+      const searches = store.list(userId,"shopping-search");
+      const saved = store.list(userId,"travel-comparison");
+      if (context.shoppingRequest) {
+        const search = createShoppingSearch(store,userId,context.shoppingRequest,{key:context.shoppingKey,capabilities:travel.flightShoppingCapabilities});
+        result.results = [{type:"shopping",searchId:search.id,state:search.state,completeCount:0,incompleteCount:0,savedCount:saved.length}];
+        return reply(search.state==="blocked" ? "Flight shopping needs approved supplier access. No sample fares have been substituted." : "Your selected flight comparison is queued. Open the comparison panel to see results and review refreshed offers.");
+      }
+      const latest=searches[0];
+      result.results=[{type:"shopping",searchId:latest?.id??null,state:latest?.state??"not-started",completeCount:latest?.results.complete.length??0,incompleteCount:latest?.results.incomplete.length??0,savedCount:saved.length}];
+      return reply(capabilities.providers[0].configured ? "Use Flight comparison to specify airports, dates, travelers, bags and your budget. Only complete live prices receive a lowest-price label. Saving a comparison does not book or issue a ticket." : "Approved flight-shopping access is not configured. Flight comparison lets you specify airports, dates, travelers, bags and a budget. Airline status, booking, cancellation and refunds remain unavailable until their provider connections are authorized.");
+    }
     if (command.intent === "list") {
       const trips = store.list(userId, "journey");
       result.results = [{ type: "journeys", journeys: trips }];
@@ -234,7 +250,7 @@ export function parseDeparture(
 ) {
   const iso = input.match(/\b(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:\d{2}))\b/);
   if (iso)
-    return Number.isFinite(Date.parse(iso[1]))
+    return Number.isFinite(Date.parse(iso[1]))&&new Date(iso[1].slice(0,10)+'T12:00:00Z').toISOString().slice(0,10)===iso[1].slice(0,10)
       ? { departure: new Date(iso[1]).toISOString() }
       : { error: "Use a valid departure date and time." };
   const clock = input.match(/\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i),
@@ -277,7 +293,7 @@ export function parseDeparture(
     (relativeDay ?? 0) * 86400000 +
     hour * 3600000 +
     minute * 60000;
-  if (!Number.isFinite(wall)) return { error: "Use a valid departure date." };
+  if (!Number.isFinite(wall)||new Date(day+"T12:00:00Z").toISOString().slice(0,10)!==day) return { error: "Use a valid departure date." };
   let utc = wall;
   for (let n = 0; n < 3; n++) {
     const local = parts(utc);
@@ -291,6 +307,9 @@ export function parseDeparture(
     );
     utc += wall - represented;
   }
+  const local=parts(utc),same=t=>{const p=parts(t);return p.year+"-"+p.month+"-"+p.day===local.year+"-"+local.month+"-"+local.day&&Number(p.hour)===hour&&Number(p.minute)===minute;};
+  if(Number(local.hour)!==hour||Number(local.minute)!==minute)return {error:"That local time does not exist because clocks change. Choose another time or provide an ISO timestamp with its UTC offset."};
+  if(same(utc-3600000)||same(utc+3600000))return {error:"That local time occurs twice because clocks change. Provide an ISO timestamp with its UTC offset."};
   if (utc <= now)
     return { error: "That departure time is in the past. Choose a future date and time." };
   return { departure: new Date(utc).toISOString() };

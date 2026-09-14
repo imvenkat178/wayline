@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../context";
 import { api, money, localInput, dateLabel } from "../api";
-import type { SavedItem } from "../types";
+import type { SavedItem, SearchInput } from "../types";
+import { SavedRouteFields, initialSavedRoute } from "../components/SavedRouteFields";
 import {
   Button,
   Icon,
@@ -12,6 +13,7 @@ import {
   Modal,
   Section,
   useAsync,
+  Toggle,
 } from "../components/ui";
 interface FareResult {
   options: { name: string; cents: number }[];
@@ -20,12 +22,19 @@ interface FareResult {
   disclaimer: string;
 }
 export default function Commute() {
-  const { boot, setSearchInput, navigate, notify } = useApp();
+  const { boot, setSearchInput, setResult, setActive, navigate, notify } = useApp();
+  const [editing, setEditing] = useState<SavedItem | null>(null);
+  const [route, setRoute] = useState(() => initialSavedRoute(boot.pilot));
   const [commutes, setCommutes] = useState<SavedItem[]>([]),
     [passes, setPasses] = useState<SavedItem[]>([]),
     [modal, setModal] = useState<"commute" | "pass" | null>(null),
     [fare, setFare] = useState<FareResult | null>(null);
   const { busy, error, run } = useAsync();
+  const open = (kind: "commute" | "pass", item: SavedItem | null = null) => {
+    setEditing(item);
+    setRoute(item?.from && item.to ? { mode: item.mode ?? "sample", from: item.from, to: item.to, fromPlace: item.fromPlace, toPlace: item.toPlace } : initialSavedRoute(boot.pilot));
+    setModal(kind);
+  };
   const load = async () => {
     setCommutes(await api("/records/commute"));
     setPasses(await api("/records/pass"));
@@ -41,7 +50,7 @@ export default function Commute() {
           <h1>Make your commute work for you</h1>
           <p>Recurring routes, fare choices and pass reminders.</p>
         </div>
-        <Button kind="primary" icon="plus" onClick={() => setModal("commute")}>
+        <Button kind="primary" icon="plus" onClick={() => open("commute")}>
           Add a commute
         </Button>
       </div>
@@ -69,12 +78,14 @@ export default function Commute() {
               <Icon name="route" size={30} />
             </div>
             <h3>
-              {boot.cities.find((x) => x.id === c.from)?.name} →{" "}
-              {boot.cities.find((x) => x.id === c.to)?.name}
+              {c.fromPlace?.name ?? boot.cities.find((x) => x.id === c.from)?.name ?? c.from} →{" "}
+              {c.toPlace?.name ?? boot.cities.find((x) => x.id === c.to)?.name ?? c.to}
             </h3>
             <p>
               {c.time} · {c.timezone}
             </p>
+            <Badge tone={c.enabled ? "mint" : "amber"}>{c.mode === "provider" ? "Boston / MBTA" : "Sample route"} · {c.enabled ? "Active" : "Paused"}</Badge>
+            <p className="fine-print">{c.nextDeparture ? `Next: ${new Date(c.nextDeparture).toLocaleString(undefined, { timeZone: c.timezone })} · ${c.timezone}` : "No upcoming reminder while paused."}</p>
             <div className="day-strip">
               {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
                 <span key={i} className={c.days?.includes(i) ? "on" : ""}>
@@ -82,15 +93,26 @@ export default function Commute() {
                 </span>
               ))}
             </div>
+            <div className="button-row">
+              <Button kind="small" onClick={() => open("commute", c)}>Edit commute</Button>
+              <Toggle label="Reminders" checked={c.enabled !== false} onChange={enabled => void run(async () => {
+                await api(`/records/commute/${c.id}`, "PATCH", { version: c.version, enabled });
+                await load();
+              })} />
+            </div>
             <Button
               kind="primary full"
-              onClick={() => {
-                setSearchInput((s) => ({ ...s, from: c.from!, to: c.to! }));
+              disabled={busy || !c.enabled}
+              onClick={() => void run(async () => {
+                const next = await api<SearchInput>(`/commutes/${c.id}/next`);
+                setSearchInput(next);
+                setResult(null);
+                setActive(null);
                 navigate("plan");
-                notify("Commute loaded. Choose your departure and search.");
-              }}
+                notify("Searching your next scheduled commute.");
+              })}
             >
-              Check today’s options
+              Find next commute
             </Button>
           </Section>
         ))}
@@ -99,7 +121,7 @@ export default function Commute() {
         <Empty
           icon="refresh"
           title="Build your everyday shortcut"
-          action={<Button onClick={() => setModal("commute")}>Add a recurring route</Button>}
+          action={<Button onClick={() => open("commute")}>Add a recurring route</Button>}
         >
           Choose your regular route and days. Wayline reminds you to check it before you leave.
         </Empty>
@@ -182,7 +204,7 @@ export default function Commute() {
         <Section
           title="Your passes"
           action={
-            <Button icon="plus" kind="small" onClick={() => setModal("pass")}>
+            <Button icon="plus" kind="small" onClick={() => open("pass")}>
               Add pass
             </Button>
           }
@@ -207,6 +229,7 @@ export default function Commute() {
                 <h3>{p.name}</h3>
                 <strong>{money(p.costCents)}</strong>
                 <p>Renewal {p.renewal && dateLabel(p.renewal)} · self-reported</p>
+                <Button kind="small" onClick={() => open("pass", p)}>Edit renewal</Button>
               </div>
             ))
           ) : (
@@ -222,7 +245,7 @@ export default function Commute() {
       </div>
       {modal && (
         <Modal
-          title={modal === "commute" ? "Add a recurring commute" : "Add a pass reminder"}
+          title={editing ? `Edit ${modal}` : modal === "commute" ? "Add a recurring commute" : "Add a pass reminder"}
           onClose={() => setModal(null)}
         >
           <form
@@ -233,12 +256,13 @@ export default function Commute() {
               const d = Object.fromEntries(f);
               void run(async () => {
                 await api(
-                  `/records/${modal}`,
-                  "POST",
+                  `/records/${modal}${editing ? "/" + editing.id : ""}`,
+                  editing ? "PATCH" : "POST",
                   modal === "commute"
-                    ? { ...d, days: f.getAll("days").map(Number), enabled: true }
+                    ? { ...d, ...route, version: editing?.version, days: f.getAll("days").map(Number), enabled: editing?.enabled ?? true }
                     : {
                         ...d,
+                        version: editing?.version,
                         costCents: Math.round(Number(d.cost) * 100),
                         renewal: new Date(String(d.renewal)).toISOString(),
                       },
@@ -253,36 +277,20 @@ export default function Commute() {
               <input
                 required
                 name="name"
+                defaultValue={editing?.name ?? ""}
                 maxLength={60}
                 placeholder={modal === "commute" ? "Morning commute" : "Monthly transit pass"}
               />
             </Field>
             {modal === "commute" ? (
               <>
+                <SavedRouteFields value={route} onChange={setRoute} />
                 <div className="form-grid">
-                  <Field label="From">
-                    <select name="from">
-                      {boot.cities.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="To">
-                    <select name="to" defaultValue="sj">
-                      {boot.cities.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
                   <Field label="Leave at">
-                    <input name="time" type="time" defaultValue="08:00" required />
+                    <input name="time" type="time" defaultValue={editing?.time ?? "08:00"} required />
                   </Field>
                   <Field label="Time zone">
-                    <select name="timezone" defaultValue="America/Los_Angeles">
+                    <select key={route.mode} name="timezone" defaultValue={editing?.timezone ?? (route.mode === "provider" ? "America/New_York" : boot.user.preferences.timezone)}>
                       {[...new Set(boot.cities.map((c) => c.timezone))].map((z) => (
                         <option key={z}>{z}</option>
                       ))}
@@ -298,7 +306,7 @@ export default function Commute() {
                           type="checkbox"
                           name="days"
                           value={i}
-                          defaultChecked={i > 0 && i < 6}
+                          defaultChecked={editing?.days ? editing.days.includes(i) : i > 0 && i < 6}
                         />
                         {d}
                       </label>
@@ -309,17 +317,17 @@ export default function Commute() {
             ) : (
               <>
                 <Field label="Operator">
-                  <input required name="operator" maxLength={80} />
+                  <input required name="operator" maxLength={80} defaultValue={editing?.operator ?? ""} />
                 </Field>
                 <Field label="Cost ($)">
-                  <input required name="cost" type="number" min="0" max="1000" step="0.01" />
+                  <input required name="cost" type="number" min="0" max="1000" step="0.01" defaultValue={editing?.costCents == null ? "" : editing.costCents / 100} />
                 </Field>
                 <Field label="Next renewal · device time">
                   <input
                     required
                     name="renewal"
                     type="datetime-local"
-                    defaultValue={localInput(new Date(Date.now() + 30 * 86400000))}
+                    defaultValue={localInput(new Date(editing?.renewal ?? Date.now() + 30 * 86400000))}
                   />
                 </Field>
               </>

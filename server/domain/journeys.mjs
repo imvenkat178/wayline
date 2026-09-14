@@ -625,7 +625,14 @@ const RECOVERY_NOT_YET_DEPARTED = new Set([
 export function recoveryPosition(journey, now = Date.now()) {
   if (RECOVERY_NOT_YET_DEPARTED.has(journey.state))
     return { stopId: journey.fromId, earliestDeparture: now };
-  const upcoming = journey.legs.find((l) => Date.parse(l.arrival) > now);
+  const upcoming = journey.legs.find((l) => Date.parse(l.predictedArrival ?? l.arrival) > now);
+  // Between provider legs, recover from the next boarding stop rather than the
+  // destination of a service the traveler has not boarded. Honor prediction times.
+  if (journey.dataMode === "provider" && upcoming?.fromStopId && upcoming.fromCoords &&
+      Date.parse(upcoming.predictedDeparture ?? upcoming.departure) > now && journey.state !== "IN_TRANSIT") {
+    const place = { id: upcoming.fromStopId, name: upcoming.from, lat: upcoming.fromCoords[1], lon: upcoming.fromCoords[0], timezone: journey.timezone };
+    return { stopId: place.id, place, earliestDeparture: now };
+  }
   if (journey.dataMode === 'provider' && upcoming?.toStopId && upcoming.toCoords) {
     const place = { id: upcoming.toStopId, name: upcoming.to, lat: upcoming.toCoords[1], lon: upcoming.toCoords[0], timezone: journey.timezone };
     return { stopId: place.id, place, earliestDeparture: Math.max(now, Date.parse(upcoming.predictedArrival ?? upcoming.arrival)) };
@@ -665,47 +672,7 @@ export function assertRecoverable(journey, alternative, now = Date.now()) {
     throw new DomainError("This alternative is in the past. Run a fresh search.");
 }
 
-// Two legs are the "same" leg for retention purposes: same mode, same named endpoints and same
-// scheduled departure. This is a conservative, exact match -- it will not fire across different
-// sample-search variants (their times differ by design), but it is correct wherever it does fire,
-// and becomes meaningful once journeys are built from a real, shared leg/trip-instance model
-// (Stage B) rather than five independently generated whole-corridor variants.
-function sameLeg(a, b) {
-  return a.mode === b.mode && a.from === b.from && a.to === b.to && a.departure === b.departure;
-}
-
-// What a recovery alternative would actually cost the traveler to switch to, instead of the
-// previous whole-itinerary subtraction (feature 27, "Recovery economics"). Two corrections over
-// that: (1) any leg identical between the original and the alternative has already been paid for
-// and boarded, or will be regardless, so it is excluded from the cost of the CHANGE; (2) when a
-// self-reported ticket with an actual paid amount exists for this journey, that paid amount --
-// not the abstract itinerary estimate -- is the baseline for "what was already spent."
-//
-// This codebase has no payment integration (bookingConfirmed is never set true anywhere), no
-// exchange/refund-rule data, and no nonrefundable-amount data -- none of that exists to calculate
-// with yet (Stage D/E work per the roadmap). `basis` says plainly which baseline was used so a
-// caller cannot present an estimate as a real quote, and nonrefundableCents is always null rather
-// than a guessed number.
-export function recoveryCost(journey, alternative, paidCentsForJourney = null) {
-  const retainedLegCents = journey.legs
-    .filter((leg) => (alternative.legs ?? []).some((other) => sameLeg(leg, other)))
-    .reduce((sum, leg) => sum + (leg.priceCents ?? 0), 0);
-  const baselineCents = paidCentsForJourney ?? journey.price.totalCents;
-  const alternativeCents = alternative.price.totalCents;
-  if (baselineCents === null || alternativeCents === null)
-    return {
-      incrementalCents: null,
-      basis: "unknown",
-      retainedLegCents,
-      nonrefundableCents: null,
-    };
-  return {
-    incrementalCents: alternativeCents - baselineCents - retainedLegCents,
-    basis: paidCentsForJourney === null ? "estimate" : "paid",
-    retainedLegCents,
-    nonrefundableCents: null,
-  };
-}
+export { recoveryEconomics as recoveryCost } from "./recoveryEconomics.mjs";
 // Returns the journey with every leg's `tracking` recomputed by freshness() against `now`,
 // instead of whatever derived age/stale/label happened to be stored. Measurement time
 // (observedAt) is the only part of tracking that is ever persisted; everything else is a

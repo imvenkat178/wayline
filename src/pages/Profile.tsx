@@ -25,9 +25,10 @@ function urlBase64ToUint8Array(base64: string) {
   const raw = atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
-export default function Profile() {
-  const { boot, setBoot, switchIdentity, notify, navigate, refresh } = useApp();
-  const [tab, setTab] = useState("preferences"),
+export default function Profile({ initialTab = "preferences" }: { initialTab?: string } = {}) {
+  const { boot, setBoot, switchIdentity, notify, navigate, refresh, setSearchInput, setResult, setActive } = useApp();
+  const [editingItem, setEditingItem] = useState<SavedItem | null>(null);
+  const [tab, setTab] = useState(initialTab),
     [p, setP] = useState(boot.user.preferences),
     [name, setName] = useState(boot.user.name),
     [modal, setModal] = useState<string | null>(null),
@@ -398,7 +399,7 @@ export default function Profile() {
           }
           action={
             tab !== "favorite" ? (
-              <Button icon="plus" onClick={() => setModal(tab)}>
+              <Button icon="plus" onClick={() => { setEditingItem(null); setModal(tab); }}>
                 Add {tab}
               </Button>
             ) : (
@@ -420,9 +421,16 @@ export default function Profile() {
                   {item.contact ??
                     (item.fareClass
                       ? `${readable(item.fareClass)} · eligibility not verified`
-                      : `${item.from} → ${item.to}`)}
+                      : `${item.fromPlace?.name ?? item.from} → ${item.toPlace?.name ?? item.to}`)}
                 </p>
               </div>
+              <div className="button-row">
+                {tab === "favorite" && <Button kind="small" onClick={() => {
+                  setSearchInput(s => ({ ...s, from: item.from!, to: item.to!, fromPlace: item.fromPlace, toPlace: item.toPlace,
+                    mode: item.mode ?? "sample", deadline: undefined, departure: new Date(Date.now() + 300000).toISOString() }));
+                  setResult(null); setActive(null); navigate("plan");
+                }}>Find routes</Button>}
+                <Button kind="small" onClick={() => { setEditingItem(item); setModal(tab); }}>Edit</Button>
               <Button
                 icon="trash"
                 title={`Remove ${item.name}`}
@@ -434,6 +442,7 @@ export default function Profile() {
                   })
                 }
               />
+              </div>
             </div>
           ))}
           {!items.length && (
@@ -512,7 +521,7 @@ export default function Profile() {
             </Field>
           </div>
           <Notice>
-            Recovery limits are preferences only. Wayline cannot spend money or exchange tickets.
+            Recovery limits are preferences only. Purchases and exchanges require approved supplier access and your confirmation of a fresh, exact review.
             Quiet hours apply to browser notifications; critical alerts can bypass quiet hours if
             enabled.
           </Notice>
@@ -1050,8 +1059,8 @@ export default function Profile() {
           </form>
         </Modal>
       )}
-      {["traveler", "contact"].includes(modal ?? "") && (
-        <Modal title={`Add a ${modal}`} onClose={() => setModal(null)}>
+      {["traveler", "contact", "favorite"].includes(modal ?? "") && (
+        <Modal title={`${editingItem ? "Edit" : "Add a"} ${modal}`} onClose={() => { setModal(null); setEditingItem(null); }}>
           <form
             className="stack"
             onSubmit={(e) => {
@@ -1059,8 +1068,9 @@ export default function Profile() {
               const f = new FormData(e.currentTarget),
                 d = Object.fromEntries(f);
               void run(async () => {
-                await api(`/records/${modal}`, "POST", {
+                await api(`/records/${modal}${editingItem ? "/" + editingItem.id : ""}`, editingItem ? "PATCH" : "POST", {
                   ...d,
+                  version: editingItem?.version,
                   consent: f.has("consent"),
                   assistance: f.has("assistance"),
                 });
@@ -1071,12 +1081,12 @@ export default function Profile() {
             }}
           >
             <Field label="Name">
-              <input required name="name" maxLength={100} />
+              <input required name="name" maxLength={modal === "favorite" ? 60 : 100} defaultValue={editingItem?.name ?? ""} />
             </Field>
             {modal === "traveler" ? (
               <>
                 <Field label="Fare class">
-                  <select name="fareClass">
+                  <select name="fareClass" defaultValue={editingItem?.fareClass ?? "adult"}>
                     {["adult", "student", "senior", "military", "accessibility", "child"].map(
                       (x) => (
                         <option key={x}>{x}</option>
@@ -1085,27 +1095,28 @@ export default function Profile() {
                   </select>
                 </Field>
                 <label className="check-row">
-                  <input type="checkbox" name="assistance" />
+                  <input type="checkbox" name="assistance" defaultChecked={editingItem?.assistance ?? false} />
                   Assistance requested
                 </label>
                 <Notice>Discount eligibility must be verified with the operator.</Notice>
               </>
-            ) : (
+            ) : modal === "contact" ? (
               <>
                 <Field label="Contact information">
                   <input
                     required
                     name="contact"
+                    defaultValue={editingItem?.contact ?? ""}
                     maxLength={200}
                     placeholder="Phone number or email"
                   />
                 </Field>
                 <label className="check-row">
-                  <input type="checkbox" name="consent" />
+                  <input type="checkbox" name="consent" defaultChecked={editingItem?.consent ?? false} />
                   This person agrees to be my trip contact.
                 </label>
               </>
-            )}
+            ) : <p>{editingItem?.fromPlace?.name ?? editingItem?.from} → {editingItem?.toPlace?.name ?? editingItem?.to}</p>}
             {error && <Notice tone="error">{error}</Notice>}
             <Button type="submit" kind="primary" disabled={busy}>
               Save {modal}

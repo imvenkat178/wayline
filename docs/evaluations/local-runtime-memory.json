@@ -1,0 +1,11 @@
+{
+  "observedAt": "2026-09-13T07:01:46.535Z",
+  "context": "During final real local-Llama critical journeys; OS working set snapshot, not an isolated benchmark.",
+  "model": "llama3.1:8b-instruct-q4_K_M",
+  "processName": "llama-server",
+  "workingSetBytes": 6457577472,
+  "privateBytes": 6525218816,
+  "processLifetimePeakWorkingSetBytes": 6665568256,
+  "ollamaReportedModelBytes": 6247216577,
+  "ollamaReportedVramBytes": 0
+}

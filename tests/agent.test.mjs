@@ -279,7 +279,7 @@ test("runAgentGraph never lets a model invent a fact: an unfounded rewrite is re
   assert.doesNotMatch(result.mode, /composed/);
 });
 
-test("runAgentGraph accepts a rewrite that preserves every number from the grounded reply, and labels it composed", async () => {
+test("runAgentGraph renders facts deterministically even if a model offers a numeric-preserving rewrite", async () => {
   const journey = realJourney();
   const provider = {
     available: true,
@@ -296,13 +296,13 @@ test("runAgentGraph accepts a rewrite that preserves every number from the groun
     history: [],
     provider,
   });
-  assert.match(result.mode, /composed/);
-  assert.match(result.reply, /total fare/);
+  assert.doesNotMatch(result.mode, /composed/);
+  assert.match(result.reply, /recorded door-to-door total/);
   const expectedTotal = (journey.price.totalCents / 100).toFixed(2);
   assert.ok(result.reply.includes(`$${expectedTotal}`), result.reply);
 });
 
-test("runAgentGraph strips a model's self-narration and wrapping quotes from a composed reply", async () => {
+test("runAgentGraph never requests free-form prose or self-narration", async () => {
   const journey = realJourney();
   const provider = {
     available: true,
@@ -320,10 +320,10 @@ test("runAgentGraph strips a model's self-narration and wrapping quotes from a c
     history: [],
     provider,
   });
-  assert.match(result.mode, /composed/);
+  assert.doesNotMatch(result.mode, /composed/);
   assert.doesNotMatch(result.reply, /Here's a rephrased/i);
   assert.ok(!result.reply.startsWith('"'), result.reply);
-  assert.match(result.reply, /total fare/);
+  assert.match(result.reply, /recorded door-to-door total/);
 });
 
 test("runAgentGraph keeps the original grounded reply, without crashing, if composeReply itself throws", async () => {
@@ -449,7 +449,7 @@ test("OllamaChatProvider refuses to construct without both a baseUrl and a model
 // scripts/llm-smoke-test.mjs pass on that machine. See docs/adr/0008-real-llm-agent.md.
 test("defaultChatProvider passes OLLAMA_NUM_CTX through to the provider as numCtx", () => {
   const withoutIt = defaultChatProvider({ OLLAMA_BASE_URL: "http://x:11434", OLLAMA_MODEL: "m" });
-  assert.equal(withoutIt.numCtx, undefined);
+  assert.equal(withoutIt.numCtx, 8192);
   const withIt = defaultChatProvider({
     OLLAMA_BASE_URL: "http://x:11434",
     OLLAMA_MODEL: "m",
@@ -458,7 +458,7 @@ test("defaultChatProvider passes OLLAMA_NUM_CTX through to the provider as numCt
   assert.equal(withIt.numCtx, 256);
 });
 
-test("OllamaChatProvider.chat only sends num_ctx when the provider was configured with one", async (t) => {
+test("OllamaChatProvider.chat defaults to an 8K context and accepts an explicit override", async (t) => {
   const bodies = [];
   t.mock.method(globalThis, "fetch", async (_url, options) => {
     bodies.push(JSON.parse(options.body));
@@ -476,21 +476,16 @@ test("OllamaChatProvider.chat only sends num_ctx when the provider was configure
 
   const plain = new OllamaChatProvider({ baseUrl: "http://x:11434", model: "m" });
   await plain.chat({ messages: [{ role: "user", content: "hi" }] });
-  assert.equal(bodies[0].options.num_ctx, undefined);
+  assert.equal(bodies[0].options.num_ctx, 8192);
 
   const capped = new OllamaChatProvider({ baseUrl: "http://x:11434", model: "m", numCtx: 256 });
   await capped.chat({ messages: [{ role: "user", content: "hi" }] });
   assert.equal(bodies[1].options.num_ctx, 256);
 });
 
-// This is deliberately NOT `format: <schema object>` (Ollama's newer structured-outputs
-// feature) -- see the long comment on OllamaChatProvider.chat() in server/adapters/llm.mjs for
-// why: that mode 400s outright against a real Ollama 0.3.14 install, confirmed by hand, not
-// assumed. Sending the broadly-supported `format: "json"` string plus the schema as plain text
-// works on old and new Ollama versions alike, and doesn't weaken the safety property because
-// agentGraph.mjs's classifyIntent re-checks the answer against the closed `intents` list
-// regardless of which format mode produced it.
-test('OllamaChatProvider.chat sends format:"json" (not a schema object) and embeds the schema as text when jsonSchema is given', async (t) => {
+// The installed local runtime supports constrained schemas. Keep the action
+// instructions in the same leading system message used by Llama templates.
+test('OllamaChatProvider.chat sends the actual JSON schema and embeds the schema as text when jsonSchema is given', async (t) => {
   const bodies = [];
   t.mock.method(globalThis, "fetch", async (_url, options) => {
     bodies.push(JSON.parse(options.body));
@@ -509,16 +504,18 @@ test('OllamaChatProvider.chat sends format:"json" (not a schema object) and embe
   const provider = new OllamaChatProvider({ baseUrl: "http://x:11434", model: "m" });
   const schema = { type: "object", properties: { intent: { type: "string" } } };
   const content = await provider.chat({
-    messages: [{ role: "user", content: "how much?" }],
+    messages: [{role:"system",content:"Use verified prices only."},{ role: "user", content: "how much?" }],
     jsonSchema: schema,
   });
 
   assert.equal(content, '{"intent":"cost"}');
-  assert.equal(bodies[0].format, "json");
+  assert.deepEqual(bodies[0].format, schema);
   assert.equal(bodies[0].messages.length, 2);
-  assert.equal(bodies[0].messages[0].content, "how much?");
-  assert.equal(bodies[0].messages[1].role, "system");
-  assert.ok(bodies[0].messages[1].content.includes(JSON.stringify(schema)));
+  assert.equal(bodies[0].messages[1].content, "how much?");
+  assert.equal(bodies[0].messages[0].role, "system");
+  assert.ok(bodies[0].messages[0].content.includes(JSON.stringify(schema)));
+  assert.ok(bodies[0].messages[0].content.includes("Use verified prices only."));
+  assert.equal(bodies[0].messages.filter(m=>m.role==="system").length,1);
 });
 
 test("tracingEnabled requires both LANGSMITH_TRACING=true and an API key -- either alone is off", () => {

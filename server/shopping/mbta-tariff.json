@@ -1,0 +1,44 @@
+{
+  "calendar": {
+    "service_id": "fare_regular",
+    "monday": "1",
+    "tuesday": "1",
+    "wednesday": "1",
+    "thursday": "1",
+    "friday": "1",
+    "saturday": "1",
+    "sunday": "1",
+    "start_date": "20260902",
+    "end_date": "20261212"
+  },
+  "routes": [
+    "Red",
+    "Orange",
+    "Green-B",
+    "Green-C",
+    "Green-D",
+    "Green-E",
+    "Blue"
+  ],
+  "observedAt": "2026-09-11T07:28:51.698Z",
+  "exceptions": [],
+  "product": {
+    "fare_product_id": "prod_rapid_transit_smartcard",
+    "fare_product_name": "Subway one-way fare",
+    "fare_media_id": "contactless_credit_debit",
+    "amount": "2.40",
+    "currency": "USD"
+  },
+  "feed": {
+    "feed_publisher_name": "MBTA",
+    "feed_publisher_url": "http://www.mbta.com",
+    "feed_lang": "EN",
+    "feed_start_date": "20260902",
+    "feed_end_date": "20261212",
+    "feed_version": "Fall 2026, 2026-09-09T21:50:18+00:00, version D",
+    "feed_contact_email": "developer@mbta.com",
+    "feed_id": "mbta-ma-us"
+  },
+  "sha256": "b36b43265bedf7047463dc9929ec17be686eae4dfb2e4efb1b4eccebe4a112cf",
+  "source": "https://cdn.mbta.com/MBTA_GTFS.zip"
+}

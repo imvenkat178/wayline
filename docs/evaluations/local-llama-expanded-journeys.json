@@ -1,0 +1,705 @@
+{
+  "schemaVersion": 1,
+  "validationClass": "real Llama with fixture inventory",
+  "model": "llama3.1:8b-instruct-q4_K_M",
+  "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+  "numCtx": 8192,
+  "temperature": 0,
+  "startedAt": "2026-09-13T06:17:43.910Z",
+  "journeys": [
+    {
+      "name": "purchase, reload, exchange, refund request and payment record",
+      "repeat": 1,
+      "steps": [
+        {
+          "input": "I want to book the selected flight",
+          "expected": "book_ticket",
+          "actual": [
+            "book_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3033,
+          "state": "completed"
+        },
+        {
+          "input": "Show my booking payment and ticket issuance status",
+          "expected": "order_status",
+          "actual": [
+            "order_status"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3096,
+          "state": "completed"
+        },
+        {
+          "input": "I want to change my booked flight",
+          "expected": "exchange_ticket",
+          "actual": [
+            "exchange_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2571,
+          "state": "completed"
+        },
+        {
+          "input": "Get a refund quote for my booking",
+          "expected": "refund_ticket",
+          "actual": [
+            "refund_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2953,
+          "state": "completed"
+        },
+        {
+          "input": "Retrieve my booking receipt",
+          "expected": "ticket_receipt",
+          "actual": [
+            "ticket_receipt"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2585,
+          "state": "completed"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "planning, comparison, hypothetical change, reload and imported ticket",
+      "repeat": 1,
+      "steps": [
+        {
+          "input": "Search for routes using these trip requirements",
+          "expected": "search_options",
+          "actual": [
+            "search_options"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3933,
+          "state": "completed"
+        },
+        {
+          "input": "Compare these options by price and travel time",
+          "expected": "compare_options",
+          "actual": [
+            "compare_options"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3414,
+          "state": "completed"
+        },
+        {
+          "input": "Select the cheapest option",
+          "expected": "select_option",
+          "actual": [
+            "select_option"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2615,
+          "state": "completed"
+        },
+        {
+          "input": "What if I leave two hours later?",
+          "expected": "branch_scenario",
+          "actual": [
+            "branch_scenario"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 2,
+          "latencyMs": 5139,
+          "state": "completed"
+        },
+        {
+          "input": "Import a ticket into my wallet",
+          "expected": "manage_tickets",
+          "actual": [
+            "manage_tickets"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3516,
+          "state": "completed"
+        },
+        {
+          "input": "Show my traveler profiles",
+          "expected": "manage_travelers",
+          "actual": [
+            "manage_travelers"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 2,
+          "latencyMs": 3903,
+          "state": "completed"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "commutes, passes, price watches, sharing and flight exports",
+      "repeat": 1,
+      "steps": [
+        {
+          "input": "Schedule my weekday commute",
+          "expected": "manage_commutes",
+          "actual": [
+            "manage_commutes"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3499,
+          "state": "completed"
+        },
+        {
+          "input": "Pause my commute",
+          "expected": "manage_commutes",
+          "actual": [
+            "manage_commutes"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2485,
+          "state": "completed"
+        },
+        {
+          "input": "Add a transit pass",
+          "expected": "manage_passes",
+          "actual": [
+            "manage_passes"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2685,
+          "state": "completed"
+        },
+        {
+          "input": "Set a price alert",
+          "expected": "manage_watches",
+          "actual": [
+            "manage_watches"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3037,
+          "state": "completed"
+        },
+        {
+          "input": "Stop my fare watch",
+          "expected": "manage_watches",
+          "actual": [
+            "manage_watches"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2859,
+          "state": "completed"
+        },
+        {
+          "input": "Share my journey",
+          "expected": "share_trip",
+          "actual": [
+            "share_trip"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2542,
+          "state": "completed"
+        },
+        {
+          "input": "Revoke my shared trip link",
+          "expected": "revoke_share",
+          "actual": [
+            "revoke_share"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3349,
+          "state": "completed"
+        },
+        {
+          "input": "Add this itinerary to my calendar",
+          "expected": "export_calendar",
+          "actual": [
+            "export_calendar"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 2,
+          "latencyMs": 4118,
+          "state": "completed"
+        },
+        {
+          "input": "Download my itinerary PDF",
+          "expected": "export_pdf",
+          "actual": [
+            "export_pdf"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 2,
+          "latencyMs": 3660,
+          "state": "completed"
+        },
+        {
+          "input": "Make my trip available offline",
+          "expected": "offline_pack",
+          "actual": [
+            "offline_pack"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 2,
+          "latencyMs": 3926,
+          "state": "completed"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "supplier recovery, completed travel, reload and cancellation review",
+      "repeat": 1,
+      "steps": [
+        {
+          "input": "Prepare a backup route for this disruption",
+          "expected": "prepare_recovery",
+          "actual": [
+            "prepare_recovery"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3267,
+          "state": "completed"
+        },
+        {
+          "input": "Cancel my booked ticket",
+          "expected": "cancel_ticket",
+          "actual": [
+            "cancel_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2646,
+          "state": "completed"
+        },
+        {
+          "input": "Show my booking status",
+          "expected": "order_status",
+          "actual": [
+            "order_status"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2692,
+          "state": "completed"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "asynchronous progress, reconnect, replay and cancellation",
+      "repeat": 1,
+      "steps": [
+        {
+          "input": "Show my traveler profiles",
+          "actual": [
+            "manage_travelers"
+          ],
+          "source": "llama",
+          "modelCalls": 2,
+          "latencyMs": 3564,
+          "state": "completed"
+        },
+        {
+          "input": "Show my saved transit passes",
+          "source": "llama",
+          "modelCalls": 1,
+          "state": "cancelled",
+          "assertion": "Real model response discarded after HTTP cancellation; no actions or messages committed"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "purchase, reload, exchange, refund request and payment record",
+      "repeat": 2,
+      "steps": [
+        {
+          "input": "I want to book the selected flight",
+          "expected": "book_ticket",
+          "actual": [
+            "book_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2991,
+          "state": "completed"
+        },
+        {
+          "input": "Show my booking payment and ticket issuance status",
+          "expected": "order_status",
+          "actual": [
+            "order_status"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3404,
+          "state": "completed"
+        },
+        {
+          "input": "I want to change my booked flight",
+          "expected": "exchange_ticket",
+          "actual": [
+            "exchange_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2825,
+          "state": "completed"
+        },
+        {
+          "input": "Get a refund quote for my booking",
+          "expected": "refund_ticket",
+          "actual": [
+            "refund_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3253,
+          "state": "completed"
+        },
+        {
+          "input": "Retrieve my booking receipt",
+          "expected": "ticket_receipt",
+          "actual": [
+            "ticket_receipt"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2887,
+          "state": "completed"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "planning, comparison, hypothetical change, reload and imported ticket",
+      "repeat": 2,
+      "steps": [
+        {
+          "input": "Search for routes using these trip requirements",
+          "expected": "search_options",
+          "actual": [
+            "search_options"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 4238,
+          "state": "completed"
+        },
+        {
+          "input": "Compare these options by price and travel time",
+          "expected": "compare_options",
+          "actual": [
+            "compare_options"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3410,
+          "state": "completed"
+        },
+        {
+          "input": "Select the cheapest option",
+          "expected": "select_option",
+          "actual": [
+            "select_option"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2562,
+          "state": "completed"
+        },
+        {
+          "input": "What if I leave two hours later?",
+          "expected": "branch_scenario",
+          "actual": [
+            "branch_scenario"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 2,
+          "latencyMs": 4909,
+          "state": "completed"
+        },
+        {
+          "input": "Import a ticket into my wallet",
+          "expected": "manage_tickets",
+          "actual": [
+            "manage_tickets"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3544,
+          "state": "completed"
+        },
+        {
+          "input": "Show my traveler profiles",
+          "expected": "manage_travelers",
+          "actual": [
+            "manage_travelers"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 2,
+          "latencyMs": 3644,
+          "state": "completed"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "commutes, passes, price watches, sharing and flight exports",
+      "repeat": 2,
+      "steps": [
+        {
+          "input": "Schedule my weekday commute",
+          "expected": "manage_commutes",
+          "actual": [
+            "manage_commutes"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3402,
+          "state": "completed"
+        },
+        {
+          "input": "Pause my commute",
+          "expected": "manage_commutes",
+          "actual": [
+            "manage_commutes"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2488,
+          "state": "completed"
+        },
+        {
+          "input": "Add a transit pass",
+          "expected": "manage_passes",
+          "actual": [
+            "manage_passes"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2708,
+          "state": "completed"
+        },
+        {
+          "input": "Set a price alert",
+          "expected": "manage_watches",
+          "actual": [
+            "manage_watches"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2841,
+          "state": "completed"
+        },
+        {
+          "input": "Stop my fare watch",
+          "expected": "manage_watches",
+          "actual": [
+            "manage_watches"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2821,
+          "state": "completed"
+        },
+        {
+          "input": "Share my journey",
+          "expected": "share_trip",
+          "actual": [
+            "share_trip"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2431,
+          "state": "completed"
+        },
+        {
+          "input": "Revoke my shared trip link",
+          "expected": "revoke_share",
+          "actual": [
+            "revoke_share"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3074,
+          "state": "completed"
+        },
+        {
+          "input": "Add this itinerary to my calendar",
+          "expected": "export_calendar",
+          "actual": [
+            "export_calendar"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 2,
+          "latencyMs": 3971,
+          "state": "completed"
+        },
+        {
+          "input": "Download my itinerary PDF",
+          "expected": "export_pdf",
+          "actual": [
+            "export_pdf"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 2,
+          "latencyMs": 3663,
+          "state": "completed"
+        },
+        {
+          "input": "Make my trip available offline",
+          "expected": "offline_pack",
+          "actual": [
+            "offline_pack"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 2,
+          "latencyMs": 4026,
+          "state": "completed"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "supplier recovery, completed travel, reload and cancellation review",
+      "repeat": 2,
+      "steps": [
+        {
+          "input": "Prepare a backup route for this disruption",
+          "expected": "prepare_recovery",
+          "actual": [
+            "prepare_recovery"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3528,
+          "state": "completed"
+        },
+        {
+          "input": "Cancel my booked ticket",
+          "expected": "cancel_ticket",
+          "actual": [
+            "cancel_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2552,
+          "state": "completed"
+        },
+        {
+          "input": "Show my booking status",
+          "expected": "order_status",
+          "actual": [
+            "order_status"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2553,
+          "state": "completed"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "asynchronous progress, reconnect, replay and cancellation",
+      "repeat": 2,
+      "steps": [
+        {
+          "input": "Show my traveler profiles",
+          "actual": [
+            "manage_travelers"
+          ],
+          "source": "llama",
+          "modelCalls": 2,
+          "latencyMs": 3704,
+          "state": "completed"
+        },
+        {
+          "input": "Show my saved transit passes",
+          "source": "llama",
+          "modelCalls": 1,
+          "state": "cancelled",
+          "assertion": "Real model response discarded after HTTP cancellation; no actions or messages committed"
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "supplierSandbox": "not run",
+  "authorizedLiveProvider": "not run",
+  "codeHashes": {
+    "server/domain/intentVerifier.mjs": "7b51e0ee65ca68fd1b0e372ac39861a3bb9debb795bcf8ad9d83aaa7547f7041",
+    "server/domain/conversationPrivacy.mjs": "44efdb95a83011314b21fa24ed978992df0fa1e132cdd57b31f4ccecf611c33c",
+    "server/domain/conversationPlanner.mjs": "43643c9f0ac0fc4aaa23fd76a38c4ef377177934b06dd2c2d3fa6762a0210273",
+    "server/domain/conversationExecution.mjs": "41d57724c2adf01c9d40bba4fe9abeda1cac12bd013351c22ae2d55aedf95ce6",
+    "server/adapters/llm.mjs": "5aa25ae85601a28b1fa2c56f4c11a002f1239eec40653a02160e3834aead820e",
+    "server/shopping/booking.mjs": "04da4300a025adfa559ffb5b1683246b884b1c29baeaa5d614d60f29617835a9",
+    "server/shopping/duffelBooking.mjs": "0997b50f0ecf3eeb14f629f021753ace80b32e706c48b1295590ec25dbc8373f"
+  },
+  "finishedAt": "2026-09-13T06:20:34.174Z",
+  "pass": true,
+  "codeUnchanged": true
+}

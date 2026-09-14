@@ -16,6 +16,7 @@ export function PlacePicker({
     place?.name ?? { "place-sstat": "South Station", "place-harsq": "Harvard" }[value] ?? value,
   );
   const [options, setOptions] = useState<Place[]>([]),
+    [active, setActive] = useState(-1),
     [error, setError] = useState(""),
     [open, setOpen] = useState(false);
   const id = useId();
@@ -57,6 +58,7 @@ export function PlacePicker({
         timezone: "America/New_York",
       }
     : null;
+  const choices = [...(point && Math.abs(point.lat) <= 90 && Math.abs(point.lon) <= 180 ? [point] : []), ...options];
   const choose = (p: Place) => {
     onChange(p.id, p);
     setQuery(p.name);
@@ -69,47 +71,47 @@ export function PlacePicker({
         aria-expanded={open}
         aria-controls={id}
         aria-autocomplete="list"
+        aria-activedescendant={open && active >= 0 && choices[active] ? `${id}-${active}` : undefined}
         role="combobox"
         value={query}
         placeholder="Station or latitude, longitude"
         onFocus={() => setOpen(true)}
         onChange={(e) => {
           setQuery(e.target.value);
+          setActive(-1);
+          setOptions([]);
           onChange(e.target.value);
           setOpen(true);
         }}
         onKeyDown={(e) => {
           if (e.key === "Escape") setOpen(false);
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault(); setOpen(true);
+            setActive(i => choices.length ? i < 0 ? (e.key === "ArrowDown" ? 0 : choices.length - 1) : (i + (e.key === "ArrowDown" ? 1 : -1) + choices.length) % choices.length : -1);
+          }
+          if (e.key === "Enter" && open && active >= 0 && choices[active]) {
+            e.preventDefault(); choose(choices[active]); setActive(-1);
+          }
         }}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
       />
       {open && (
         <div className="place-options" id={id} role="listbox" aria-label="Boston stations">
-          {point && (
-            <button
-              type="button"
-              role="option"
-              aria-selected={false}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => choose(point)}
-            >
-              Use coordinates {query}
-            </button>
-          )}
-          {options.map((p) => (
+          {choices.map((p, index) => (
             <button
               type="button"
               key={p.id}
+              id={`${id}-${index}`}
               role="option"
-              aria-selected={value === p.id}
+              aria-selected={active === index || value === p.id}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => choose(p)}
             >
               <b>{p.name}</b>
-              <small>MBTA · Boston area</small>
+              <small>{p.id.startsWith("coordinate:") ? "Use these coordinates" : "MBTA · Boston area"}</small>
             </button>
           ))}
-          {!options.length && !point && <small>{error || "Type a Boston station name"}</small>}
+          {!choices.length && <small role="status">{error || "Type a Boston station name"}</small>}
         </div>
       )}
     </div>

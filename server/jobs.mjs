@@ -69,6 +69,7 @@ export function enqueueJob(
     }
     throw e;
   }
+  store.notifyJobQueued?.(kind);
   return id;
 }
 
@@ -102,15 +103,18 @@ export function ensureRecurringJob(store, kind, payload, intervalMs, now = Date.
 // Claims every due job (pending and ready, or leased but its lease expired -- i.e. abandoned by
 // an interrupted run) up to `limit`, atomically marking each leased so a concurrent call cannot
 // claim the same row twice.
-export function claimDueJobs(store, { limit = 10, now = Date.now(), workerId = "single" } = {}) {
+export function claimDueJobs(store, { limit = 10, now = Date.now(), workerId = "single", kinds, excludeKinds } = {}) {
+  const filter=kinds??excludeKinds;
+  if(filter&&(!Array.isArray(filter)||!filter.length||filter.some(k=>typeof k!=='string')))throw new TypeError('Job kinds must be a nonempty string array');
+  const clause=filter?' AND kind '+(kinds?'IN':'NOT IN')+' ('+filter.map(()=>'?').join(',')+')':'';
   return store.transaction(() => {
     const rows = store.db
       .prepare(
         `SELECT * FROM jobs
-         WHERE (status='pending' AND run_at<=?) OR (status='leased' AND leased_until<?)
+         WHERE ((status='pending' AND run_at<=?) OR (status='leased' AND leased_until<?))${clause}
          ORDER BY run_at ASC LIMIT ?`,
       )
-      .all(now, now, limit);
+      .all(now, now, ...(filter??[]), limit);
     const leasedUntil = now + DEFAULT_LEASE_MS;
     const claimed = [];
     for (const row of rows) {
@@ -119,7 +123,7 @@ export function claimDueJobs(store, { limit = 10, now = Date.now(), workerId = "
         .prepare(
           "UPDATE jobs SET status='leased',leased_until=?,leased_by=?,lease_token=?,updated_at=? WHERE id=?",
         )
-        .run(leasedUntil, workerId, leaseToken, now, row.id);
+        .run(["conversation-execution","booking-operation","shopping-connection","supplier-monitor-check"].includes(row.kind) ? now + 600000 : leasedUntil, workerId, leaseToken, now, row.id);
       claimed.push({ ...row, lease_token: leaseToken });
     }
     return claimed.map((r) => ({ ...r, payload: JSON.parse(r.payload) }));
@@ -206,13 +210,13 @@ export async function processJobs(store, handlers, options = {}) {
       if (!handler) throw new Error(`No handler registered for job kind "${job.kind}".`);
       await withDeadline(
         handler(store, job.payload, job),
-        handlerDeadlineMs,
+        ["conversation-execution","booking-operation","shopping-connection","supplier-monitor-check"].includes(job.kind) ? 590000 : handlerDeadlineMs,
         `Handler for job kind "${job.kind}" exceeded its lease.`,
       );
-      completeJob(store, job, now);
+      completeJob(store, job, options.now ?? Date.now());
       results.push({ id: job.id, kind: job.kind, ok: true });
     } catch (e) {
-      failJob(store, job, e, now);
+      failJob(store, job, e, options.now ?? Date.now());
       results.push({ id: job.id, kind: job.kind, ok: false, error: String(e?.message ?? e) });
     }
   }

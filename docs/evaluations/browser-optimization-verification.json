@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-13T17:12:30.869Z",
+  "baseUrl": "http://127.0.0.1:4174",
+  "browser": "Codex in-app browser",
+  "validationClass": "real local Llama with public Boston routing; no supplier transactions",
+  "checks": [
+    {
+      "name": "First-message Boston departure timezone",
+      "pass": true,
+      "before": "9 am interpreted as noon",
+      "after": "9 am Boston departure preserved; live Red Line options returned"
+    },
+    {
+      "name": "Desktop comparison and selection",
+      "pass": true,
+      "details": "Compared first and third; selected third"
+    },
+    {
+      "name": "Scenario and reload continuity",
+      "pass": true,
+      "details": "Scenario retained active selection; reload retained exact result set and option 3"
+    },
+    {
+      "name": "Review and save",
+      "pass": true,
+      "details": "Confirmed saving plan; no ticket purchase"
+    },
+    {
+      "name": "Mobile protected traveler form",
+      "pass": true,
+      "details": "390x844; fictional traveler saved; inputs remained outside chat"
+    },
+    {
+      "name": "Mobile layout",
+      "pass": true,
+      "viewportWidth": 390,
+      "documentScrollWidth": 375
+    },
+    {
+      "name": "Keyboard operation",
+      "pass": true,
+      "details": "Send activated with Enter on button; textarea Enter inserts newline"
+    },
+    {
+      "name": "PDF export",
+      "pass": true,
+      "details": "Download event received; browser wait took 356 seconds, not an isolated HTTP latency measurement"
+    },
+    {
+      "name": "Calendar export",
+      "pass": true,
+      "details": "Calendar download link rendered for saved journey"
+    },
+    {
+      "name": "Offline controls",
+      "pass": true,
+      "details": "Passphrase and create-pack controls opened; encryption/offline behavior separately covered by automated tests"
+    },
+    {
+      "name": "Supplier gate",
+      "pass": true,
+      "details": "Protected booking form states approved in-app and external checkout access unavailable"
+    },
+    {
+      "name": "Weather hypothetical and reconnect",
+      "pass": true,
+      "details": "Reloaded during real Llama interpretation; retrieved NWS forecast completed; draft stayed at revision 5 with the original scenario and selected itinerary."
+    }
+  ],
+  "consoleErrors": [
+    {
+      "at": "2026-09-13T16:35:00.080Z",
+      "message": "Dynamic Profile import failed while production build was replacing assets",
+      "recovered": true,
+      "verification": "Reloaded, opened the panel and saved fictional traveler; no later console errors observed"
+    }
+  ],
+  "viewportRestored": true,
+  "buildInterruptionFix": "Staged publication subsequently passed 132 HTTP checks with zero failures; see build-availability.json.",
+  "exportApiCheck": "Isolated HTTP PDF 107ms and calendar 19ms; see export-performance.json."
+}

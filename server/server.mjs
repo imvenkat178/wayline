@@ -1,3 +1,13 @@
+import {startJobWorkers} from './jobWorkers.mjs';
+import {sweepSupplierMonitors,checkSupplierMonitor} from './shopping/supplierMonitoring.mjs';
+import {contentSecurityPolicy} from './securityPolicy.mjs';
+import {AeroApiProvider} from './shopping/aeroapi.mjs';
+import { DuffelBookingAdapter } from './shopping/duffelBooking.mjs';
+import { runBookingOperation } from './shopping/booking.mjs';
+import { handleDuffelWebhook } from './shopping/webhooks.mjs';
+import { runConversationExecution } from './domain/conversationExecution.mjs';
+import { sweepPriceWatches } from "./shopping/watches.mjs";
+import { runShoppingQuery,runShoppingConnections } from "./shopping/service.mjs";
 import { TravelClient } from "./travel/client.mjs";
 import { refreshActiveJourneys, scheduleLiveRefresh } from "./recovery.mjs";
 import { createBackup } from "./backups.mjs";
@@ -12,7 +22,7 @@ import { DomainError } from "./domain/journeys.mjs";
 import { handleApi } from "./router.mjs";
 import { providerHealth } from "./adapters/providers.mjs";
 import { runGuardian, reconcileOrphanedAlerts } from "./guardian.mjs";
-import { processJobs, ensureRecurringJob } from "./jobs.mjs";
+import { ensureRecurringJob } from "./jobs.mjs";
 import { configureWebPush, deliverPush } from "./push.mjs";
 import { LogEmailProvider } from "./email.mjs";
 import { handleCommerceWebhook } from "./commerce-routes.mjs";
@@ -96,6 +106,9 @@ export function addCookie(res, token, production) {
 export function createApplication({
   store = new Store({ backups: true }),
   travel = new TravelClient(),
+  bookingAdapter = new DuffelBookingAdapter(),
+  flightStatusProvider = new AeroApiProvider(),
+  checkoutProvider = null,
   production = process.env.NODE_ENV === "production",
   quiet = false,
   // No real email provider is configured in this codebase yet (see server/email.mjs) -- this
@@ -106,6 +119,7 @@ export function createApplication({
   // Configurable purely so tests can exercise the drain loop's overlap-prevention (R05) on a
   // real, tiny interval instead of either waiting 30 real seconds or reaching for mock timers.
   drainIntervalMs = 5000,
+  immediateJobs = true,
 } = {}) {
   if (production && !process.env.PUBLIC_ORIGIN)
     throw new Error("PUBLIC_ORIGIN is required in production.");
@@ -124,7 +138,16 @@ export function createApplication({
     ensureRecurringJob(store, "travel-probe", {}, 300000);
   }
   if (store.backupsEnabled) ensureRecurringJob(store, "database-backup", {}, 3600000);
+  ensureRecurringJob(store, "price-watch-sweep", {}, 60000);
+  ensureRecurringJob(store,"supplier-monitor-sweep",{},60000);
   const jobHandlers = {
+    "supplier-monitor-sweep": jobStore=>sweepSupplierMonitors(jobStore),
+    "supplier-monitor-check": (jobStore,payload,job)=>checkSupplierMonitor(jobStore,payload,flightStatusProvider,()=>!!jobStore.db.prepare("SELECT id FROM jobs WHERE id=? AND lease_token=? AND status='leased'").get(job.id,job.lease_token)),
+    "booking-operation": (jobStore,payload) => runBookingOperation(jobStore,payload.userId,payload.operationId,bookingAdapter,{refresh:payload.refresh===true}),
+    "conversation-execution": (jobStore,payload) => runConversationExecution(jobStore,payload.userId,payload.executionId,travel),
+    "price-watch-sweep": (jobStore) => sweepPriceWatches(jobStore,{capabilities:travel.flightShoppingCapabilities}),
+    "shopping-query": (jobStore, payload, job) => runShoppingQuery(jobStore, travel, payload, () => !!jobStore.db.prepare("SELECT id FROM jobs WHERE id=? AND lease_token=? AND status='leased'").get(job.id,job.lease_token)),
+    "shopping-connection": (jobStore, payload, job) => runShoppingConnections(jobStore, travel, payload, () => !!jobStore.db.prepare("SELECT id FROM jobs WHERE id=? AND lease_token=? AND status='leased'").get(job.id,job.lease_token)),
     "live-refresh": (jobStore) => scheduleLiveRefresh(jobStore),
     "travel-probe": () => travel.probe(),
     "journey-refresh": (jobStore, payload, job) => {
@@ -149,6 +172,9 @@ export function createApplication({
     "guardian-sweep": (jobStore) => runGuardian(jobStore),
     "push-deliver": (jobStore, payload) => deliverPush(jobStore, payload),
   };
+  travel.flightStatusProvider=flightStatusProvider;
+  travel.bookingAdapter=bookingAdapter;
+  travel.checkoutProvider=checkoutProvider;
   const server = http.createServer(async (req, res) => {
     const requestId = randomUUID();
     res.setHeader("x-request-id", requestId);
@@ -158,7 +184,7 @@ export function createApplication({
     res.setHeader("permissions-policy", "camera=(self), microphone=(self), geolocation=(self)");
     res.setHeader(
       "content-security-policy",
-      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https://demotiles.maplibre.org https://*.tile.openstreetmap.org https://tessdata.projectnaptha.com; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+      contentSecurityPolicy(bookingAdapter.capabilities.book),
     );
     if (production) res.setHeader("strict-transport-security", "max-age=31536000");
     try {
@@ -182,6 +208,10 @@ export function createApplication({
       // provider's webhook callback has no session cookie and no CSRF token, only a signed
       // body (see commerce-routes.mjs's handleCommerceWebhook and adapters/payments.mjs's
       // verifyWebhookSignature). Never routed through handleApi's session-gated dispatch.
+      if(url.pathname==='/api/shopping/webhooks/duffel' && req.method==='POST') {
+        rateLimit('duffel-webhook:'+req.socket.remoteAddress,120);
+        return await handleDuffelWebhook({req,res,store,send,bookingAdapter});
+      }
       if (url.pathname === "/api/commerce/webhook" && req.method === "POST") {
         rateLimit(`webhook:${req.socket.remoteAddress}`, 120);
         return await handleCommerceWebhook({ req, res, store, send });
@@ -232,7 +262,7 @@ export function createApplication({
         // (server/records.mjs's validateTicketDocument enforces the real limit) rather than
         // loosening the shared 1 MB default every other endpoint relies on.
         const b = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)
-          ? await body(req, url.pathname === "/api/records/ticket" ? 8_000_000 : 1_000_000)
+          ? await body(req, /^\/api\/records\/ticket(?:\/[^/]+)?$/.test(url.pathname) ? 8_000_000 : 1_000_000)
           : {};
         return await handleApi({
           req,
@@ -247,6 +277,7 @@ export function createApplication({
           send,
           addCookie,
           emailProvider,
+          bookingAdapter,
           travel,
         });
       }
@@ -310,56 +341,10 @@ export function createApplication({
   server.requestTimeout = 15000;
   server.headersTimeout = 10000;
   server.keepAliveTimeout = 5000;
-  // R05: a bare setInterval fires on a fixed cadence no matter how long the previous drain took,
-  // so a slow batch -- or a hung handler; see jobs.mjs's per-handler deadline, the other half of
-  // this fix -- could still be running when the next tick fires, and the two would then process
-  // jobs concurrently in the same process (the review's exact reproduction: the same job executed
-  // twice before the first handler finished). This self-rescheduling setTimeout instead only ever
-  // schedules the NEXT drain once the current one has fully finished -- from actual completion
-  // time, not from when the last one started -- so at most one drain is ever in flight.
-  const DRAIN_INTERVAL_MS = drainIntervalMs;
-  let stoppingJobs = false;
-  let drainTimer = null;
-  let activeDrain = Promise.resolve();
-  async function drainOnce() {
-    try {
-      store.cleanup();
-    } catch (e) {
-      if (!quiet)
-        console.error(JSON.stringify({ level: "error", message: "Cleanup failed", error: e.name }));
-    }
-    try {
-      await processJobs(store, jobHandlers, { now: Date.now(), limit: 1 });
-    } catch (e) {
-      if (!quiet)
-        console.error(
-          JSON.stringify({ level: "error", message: "Job processing failed", error: e.name }),
-        );
-    }
-  }
-  function scheduleNextDrain() {
-    if (stoppingJobs) return;
-    drainTimer = setTimeout(() => {
-      activeDrain = drainOnce().finally(scheduleNextDrain);
-    }, DRAIN_INTERVAL_MS);
-    drainTimer.unref();
-  }
-  scheduleNextDrain();
-  // Stops claiming new work and waits for any drain already in flight to finish. Called from
-  // this process's shutdown handler below, before store.close(), so an in-flight handler's
-  // database statements never run against a database that's already been closed out from under
-  // it (R05) -- and by the CLI test harness's server.close() in some tests, harmlessly.
-  async function stopBackgroundJobs() {
-    stoppingJobs = true;
-    if (drainTimer) clearTimeout(drainTimer);
-    await activeDrain;
-    await travel.close();
-  }
-  server.on("close", () => {
-    stoppingJobs = true;
-    if (drainTimer) clearTimeout(drainTimer);
-    void travel.close();
-  });
+  const workers=startJobWorkers(store,jobHandlers,{pollMs:drainIntervalMs,immediate:immediateJobs,onError:(error,lane)=>{if(!quiet)console.error(JSON.stringify({level:"error",message:"Job worker failed",lane,error:error.name}));}});
+  let stopped;
+  function stopBackgroundJobs(){return stopped??=(async()=>{await workers.stop();await travel.close();})();}
+  server.on("close",()=>{void stopBackgroundJobs();});
   return { server, store, stopBackgroundJobs };
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -382,7 +367,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     if (existsSync(pidFile) && readFileSync(pidFile, "utf8") === String(process.pid))
       unlinkSync(pidFile);
   });
-  const port = Number(process.env.PORT ?? 4173);
+  const port = Number(process.env.PORT ?? 4174);
   const host = process.env.HOST ?? "127.0.0.1";
   server.listen(port, host, () => {
     writeFileSync(pidFile, String(process.pid));

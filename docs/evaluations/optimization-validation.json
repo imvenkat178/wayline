@@ -1,0 +1,43 @@
+{
+  "startedAt": "2026-09-13T17:21:04.462Z",
+  "steps": [
+    {
+      "name": "typecheck",
+      "code": 0,
+      "durationMs": 5789,
+      "log": "tmp/optimization-typecheck.log"
+    },
+    {
+      "name": "regression",
+      "code": 0,
+      "durationMs": 80382,
+      "log": "tmp/optimization-final-validation.log"
+    },
+    {
+      "name": "lint",
+      "code": 0,
+      "durationMs": 5950,
+      "log": "tmp/optimization-final-lint.log"
+    },
+    {
+      "name": "build",
+      "code": 0,
+      "durationMs": 10124,
+      "log": "tmp/optimization-final-build.log"
+    },
+    {
+      "name": "latency benchmark",
+      "code": 0,
+      "durationMs": 67829,
+      "log": "tmp/latency-optimized-final.log"
+    },
+    {
+      "name": "coverage reports",
+      "code": 0,
+      "durationMs": 1345212,
+      "log": "tmp/optimization-coverage.log"
+    }
+  ],
+  "pass": true,
+  "finishedAt": "2026-09-13T19:42:03.390Z"
+}

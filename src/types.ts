@@ -206,6 +206,7 @@ export interface Journey {
     items: { label: string; cents: number }[];
     currency: string;
     unknown?: boolean;
+    kind?:string; source?:string; observedAt?:string; version?:string; conditions?:string;
   };
   travelers: number;
   bags: number;
@@ -265,6 +266,7 @@ export interface Agency {
   lastSuccess: string | null;
 }
 export interface Alert {
+  orderId?: string; conversationId?: string; sourceUrl?: string; observedAt?: string;
   id: string;
   version: number;
   severity: string;
@@ -273,6 +275,8 @@ export interface Alert {
   kind: string;
   read: boolean;
   journeyId?: string;
+  commuteId?: string;
+  passId?: string;
   dataMode?: string;
   at: string;
   createdAt: string;
@@ -303,6 +307,7 @@ export interface Ticket {
   platform: string;
   source: string;
   journeyId: string;
+  paidCents?: number | null;
   // Roadmap features 18/19 (Phase 6): an optional barcode decoded client-side from an attached
   // photo, and the photo itself. Never verified against any issuer or carrier system -- see
   // server/records.mjs's validateTicketDocument and src/barcode.ts.
@@ -314,6 +319,10 @@ export interface SavedItem {
   id: string;
   version: number;
   name: string;
+  mode?: "sample" | "provider";
+  fromPlace?: Place;
+  toPlace?: Place;
+  nextDeparture?: string | null;
   from?: string;
   to?: string;
   days?: number[];
@@ -400,6 +409,7 @@ export interface Station {
 }
 
 export interface Place { id: string; name: string; lat: number; lon: number; timezone: string; source?: string; }
-export interface PendingAction { searchId?:string; candidateId?:string; private?:boolean; id: string; kind: 'add'|'change'|'cancel'|'recovery'; journeyId: string|null; status: string; expiresAt: number; notice: string; candidate: Journey|null; before: {from:string;to:string;departure:string;arrival:string;totalCents:number|null}|null; }
-export interface Recovery { id:string; journeyId:string; searchId:string; alternative:Journey; state:string; observedAt:string; expiresAt:number; incrementalCostCents:number|null; costBasis:string; automatic:boolean; arrivalDifferenceMinutes?:number; }
-export type AgentToolResult = {type:'routes'; search:SearchResult; changeJourneyId?:string|null}|{type:'journeys';journeys:Journey[]}|{type:'document';url:string;label:string}|{type:'recovery';recovery:Recovery[]}|{type:'weather';source:string;fetchedAt:string;cache:string;periods:{name:string;shortForecast:string;temperature:number;temperatureUnit:string}[];alerts:{id:string;headline:string}[]}|{type:'status';journey:Journey;source:string;fetchedAt:string};
+export interface PendingAction { conversationId?:string; draftId?:string; draftVersion?:number; searchId?:string; candidateId?:string; private?:boolean; id: string; kind: 'add'|'change'|'cancel'|'recovery'; journeyId: string|null; status: string; expiresAt: number; notice: string; candidate: Journey|null; before: {from:string;to:string;departure:string;arrival:string;totalCents:number|null}|null; }
+export interface RecoveryEconomics { version:2; currency:string; cashRequiredNowCents:number|null; originalPaidCents:number|null; totalSpentCents:number|null; projectedSpendAfterRefundCents:number|null; confirmedPendingRefundCents:number; refundsReceivedCents:number; usedCreditCents:number; }
+export interface Recovery { economics?:RecoveryEconomics; id:string; journeyId:string; searchId:string; alternative:Journey; state:string; observedAt:string; expiresAt:number; incrementalCostCents:number|null; costBasis:string; automatic:boolean; arrivalDifferenceMinutes?:number; }
+export type AgentToolResult = {type:'shopping';searchId:string|null;state:string;completeCount:number;incompleteCount:number;savedCount:number}| {type:'routes'; search:SearchResult; changeJourneyId?:string|null}|{type:'journeys';journeys:Journey[]}|{type:'document';url:string;label:string}|{type:'recovery';recovery:Recovery[]}|{type:'weather';source:string;fetchedAt:string;cache:string;periods:{name:string;shortForecast:string;temperature:number;temperatureUnit:string}[];alerts:{id:string;headline:string}[]}|{type:'status';journey:Journey;source:string;fetchedAt:string};

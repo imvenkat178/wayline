@@ -16,6 +16,7 @@ export interface RouteMatch {
 // not actually displaying. Kept in its own dependency-free module (no React, no JSX) so it can
 // be unit tested directly.
 export function resolveHash(hash: string): RouteMatch {
+  if (!hash) return { page: "assistant", offline: false, recognized: true };
   if (hash === "offline") return { page: "plan", offline: true, recognized: true };
   // A password-reset link (server/router.mjs's recovery/request builds `#reset-password?token=...`)
   // routes to the Profile page, where resetPasswordToken() below picks the token back out so the

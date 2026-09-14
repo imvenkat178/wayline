@@ -18,12 +18,16 @@ test("resolveHash falls back to plan for an unrecognized hash and reports it as 
   // the address bar, so a direct link/refresh to a bad or stale hash showed one route in the
   // URL and a different one on screen. `recognized: false` is what App.tsx now uses to decide
   // whether to call history.replaceState and fix that mismatch.
-  for (const bad of ["nonsense", "", "plann", "OFFLINE", "watch2"]) {
+  for (const bad of ["nonsense", "plann", "OFFLINE", "watch2"]) {
     const match = resolveHash(bad);
     assert.equal(match.page, "plan");
     assert.equal(match.offline, false);
     assert.equal(match.recognized, false);
   }
+});
+
+test("an empty location opens the conversational trip workspace", () => {
+  assert.deepEqual(resolveHash(""), { page: "assistant", offline: false, recognized: true });
 });
 
 test("resolveHash never confuses a nav page for the offline route or vice versa", () => {

@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 1,
+  "validationClass": "real Llama with fixture inventory",
+  "model": "llama3.1:8b-instruct-q4_K_M",
+  "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+  "numCtx": 8192,
+  "temperature": 0,
+  "startedAt": "2026-09-13T05:43:23.214Z",
+  "journeys": [
+    {
+      "name": "purchase, reload, exchange, refund request and payment record",
+      "repeat": 1,
+      "steps": [
+        {
+          "input": "I want to book the selected flight",
+          "expected": "book_ticket",
+          "actual": [
+            "book_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3038,
+          "state": "completed"
+        },
+        {
+          "input": "Show my booking payment and ticket issuance status",
+          "expected": "order_status",
+          "actual": [
+            "order_status"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3317,
+          "state": "completed"
+        },
+        {
+          "input": "I want to change my booked flight",
+          "expected": "exchange_ticket",
+          "actual": [
+            "exchange_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2676,
+          "state": "completed"
+        },
+        {
+          "input": "Get a refund quote for my booking",
+          "expected": "refund_ticket",
+          "actual": [
+            "refund_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3069,
+          "state": "completed"
+        },
+        {
+          "input": "Retrieve my booking receipt",
+          "expected": "ticket_receipt",
+          "actual": [
+            "ticket_receipt"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2677,
+          "state": "completed"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "planning, comparison, hypothetical change, reload and imported ticket",
+      "repeat": 1,
+      "steps": [
+        {
+          "input": "Search for routes using these trip requirements",
+          "expected": "search_options",
+          "actual": [
+            "search_options"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 4083,
+          "state": "completed"
+        },
+        {
+          "input": "Compare these options by price and travel time",
+          "expected": "compare_options",
+          "actual": [
+            "compare_options"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3313,
+          "state": "completed"
+        },
+        {
+          "input": "Select the cheapest option",
+          "expected": "select_option",
+          "actual": [
+            "select_option"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2769,
+          "state": "completed"
+        },
+        {
+          "input": "What if I leave two hours later?",
+          "expected": "branch_scenario",
+          "actual": [
+            "branch_scenario"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 4207,
+          "state": "completed"
+        },
+        {
+          "input": "Import a ticket into my wallet",
+          "expected": "manage_tickets",
+          "actual": [
+            "manage_tickets"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3784,
+          "state": "completed"
+        },
+        {
+          "input": "Show my traveler profiles",
+          "expected": "manage_travelers",
+          "actual": [
+            "manage_travelers"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2717,
+          "state": "completed"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "purchase, reload, exchange, refund request and payment record",
+      "repeat": 2,
+      "steps": [
+        {
+          "input": "I want to book the selected flight",
+          "expected": "book_ticket",
+          "actual": [
+            "book_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3345,
+          "state": "completed"
+        },
+        {
+          "input": "Show my booking payment and ticket issuance status",
+          "expected": "order_status",
+          "actual": [
+            "order_status"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3397,
+          "state": "completed"
+        },
+        {
+          "input": "I want to change my booked flight",
+          "expected": "exchange_ticket",
+          "actual": [
+            "exchange_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2808,
+          "state": "completed"
+        },
+        {
+          "input": "Get a refund quote for my booking",
+          "expected": "refund_ticket",
+          "actual": [
+            "refund_ticket"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3217,
+          "state": "completed"
+        },
+        {
+          "input": "Retrieve my booking receipt",
+          "expected": "ticket_receipt",
+          "actual": [
+            "ticket_receipt"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2753,
+          "state": "completed"
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "planning, comparison, hypothetical change, reload and imported ticket",
+      "repeat": 2,
+      "steps": [
+        {
+          "input": "Search for routes using these trip requirements",
+          "expected": "search_options",
+          "actual": [
+            "search_options"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 4119,
+          "state": "completed"
+        },
+        {
+          "input": "Compare these options by price and travel time",
+          "expected": "compare_options",
+          "actual": [
+            "compare_options"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3669,
+          "state": "completed"
+        },
+        {
+          "input": "Select the cheapest option",
+          "expected": "select_option",
+          "actual": [
+            "select_option"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2680,
+          "state": "completed"
+        },
+        {
+          "input": "What if I leave two hours later?",
+          "expected": "branch_scenario",
+          "actual": [
+            "branch_scenario"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 4232,
+          "state": "completed"
+        },
+        {
+          "input": "Import a ticket into my wallet",
+          "expected": "manage_tickets",
+          "actual": [
+            "manage_tickets"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 3725,
+          "state": "completed"
+        },
+        {
+          "input": "Show my traveler profiles",
+          "expected": "manage_travelers",
+          "actual": [
+            "manage_travelers"
+          ],
+          "httpStatus": 200,
+          "source": "llama",
+          "modelCalls": 1,
+          "latencyMs": 2922,
+          "state": "completed"
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "supplierSandbox": "not run",
+  "authorizedLiveProvider": "not run",
+  "codeHashes": {
+    "server/domain/conversationPlanner.mjs": "198a94dbd3dd7e7547756e881208b5d020eadb05b1b19adc8b1adabb106146f2",
+    "server/domain/conversationExecution.mjs": "41d57724c2adf01c9d40bba4fe9abeda1cac12bd013351c22ae2d55aedf95ce6",
+    "server/adapters/llm.mjs": "5aa25ae85601a28b1fa2c56f4c11a002f1239eec40653a02160e3834aead820e",
+    "server/shopping/booking.mjs": "b156da55a2ebe7288be8db3b9319feab36bafee68bfcb8164f6049e3c8a415bc",
+    "server/shopping/duffelBooking.mjs": "0997b50f0ecf3eeb14f629f021753ace80b32e706c48b1295590ec25dbc8373f"
+  },
+  "finishedAt": "2026-09-13T05:44:36.472Z",
+  "pass": true,
+  "codeUnchanged": true
+}

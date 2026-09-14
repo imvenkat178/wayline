@@ -191,7 +191,7 @@ function restoreStoppedBackup({ file, keyFile, directory }) {
     if (db.prepare("SELECT name FROM sqlite_master WHERE name='journey_observations'").get())
       db.exec("DELETE FROM journey_observations");
     db.exec(
-      "DELETE FROM sessions; DELETE FROM pending_logins; DELETE FROM recovery_tokens; DELETE FROM records WHERE kind IN ('pending-action','push-subscription'); DELETE FROM jobs WHERE kind='push-deliver'; UPDATE jobs SET status='pending',leased_until=NULL,leased_by=NULL,lease_token=NULL WHERE status='leased';",
+      "DELETE FROM sessions; DELETE FROM pending_logins; DELETE FROM recovery_tokens; DELETE FROM records WHERE kind IN ('pending-action','push-subscription','shopping-review','shopping-search','price-watch','booking-review','booking-details','conversation-execution','conversation-clarification','provider-checkout','supplier-recovery','supplier-monitor','booking-change-search'); DELETE FROM jobs WHERE kind IN ('push-deliver','shopping-query','supplier-monitor-check','conversation-execution'); UPDATE jobs SET status='pending',leased_until=NULL,leased_by=NULL,lease_token=NULL WHERE status='leased';",
     );
   } catch (e) {
     db.close();

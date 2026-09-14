@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "validationClass": "browser with fixture/sample inventory; provider gates verified",
+  "base": "http://127.0.0.1:4185",
+  "checks": [
+    {
+      "name": "Sample route search and comparison",
+      "pass": true
+    },
+    {
+      "name": "Real llama3.2 compound comparison and cheapest selection",
+      "pass": true,
+      "limitation": "One conversation; not the full model acceptance corpus."
+    },
+    {
+      "name": "Reload during model inference",
+      "pass": true
+    },
+    {
+      "name": "Cancel planning preserves selected draft",
+      "pass": true
+    },
+    {
+      "name": "Protected traveler creation and keyboard field navigation",
+      "pass": true
+    },
+    {
+      "name": "390 by 844 mobile protected dialog",
+      "pass": true,
+      "overflow": false
+    },
+    {
+      "name": "Provider-gated booking",
+      "pass": true
+    },
+    {
+      "name": "Gated payment SDK loads no external payment scripts",
+      "pass": true
+    },
+    {
+      "name": "Sensitive OTP input rejected before inference",
+      "pass": true
+    },
+    {
+      "name": "Result-set reference retained across reload",
+      "pass": true
+    },
+    {
+      "name": "Supplier recovery form and FlightAware license gate",
+      "pass": true
+    },
+    {
+      "name": "Flight comparison encrypted offline pack create, unlock, lock and refresh",
+      "pass": true
+    },
+    {
+      "name": "Offline reload and pack decryption with isolated QA server stopped",
+      "pass": true
+    },
+    {
+      "name": "390 by 844 chat, recovery, offline and supplier-ticket layouts; no horizontal page overflow",
+      "pass": true
+    },
+    {
+      "name": "Closed mobile navigation hidden from keyboard and accessibility tree; Enter opens and closes navigation",
+      "pass": true
+    },
+    {
+      "name": "Supplier wallet shows test inventory, issuance/payment states, ticket references and receipt links",
+      "pass": true
+    },
+    {
+      "name": "Keyboard booking-conversation navigation",
+      "pass": true
+    },
+    {
+      "name": "Flight monitoring requires license even after booking selection and consent",
+      "pass": true
+    },
+    {
+      "name": "Final production build loads with no new console errors or warnings",
+      "pass": true
+    },
+    {
+      "name": "Two-page flight itinerary PDF rendered and visually checked",
+      "pass": true
+    },
+    {
+      "name": "Selected local llama3.1:8b-instruct-q4_K_M booking-status answer survives browser reload; UI confirms actual model and completed execution",
+      "pass": true
+    },
+    {
+      "name": "Final chat booking-status evidence explicitly labels test inventory and no real ticket",
+      "pass": true
+    }
+  ],
+  "fixedFindings": [
+    "Eager payment SDK import produced Stripe warning; lazy-loaded behind authorized card controls.",
+    "Terminal execution progress remained after a newer direct action; cleared on direct action completion.",
+    "Pending request text and explicit result-reference persistence added; verified across reload.",
+    "Closed mobile sidebar removed from the accessibility tree.",
+    "Offline pack list refreshes after creation.",
+    "Supplier booking status in chat now labels test inventory as no real ticket and uses the supplier observation timestamp."
+  ],
+  "limitations": [
+    "Provider card iframe and 3DS not sandbox-certified.",
+    "No live tickets, payments or licensed flight-status calls.",
+    "Browser checks cover representative desktop/mobile workflows and keyboard operation; no claim of a comprehensive assistive-technology audit."
+  ],
+  "verifiedAt": "2026-09-13T07:06:10.668Z",
+  "console": {
+    "since": "2026-09-13T06:14:00.000Z",
+    "errors": 0,
+    "warnings": 0,
+    "earlierResolvedWarning": "Eager Stripe.js load, fixed before final verification."
+  }
+}

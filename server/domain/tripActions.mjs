@@ -17,8 +17,9 @@ export async function searchTrips(store, userId, input, travel) {
     to: input.toPlace ?? input.to,
     preferences: preferences({ ...store.user(userId).preferences, ...input.preferences }),
   };
-  const result =
+  const rawResult =
     request.mode === "provider" ? await travel.call("search", request) : sampleSearch(request);
+  const result = { ...rawResult, journeys: rawResult.journeys.map(j => ({ ...j, searchConstraints: { deadline: request.deadline ?? null, preferences: request.preferences } })) };
   const search = store.put(
     userId,
     "search",
@@ -98,6 +99,15 @@ export function changeState(store, userId, id, state, version) {
 }
 export function createAction(store, userId, request) {
   const { kind } = request;
+  if (request.conversationId) {
+    const c = store.get(userId, request.conversationId, "conversation");
+    const d = store.get(userId, request.draftId, "trip-draft");
+    const set = d.selected?.setId ? store.get(userId, d.selected.setId, "candidate-set") : null;
+    if (d.conversationId !== c.id || c.draftId !== d.id || d.version !== request.draftVersion ||
+        !set || set.conversationId !== c.id || set.searchId !== request.searchId ||
+        d.selected.journey.id !== request.candidateId || (request.journeyId ?? null) !== c.journeyId)
+      throw new DomainError("Review the selected itinerary in this conversation.", 409, "VERSION_CONFLICT");
+  }
   if (!["add", "change", "cancel", "recovery"].includes(kind))
     throw new DomainError("Unknown trip action.", 400);
   const journey = kind === "add" ? null : store.get(userId, request.journeyId, "journey");
@@ -120,6 +130,7 @@ export function createAction(store, userId, request) {
     "pending-action",
     {
       kind,
+      ...(request.conversationId ? { conversationId: request.conversationId, draftId: request.draftId, draftVersion: request.draftVersion } : {}),
       journeyId: journey?.id ?? null,
       journeyVersion: journey?.version ?? null,
       searchId: search?.id ?? null,
@@ -175,18 +186,30 @@ export async function confirmAction(store, userId, id, travel) {
     return { action: initial, journey: store.get(userId, initial.resultJourneyId, "journey") };
   if (initial.status !== "pending" || initial.expiresAt <= Date.now())
     throw new DomainError("This review has expired. Prepare a new action.", 409, "ACTION_EXPIRED");
+  const assertDraft = action => {
+    if (!action.conversationId) return;
+    const conversation = store.get(userId, action.conversationId, "conversation");
+    const draft = store.get(userId, action.draftId, "trip-draft");
+    if (draft.conversationId !== conversation.id || conversation.draftId !== draft.id || draft.version !== action.draftVersion || conversation.pending)
+      throw new DomainError("The draft changed. Review the current itinerary before saving.", 409, "VERSION_CONFLICT");
+  };
+  assertDraft(initial);
   if (initial.candidate?.dataMode === "provider") {
     const { search } = searchCandidate(store, userId, initial.searchId, initial.candidateId);
     const [fresh] = await Promise.all([
       travel.call("search", search.input),
       assertServiceAvailable(travel, initial.candidate),
     ]);
-    if (fresh.cache === "stale" || !fresh.journeys.some((j) => sameTrip(j, initial.candidate)))
+    const refreshed = fresh.journeys.find((j) => sameTrip(j, initial.candidate));
+    if (fresh.cache === "stale" || !refreshed)
       throw new DomainError(
         "The route has changed. Search again and review the new times.",
         409,
         "ROUTE_CHANGED",
       );
+    const fare = j => ({ totalCents: j.price.totalCents, currency: j.price.currency ?? "USD", unknown: !!j.price.unknown, conditions: j.price.conditions ?? null });
+    if (digest(fare(refreshed)) !== digest(fare(initial.candidate)))
+      throw new DomainError("The fare or ticket conditions changed. Search again and review the updated itinerary.", 409, "PRICE_CHANGED");
   }
   return store.transaction(() => {
     const action = store.get(userId, id, "pending-action");
@@ -194,6 +217,7 @@ export async function confirmAction(store, userId, id, travel) {
       return { action, journey: store.get(userId, action.resultJourneyId, "journey") };
     if (action.expiresAt <= Date.now())
       throw new DomainError("This review has expired.", 409, "ACTION_EXPIRED");
+    assertDraft(action);
     let journey;
     if (action.kind === "add")
       journey = saveTrip(
@@ -258,6 +282,10 @@ export async function confirmAction(store, userId, id, travel) {
             { id: r.id, expectedVersion: r.version },
           );
       }
+    }
+    if (action.conversationId) {
+      const conversation = store.get(userId, action.conversationId, "conversation");
+      store.put(userId, "conversation", { ...conversation, journeyId: journey.id }, { id: conversation.id, expectedVersion: conversation.version });
     }
     const applied = store.put(
       userId,

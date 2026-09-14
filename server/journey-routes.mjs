@@ -1,3 +1,4 @@
+import { ticketFunding } from "./domain/recoveryEconomics.mjs";
 import { changeState } from "./domain/tripActions.mjs";
 import {
   DomainError,
@@ -105,9 +106,7 @@ export async function journeyRoutes({ req, res, url, b, store, session, send }) 
     const alt = search.result.journeys.find((x) => x.id === b.journeyId);
     if (!alt) throw new DomainError("Choose an alternative from your search.");
     assertRecoverable(j, alt, Date.now());
-    const paidCents =
-      store.list(userId, "ticket").find((t) => t.journeyId === id && t.paidCents !== null)
-        ?.paidCents ?? null;
+    const paidCents = ticketFunding(store.list(userId, "ticket"), id, alt.price.currency ?? "USD");
     const cost = recoveryCost(j, alt, paidCents);
     return send(
       res,
@@ -115,7 +114,11 @@ export async function journeyRoutes({ req, res, url, b, store, session, send }) 
       store.put(userId, "recovery", {
         journeyId: id,
         alternative: alt,
-        incrementalCostCents: cost.incrementalCents,
+        economics: cost,
+        searchId: search.id,
+        observedAt: new Date().toISOString(),
+        expiresAt: Math.min(Date.parse(alt.departure), Date.now() + 900000),
+        incrementalCostCents: cost.cashRequiredNowCents,
         costBasis: cost.basis,
         retainedLegCents: cost.retainedLegCents,
         nonrefundableCents: cost.nonrefundableCents,

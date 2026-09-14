@@ -1,3 +1,4 @@
+import { searchRequest, offerSchema } from "../shopping/contracts.mjs";
 import { z } from "zod";
 const time = z.string().datetime({ offset: true });
 export const placeSchema = z.object({
@@ -54,6 +55,8 @@ const envelope = z.object({
   coverageLimited: z.boolean().optional(),
 });
 export const definitions = {
+  flight_search: {input:z.object({request:searchRequest,origin:z.string().regex(/^[A-Z]{3}$/),destination:z.string().regex(/^[A-Z]{3}$/),date:z.string().regex(/^\d{4}-\d{2}-\d{2}$/)}),output:z.object({offers:z.array(offerSchema).max(50),rejected:z.array(z.string()),source:z.string(),fetchedAt:time,scope:z.object({origin:z.string(),destination:z.string(),date:z.string(),returnDate:z.string().nullable(),received:z.number(),examined:z.number()})}),description:"Search selected domestic flight dates and airports through the configured supplier. Prices cover the entire party; unknown required bags remain unknown."},
+  flight_refresh: {input:z.object({offer:offerSchema,request:searchRequest}),output:z.object({offer:offerSchema,source:z.string(),fetchedAt:time}),description:"Revalidate a server-owned offer before review. No purchase or inventory hold."},
   places: {
     input: z.object({ q: z.string().max(200).default("") }),
     output: envelope.extend({ places: z.array(placeSchema) }),

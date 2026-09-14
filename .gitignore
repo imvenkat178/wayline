@@ -14,3 +14,5 @@ models/
 .runtime/
 backups/
 tmp/
+__pycache__/
+.pytest_cache/

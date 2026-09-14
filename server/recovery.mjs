@@ -1,3 +1,4 @@
+import { ticketFunding } from "./domain/recoveryEconomics.mjs";
 import { createHash } from "node:crypto";
 import {
   DomainError,
@@ -67,10 +68,11 @@ export async function prepareRecovery(
       from,
       to: j.toPlace ?? j.toId,
       departure,
+      deadline: j.searchConstraints?.deadline ?? undefined,
       travelers: j.travelers,
       bags: j.bags,
       mode: j.dataMode === "provider" ? "provider" : "sample",
-      preferences: store.user(userId).preferences,
+      preferences: { ...store.user(userId).preferences, ...j.searchConstraints?.preferences },
     },
     travel,
   ), j.dataMode === "provider" ? (disruptions ?? travel.call("disruptions")) : null]);
@@ -81,9 +83,7 @@ export async function prepareRecovery(
   const current = store.get(userId, j.id, "journey");
   if (current.version !== j.version)
     throw new DomainError("Journey changed while preparing alternatives.", 409);
-  const paid =
-    store.list(userId, "ticket").find((t) => t.journeyId === j.id && t.paidCents != null)
-      ?.paidCents ?? null;
+  const paid = ticketFunding(store.list(userId, "ticket"), j.id, j.price.currency ?? "USD");
   const eligible = search.journeys
     .filter((a) => {
       try {
@@ -119,7 +119,8 @@ export async function prepareRecovery(
           journeyVersion: j.version,
           searchId: search.searchId,
           alternative,
-          incrementalCostCents: cost.incrementalCents,
+          economics: cost,
+          incrementalCostCents: cost.cashRequiredNowCents,
           arrivalDifferenceMinutes: Math.round(
             (Date.parse(alternative.arrival) - Date.parse(j.arrival)) / 60000,
           ),

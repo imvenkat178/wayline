@@ -1,5 +1,35 @@
 # Feature implementation status
 
+## Conversational local-Llama release — 13 September 2026
+
+Persistent chat now uses a shared 39-action registry and validated local-Llama planning, protected traveler and transaction forms, stable references, clarification continuity, replayable progress, cancellation and grounded evidence. US flight scope supports returns, flexible dates, alternate airports and multi-city requests; quotes, supplier operations, monitoring/recovery and exports have separate durable records and provider gates.
+
+See [the current acceptance report](LOCAL_LLAMA_REPORT.md), [workflow matrix](TRAVELER_WORKFLOW_COVERAGE.md) and [provider readiness](PROVIDER_READINESS.md). These supersede older implementation limits below. Supplier sandbox and authorized live-provider validation have not run. Distribusion network access still requires partner documentation and granted US inventory.
+
+
+## Multimodal comparison foundation — 12 September 2026
+
+Implemented recovery cash accounting, evidence-only AI replies, shared money/offer schemas, a private MCP flight-shopping adapter, queued comparisons with review/revalidation, a versioned subset of MBTA adult fares, and consent/provider-gated price watches. The coastal planner includes flight comparison and optional Boston station access. Commercial access is not configured; real airline status, ticketing/payments and broad multimodal recovery are not enabled. See [C01–C12 implementation and remaining acceptance](MULTIMODAL_IMPLEMENTATION.md) for exact boundaries. Full regression: 546 passed; build passed; lint: 0 errors and 15 existing warnings. Live Boston checks verified $4.80 for two adults and correct budget exclusion. This does not complete the whole commercial roadmap.
+
+
+## Map rendering fix — 12 September 2026
+
+Corrected two independent map failures: OSM raster requests used an obsolete subdomain and inherited `no-referrer`, while the MapLibre 6 geometry worker was missing from the production bundle. Both application and prototype now share the canonical OSM endpoint, an origin-only referrer exception restricted to tile requests, visible attribution, and an explicitly bundled geometry worker. The document's default referrer policy remains unchanged. No tile proxy, cache bypass or offline tile downloads were added.
+
+Transit geometry now has a contrasting outline. Overlays initialize independently of tile loading; tile failures open the route diagram with a **Retry map** control. Verified actual Boston streets and South Station–Harvard route geometry, station popups, Fit journey, diagram switching, and the complete mobile map at 390px. The final browser console had no errors. Production build, 12 map/worker/offline regression checks and targeted lint passed. Logs: `tmp/map-fix-build.log`, `tmp/map-fix-tests.log`, `tmp/map-fix-lint.log`. See [OSM requirements](https://operations.osmfoundation.org/policies/tiles/) for the tile policy.
+
+## Routing recovery update — 12 September 2026
+
+Boston routing now translates connection failures and timeouts into actionable messages. A dropped connection receives one read-only retry within the original 15-second request budget. The planner preserves search inputs, offers **Retry search**, labels previous results after a failure, and prevents saving those results until a successful search.
+
+The service panel now provides **Check connections**, progress polling, full observation timestamps, readable data ages, and status refresh on browser focus/online events. Checks are authenticated, CSRF protected, rate limited and shared across simultaneous requests. Backup status remains visible if the MCP connection fails. Existing local process supervision remains in place; no sample routes are substituted during outages.
+
+Verified: **410/410 regression tests**, production build, real stdio MCP outage → recovery, connection-check authorization and deduplication, and browser wake refresh. The running app returned five South Station–Harvard routes and all seven travel services reported connected. The status panel was inspected at desktop and 390px mobile widths with no horizontal overflow. Logs: `tmp/routing-recovery-regression.log`, `tmp/routing-recovery-build.log`, `tmp/routing-recovery-lint.log` (zero errors, one existing planner hook warning).
+
+## Workspace update — 11 September 2026
+
+See [WORKSPACE_COMPLETION.md](WORKSPACE_COMPLETION.md) for the latest area-by-area implementation and verification. Boston commute and favorite routes, versioned record editing, direct saved-trip actions, ticket-photo access, itinerary downloads in Wallet, atomic inbox actions, station guides, departure weather and bounded local process recovery are now connected. The full regression suite passed **403 tests**. This update supersedes the older restrictions on those workflows below; national/provider-dependent roadmap items remain incomplete.
+
 ## Current checkpoint: Boston core launch — 11 September 2026
 
 The approved coastal UI now runs the Boston/MBTA pilot described in [CORE_LAUNCH.md](CORE_LAUNCH.md). This checkpoint supersedes older statements below that regional GTFS, AI trip mutations, itinerary PDFs or backups are not implemented. The original 105-feature roadmap remains separately tracked in the historical table; completion of this core launch does not mark every roadmap feature complete.

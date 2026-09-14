@@ -61,11 +61,16 @@ function validatePushKey(raw, label, expectedBytes, { uncompressedPoint = false 
   return raw;
 }
 export function validateRecord(kind, b) {
+  const route = () => {
+    const mode = b.mode ?? "sample";
+    if (!["sample", "provider"].includes(mode)) throw new DomainError("Choose sample or live schedules.");
+    return { mode, from: text(b.from, "Origin", 160), to: text(b.to, "Destination", 160),
+      ...(mode === "provider" ? { fromPlace: b.fromPlace, toPlace: b.toPlace } : {}) };
+  };
   if (kind === "favorite")
     return {
       name: text(b.name, "Shortcut name", 60),
-      from: text(b.from, "Origin", 30),
-      to: text(b.to, "Destination", 30),
+      ...route(),
     };
   if (kind === "traveler")
     return {
@@ -103,8 +108,7 @@ export function validateRecord(kind, b) {
     }
     return {
       name: text(b.name, "Commute name", 60),
-      from: text(b.from, "Origin", 30),
-      to: text(b.to, "Destination", 30),
+      ...route(),
       time: b.time,
       days: [...new Set(days)],
       enabled: b.enabled !== false,
@@ -133,10 +137,9 @@ export function validateRecord(kind, b) {
       coach: String(b.coach ?? "").slice(0, 40),
       platform: String(b.platform ?? "").slice(0, 40),
       journeyId: String(b.journeyId ?? "").slice(0, 100),
-      // Optional, self-reported: what the traveler says they actually paid. There is no
-      // payment integration anywhere in this codebase (bookingConfirmed is never set true),
-      // so this is the only amount-paid data available at all; recovery economics uses it,
-      // when present, in place of the abstract itinerary estimate (see recoveryCost()).
+      // Traveler-reported historical spending. Never a confirmed refund or ticket-use credit.
+      paymentScope: b.paymentScope === "group" ? "group" : "ticket",
+      paymentGroupId: b.paymentScope === "group" ? text(b.paymentGroupId, "Payment group reference", 100) : null,
       paidCents:
         b.paidCents === undefined || b.paidCents === null
           ? null

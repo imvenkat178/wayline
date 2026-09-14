@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Journey } from "../types";
 import { Button, Badge, Icon } from "./ui";
 import { journeyBounds, legGeometry } from "../geometry";
+import { journeyMapStyle, mapTileRequest } from "../mapStyle";
+import { loadMapLibre } from "../mapRuntime";
 interface Vehicle {
   id: string;
   lat: number;
@@ -39,30 +41,14 @@ export function JourneyMap({
     let observer: ResizeObserver | undefined;
     void (async () => {
       try {
-        const lib = await import("maplibre-gl");
+        const lib = await loadMapLibre();
         await import("maplibre-gl/dist/maplibre-gl.css");
         if (cancelled || !host.current) return;
         map = new lib.Map({
           container: host.current,
-          style: {
-            version: 8,
-            sources: {
-              osm: {
-                type: "raster",
-                tiles: ["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"],
-                tileSize: 256,
-                attribution: "© OpenStreetMap contributors",
-              },
-            },
-            layers: [
-              {
-                id: "osm",
-                type: "raster",
-                source: "osm",
-                paint: { "raster-saturation": -0.15, "raster-opacity": 0.95 },
-              },
-            ],
-          },
+          style: journeyMapStyle(),
+          transformRequest: mapTileRequest,
+          attributionControl: { compact: false },
           center: journey?.fromCoords ?? [-71.06, 42.35],
           zoom: 11,
         });
@@ -71,10 +57,17 @@ export function JourneyMap({
         observer.observe(host.current);
         map.addControl(new lib.NavigationControl({ showCompass: false }), "bottom-right");
         map.addControl(new lib.FullscreenControl(), "bottom-right");
-        map.on("error", () =>
-          setError("Basemap unavailable. Route geometry remains available in the offline diagram."),
-        );
-        map.on("load", () => {
+        map.on("error", (event) => {
+          if (cancelled) return;
+          if ("sourceId" in event && event.sourceId === "osm") {
+            setError("Street map unavailable. Your route is shown below. Retry the map when your connection returns.");
+            setGeographic(false);
+          } else {
+            setError("Some map details could not load. You can still open the route diagram.");
+          }
+        });
+        // Route overlays should not depend on a remote tile request completing.
+        map.once("style.load", () => {
           if (!map || cancelled) return;
           if (journey) {
             const features = journey.legs.map((l) => ({
@@ -87,11 +80,19 @@ export function JourneyMap({
               data: { type: "FeatureCollection", features },
             });
             map.addLayer({
+              id: "route-outline",
+              type: "line",
+              source: "route",
+              layout: { "line-cap": "round", "line-join": "round" },
+              paint: { "line-color": "#fffaf4", "line-width": 10, "line-opacity": 0.95 },
+            });
+            map.addLayer({
               id: "transit",
               type: "line",
               source: "route",
               filter: ["==", ["get", "walk"], false],
-              paint: { "line-color": "#bd512a", "line-width": 5 },
+              layout: { "line-cap": "round", "line-join": "round" },
+              paint: { "line-color": "#b8421e", "line-width": 6 },
             });
             map.addLayer({
               id: "walking",
@@ -178,7 +179,10 @@ export function JourneyMap({
           }
         });
       } catch {
-        if (!cancelled) setError("Map could not load. Open the route diagram.");
+        if (!cancelled) {
+          setError("Street map could not load. Your route is shown below.");
+          setGeographic(false);
+        }
       }
     })();
     return () => {
@@ -212,9 +216,10 @@ export function JourneyMap({
             onClick={() => {
               setGeographic(!geographic);
               setError("");
+              setTilted(false);
             }}
           >
-            {geographic ? "Diagram" : "Map"}
+            {geographic ? "Diagram" : error ? "Retry map" : "Map"}
           </Button>
         )}
       </div>

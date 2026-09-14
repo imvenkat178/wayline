@@ -1,0 +1,12 @@
+import type {TripConstraints} from '../workspaceTypes';
+import {AirportPicker} from './AirportPicker';
+import {Field,Button} from './ui';
+export function FlightSearchScope({value,onChange}:{value:TripConstraints;onChange:(c:TripConstraints)=>void}){
+ const airport=(field:'originAirports'|'destinationAirports',i:number,code:string,ref?:NonNullable<TripConstraints['resolvedAirports']>[number])=>onChange({...value,[field]:(value[field]??[]).map((old,n)=>n===i?code:old),resolvedAirports:ref?[...(value.resolvedAirports??[]).filter(a=>a.iata!==ref.iata),ref]:value.resolvedAirports});
+ return <details><summary>Flexible dates and alternate airports</summary>
+ <p>Choose every airport and date to search. Coverage lists searched combinations and any omitted by the six-search limit.</p>
+ {(['originAirports','destinationAirports'] as const).map(field=><fieldset key={field}><legend>{field==='originAirports'?'Alternate departure airports':'Alternate arrival airports'}</legend>{(value[field]??[]).map((code,i)=><div key={i}><AirportPicker label={`${field==='originAirports'?'Departure':'Arrival'} alternate ${i+1}`} value={code} references={value.resolvedAirports} onChange={(code,ref)=>airport(field,i,code,ref)}/><Button onClick={()=>onChange({...value,[field]:value[field]!.filter((_,n)=>n!==i)})}>Remove airport</Button></div>)}<Button disabled={(value[field]?.length??0)>=2} onClick={()=>onChange({...value,[field]:[...(value[field]??[]),'']})}>Add alternate airport</Button></fieldset>)}
+ <fieldset><legend>Additional travel dates</legend>{(value.flexibleDates??[]).map((date,i)=><div key={i}><Field label={`Additional date ${i+1}`}><input type="date" required value={date} onChange={e=>onChange({...value,flexibleDates:value.flexibleDates!.map((d,n)=>n===i?e.target.value:d)})}/></Field><Button onClick={()=>onChange({...value,flexibleDates:value.flexibleDates!.filter((_,n)=>n!==i)})}>Remove date</Button></div>)}<Button disabled={(value.flexibleDates?.length??0)>=2} onClick={()=>onChange({...value,flexibleDates:[...(value.flexibleDates??[]),'']})}>Add travel date</Button><small>Additional dates search the entire local day. Arrival deadlines still apply.</small></fieldset>
+ <Field label="Primary departure window (hours)"><input type="number" min="1" max="24" value={value.flightWindowHours??23} onChange={e=>onChange({...value,flightWindowHours:Number(e.target.value)})}/></Field>
+ </details>;
+}
