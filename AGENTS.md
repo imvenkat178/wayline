@@ -47,6 +47,10 @@ between tools; these files are not.
    fails if code changed but `HANDOFF.md` did not.
 7. If you commit, include `HANDOFF.md` and `ROADMAP.md` in the same commit as the code
    they describe.
+8. Run `npm run docs:memory` so `docs/roadmap/index.html` reflects the updated memory. If your
+   tool can publish claude.ai artifacts, republish that page to the owner's roadmap artifact,
+   https://claude.ai/code/artifact/6a5c3e70-d282-43b0-ab8e-00df1697dfc6 (same URL every time).
+   Otherwise say in your session-log entry that the artifact was not refreshed.
 
 ### How to write a good handoff
 
