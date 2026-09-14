@@ -14,5 +14,6 @@ models/
 .runtime/
 backups/
 tmp/
+.env.container
 __pycache__/
 .pytest_cache/

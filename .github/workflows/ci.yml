@@ -18,7 +18,10 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
+      # Full history, so the branch handoff check below can find the merge base with main.
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -45,6 +48,23 @@ jobs:
       - run: python3 scripts/roadmap.py check
 
       - run: python3 scripts/check_handoff.py --strict
+
+      # ROADMAP G7.1.3: --strict only sees uncommitted work, which CI never has. Compare the
+      # commits a pull request adds (or a push to main adds) and fail when they change code
+      # without updating HANDOFF.md.
+      - name: Commits that change code also update HANDOFF.md
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            python3 scripts/check_handoff.py --base "origin/$BASE_REF"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            python3 scripts/check_handoff.py --base "$BEFORE"
+          else
+            echo "No earlier commit to compare with; skipping the branch check."
+          fi
 
       # The repository ships a pre-built `standalone/` bundle checked into git (documented in
       # README.md as "a compiled checkpoint; rebuild after frontend changes"). CI rebuilds it

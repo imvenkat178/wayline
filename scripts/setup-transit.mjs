@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile, rename, stat, readdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile, rename, stat, readdir, copyFile } from "node:fs/promises";
 import { createWriteStream, createReadStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { createHash } from "node:crypto";
@@ -79,30 +79,8 @@ await writeFile(
   join(root, "transit-runtime.json"),
   JSON.stringify({ java, jar: join(root, "otp.jar"), region }, null, 2),
 );
-await writeFile(
-  join(region, "build-config.json"),
-  JSON.stringify(
-    { transitServiceStart: "-P1D", transitServiceEnd: "P2M", osmCacheDataInMem: false },
-    null,
-    2,
-  ),
-);
-await writeFile(
-  join(region, "router-config.json"),
-  JSON.stringify(
-    {
-      routingDefaults: { walkReluctance: 2 },
-      updaters: [
-        {
-          type: "stop-time-updater",
-          frequency: "30s",
-          url: "https://cdn.mbta.com/realtime/TripUpdates.pb",
-          feedId: "mbta-ma-us",
-        },
-      ],
-    },
-    null,
-    2,
-  ),
-);
+// The validated OTP configuration lives in infra/otp so the local pilot and the container stack
+// (scripts/otp-data.mjs, docker-compose.yml) build the same graph.
+for (const name of ["build-config.json", "router-config.json"])
+  await copyFile(resolve("infra", "otp", name), join(region, name));
 console.log("Boston routing assets ready. Run npm run transit:build, then npm run transit:start.");

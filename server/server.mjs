@@ -351,7 +351,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const activePidFile = join(process.env.DATA_DIR || resolve("data"), ".server-pid");
   if (existsSync(activePidFile)) {
     const pid = Number(readFileSync(activePidFile, "utf8"));
-    try {
+    // A file holding this process's own PID is stale: after an unclean container stop, the
+    // restarted server can receive the same PID (often 1) that the previous one recorded.
+    if (pid !== process.pid) try {
       process.kill(pid, 0);
       throw new Error(
         "Wayline is already running for this data directory. Stop the current server before starting another.",

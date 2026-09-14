@@ -1,4 +1,5 @@
 {
-  "areaVisibility": false,
-  "osmCacheDataInMem": true
+  "transitServiceStart": "-P1D",
+  "transitServiceEnd": "P2M",
+  "osmCacheDataInMem": false
 }

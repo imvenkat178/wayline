@@ -1,7 +1,13 @@
 {
-  "updaters": [],
   "routingDefaults": {
-    "walkSpeed": 1.33,
-    "transferSlack": "2m"
-  }
+    "walkReluctance": 2
+  },
+  "updaters": [
+    {
+      "type": "stop-time-updater",
+      "frequency": "30s",
+      "url": "https://cdn.mbta.com/realtime/TripUpdates.pb",
+      "feedId": "mbta-ma-us"
+    }
+  ]
 }

@@ -61,6 +61,23 @@ On PowerShell use `$env:PORT="4174"; npm start` in terminal 1. Open the URL prin
 
 This exact two-terminal setup used to fail every mutating request (login, journey search, the Agent chat, everything except plain `GET`s) with 403 `"Origin is not allowed."`, because the browser's real `Origin` header (Vite's port) never matched the API server's own computed origin (its own port) -- a real bug, not a client misconfiguration, found by actually running the documented workflow above rather than assuming it worked. `server.mjs` now allows exactly one additional origin in non-production mode, defaulting to `http://127.0.0.1:5173` and overridable via `DEV_CLIENT_ORIGIN` if Vite runs on a different port; production is unaffected; see `tests/origin-check.test.mjs`.
 
+## Run with containers
+
+`Dockerfile` builds the application image and `docker-compose.yml` runs it with an OpenTripPlanner 2.10 router for Boston. You need Docker with Compose 2.24 or newer, about 8 GB of memory available to Docker for building the routing graph, and a few GB of disk. Verification status is tracked in ROADMAP G2.2.
+
+1. Copy `.env.container.example` to `.env.container`, then set `DATA_ENCRYPTION_KEY` (64 hexadecimal characters) and `PUBLIC_ORIGIN`. Keep this file separate from `.env`, and back up the key: without it the container database and backups cannot be read.
+2. Download routing data once: `docker compose run --rm otp-data` fetches MBTA GTFS and Massachusetts OpenStreetMap data and copies the configuration from `infra/otp/`.
+3. Build the routing graph once: `docker compose run --rm otp-build`. Set `OTP_MEMORY` (default `6g`) if Docker has less memory.
+4. Start everything: `docker compose up -d --build`, then open `http://127.0.0.1:4174` (set `WAYLINE_PORT` to change the host port). The router needs a few minutes to load its graph; the service connections panel shows when routing is ready.
+
+| Service | Role | Data |
+| --- | --- | --- |
+| `app` | Wayline server in production mode, non-root, health-checked on `/api/health` | Volumes `wayline-data` (database, keys, VAPID keys) and `wayline-backups` |
+| `otp` | OpenTripPlanner serving the saved Boston graph on the internal network | Volume `otp-graph` |
+| `otp-data`, `otp-build` | One-time setup jobs (profile `setup`), run with `docker compose run` | Volume `otp-graph` |
+
+`docker compose down` keeps the volumes; `docker compose down -v` permanently deletes the database, backups and graph. To refresh schedules, run `docker compose run --rm otp-data node otp-data.mjs --refresh`, then `docker compose run --rm otp-build`, then `docker compose restart otp`. To use a local model on the host, set `OLLAMA_BASE_URL=http://host.docker.internal:11434` in `.env.container`. The backup recovery key currently sits in the same data volume as the database; off-site backups and secret storage are tracked in ROADMAP G2.7 and G2.8.
+
 ## Current features
 
 | Area          | Implemented behavior and limits                                                                                                                                                                                                                                                                                                                                                           |

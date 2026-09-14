@@ -20,6 +20,10 @@
     "eslint.config.js",
     ".env.example",
     ".gitignore",
+    ".dockerignore",
+    "Dockerfile",
+    "docker-compose.yml",
+    ".env.container.example",
     ".agent-memory.json",
     "start.sh",
     "start.bat"

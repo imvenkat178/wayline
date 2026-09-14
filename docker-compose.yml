@@ -1,0 +1,80 @@
+# Wayline container stack (ROADMAP G2.2). See "Run with containers" in README.md.
+#
+# One-time setup, then start:
+#   cp .env.container.example .env.container    # set DATA_ENCRYPTION_KEY and PUBLIC_ORIGIN
+#   docker compose run --rm otp-data             # download MBTA GTFS and Massachusetts OSM
+#   docker compose run --rm otp-build            # build the routing graph (several GB of memory)
+#   docker compose up -d --build
+#
+# Data lives in named volumes. `docker compose down` keeps them; `docker compose down -v`
+# deletes the database, backups and routing graph.
+
+name: wayline
+
+services:
+  app:
+    build: .
+    image: wayline:local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WAYLINE_PORT:-4174}:4174"
+    env_file:
+      - path: .env.container
+        required: true
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "4174"
+      DATA_DIR: /var/lib/wayline/data
+      BACKUP_DIR: /var/lib/wayline/backups
+      OTP_GRAPHQL_URL: http://otp:8080/otp/gtfs/v1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - wayline-data:/var/lib/wayline/data
+      - wayline-backups:/var/lib/wayline/backups
+    depends_on:
+      otp:
+        condition: service_started
+
+  otp:
+    image: opentripplanner/opentripplanner:2.10.0
+    restart: unless-stopped
+    command: ["--load", "--serve"]
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx${OTP_MEMORY:-6g}"
+    volumes:
+      - otp-graph:/var/opentripplanner
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 300s
+
+  otp-data:
+    image: node:24-bookworm-slim
+    profiles: ["setup"]
+    working_dir: /work
+    command: ["node", "otp-data.mjs"]
+    environment:
+      OTP_DATA_DIR: /var/opentripplanner
+      OTP_CONFIG_DIR: /work/infra-otp
+    volumes:
+      - ./scripts/otp-data.mjs:/work/otp-data.mjs:ro
+      - ./infra/otp:/work/infra-otp:ro
+      - otp-graph:/var/opentripplanner
+
+  otp-build:
+    image: opentripplanner/opentripplanner:2.10.0
+    profiles: ["setup"]
+    command: ["--build", "--save"]
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx${OTP_MEMORY:-6g}"
+    volumes:
+      - otp-graph:/var/opentripplanner
+
+volumes:
+  wayline-data:
+  wayline-backups:
+  otp-graph:

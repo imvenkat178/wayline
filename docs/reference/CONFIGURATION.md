@@ -112,5 +112,9 @@ These variables affect scripts only, never the running server.
 | `COVERAGE_BROWSER_REPORT` | `docs/evaluations/browser-verification.json` | Browser verification report | `scripts/report-workflow-coverage.mjs` |
 | `COVERAGE_CHECK_LOG` | `tmp/check-final-acceptance.log` | Test log summarized in the coverage report | `scripts/report-workflow-coverage.mjs` |
 | `COVERAGE_MEMORY_REPORT` | `docs/evaluations/local-runtime-memory.json` | Model memory report | `scripts/report-workflow-coverage.mjs` |
+| `OTP_DATA_DIR` | `.runtime/boston` | Directory that receives the MBTA GTFS, Massachusetts OpenStreetMap data and OTP configuration; the container stack sets `/var/opentripplanner` | `scripts/otp-data.mjs` |
+| `OTP_CONFIG_DIR` | `infra/otp` | Directory holding `build-config.json` and `router-config.json` to copy into the data directory | `scripts/otp-data.mjs` |
+
+The container stack (`docker-compose.yml`) also reads `WAYLINE_PORT` (host port, default `4174`) and `OTP_MEMORY` (Java heap for OTP, default `6g`) from your shell or a `.env` file when interpolating the compose file, and passes `.env.container` to the application. See "Run with containers" in README.md.
 
 The evaluation and benchmark scripts set `OLLAMA_BASE_URL` to `http://127.0.0.1:11434`, `OLLAMA_NUM_CTX` to `8192` and `ENABLE_EXTERNAL_FEEDS` to `false` for their own process.

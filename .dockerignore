@@ -1,0 +1,23 @@
+# Keep secrets, local data and large generated material out of the image build context.
+.git
+.github
+node_modules
+.env
+.env.*
+!.env.example
+!.env.container.example
+data
+backups
+.runtime
+models
+tmp
+artifacts
+coverage
+output
+docs
+standalone
+*.log
+__pycache__
+.pytest_cache
+.tsx-test-cache
+*.tsbuildinfo
