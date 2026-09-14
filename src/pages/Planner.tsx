@@ -1,3 +1,4 @@
+import { ComparisonPlanner } from "../components/ComparisonPlanner";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../context";
 import { useT } from "../useT";
@@ -35,6 +36,7 @@ export default function Planner() {
   } = useApp();
   const { t, localeTag } = useT();
   const { busy, error, run } = useAsync();
+  const { busy: searching, error: searchError, run: runSearch } = useAsync();
   const [filters, setFilters] = useState(false),
     [special, setSpecial] = useState<"airport" | "group" | null>(null);
   const [shortcuts, setShortcuts] = useState<SavedItem[]>([]);
@@ -54,7 +56,7 @@ export default function Planner() {
     void api<SavedItem[]>("/records/favorite")
       .then(setShortcuts)
       .catch(() => {});
-    if (!result) void run(() => search());
+    if (!result) void runSearch(() => search());
   }, []);
   const update = <K extends keyof SearchInput>(k: K, v: SearchInput[K]) =>
     setSearchInput((s) => ({ ...s, [k]: v }));
@@ -67,10 +69,13 @@ export default function Planner() {
     });
   const favorite = () =>
     run(async () => {
-      const from = boot.cities.find((c) => c.id === searchInput.from)?.name,
-        to = boot.cities.find((c) => c.id === searchInput.to)?.name;
+      const from = searchInput.fromPlace?.name ?? boot.cities.find((c) => c.id === searchInput.from)?.name ?? searchInput.from,
+        to = searchInput.toPlace?.name ?? boot.cities.find((c) => c.id === searchInput.to)?.name ?? searchInput.to;
       await api("/records/favorite", "POST", {
-        name: `${from} → ${to}`,
+        name: `${from} → ${to}`.slice(0, 60),
+        mode: searchInput.mode,
+        fromPlace: searchInput.fromPlace,
+        toPlace: searchInput.toPlace,
         from: searchInput.from,
         to: searchInput.to,
       });
@@ -79,6 +84,7 @@ export default function Planner() {
     });
   return (
     <>
+      <ComparisonPlanner key={boot.user.id} />
       <div className="planning-board"><div className="page-heading planner-heading">
         <div>
 
@@ -91,7 +97,7 @@ export default function Planner() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            void run(() => search());
+            void runSearch(() => search());
           }}
         >
           <div className="location-row">
@@ -133,8 +139,8 @@ export default function Planner() {
                 }}
               />
             </Field>
-            <Button kind="primary search-button" type="submit" icon="search" disabled={busy}>
-              {busy ? t("planner.searching") : t("planner.findJourneys")}
+            <Button kind="primary search-button" type="submit" icon="search" disabled={searching || busy}>
+              {searching ? t("planner.searching") : t("planner.findJourneys")}
             </Button>
           </div>
           <div className="planner-options">
@@ -165,6 +171,7 @@ export default function Planner() {
                 />
               </div>
             </Field>
+            {searchInput.mode === "provider" && <p className="fine-print">Live fares may be unknown. Routes with unknown costs cannot be verified against your budget or ranked by lowest complete price.</p>}
             <Field label={t("planner.schedules")}>
               <select value={searchInput.mode} onChange={(e) => setSearchInput(s=>({...s,mode:e.target.value,from:e.target.value==='provider'?'place-sstat':'la',to:e.target.value==='provider'?'place-harsq':'sj',fromPlace:undefined,toPlace:undefined}))}>
                 <option value="sample">{t("planner.sampleRoutes")}</option>
@@ -301,19 +308,26 @@ export default function Planner() {
             icon="heart"
             kind="small"
             onClick={() => {
-              const next = { ...searchInput, from: s.from!, to: s.to! };
+              const next = { ...searchInput, from: s.from!, to: s.to!, fromPlace: s.fromPlace, toPlace: s.toPlace,
+                mode: s.mode ?? "sample", deadline: undefined,
+                departure: new Date(Math.max(Date.parse(searchInput.departure), Date.now() + 300000)).toISOString() };
               setSearchInput(next);
-              void run(() => search(next));
+              void runSearch(() => search(next));
             }}
           >
             {s.name}
           </Button>
         ))}
-        <Button icon="plus" kind="small subtle" disabled={searchInput.mode === "provider"} title="City shortcuts are available for sample routes" onClick={() => void favorite()}>
+        <Button icon="plus" kind="small subtle" disabled={busy} onClick={() => void favorite()}>
           {t("planner.saveRoute")}
         </Button>
       </div>
       <ServiceStatus/>{error && <Notice tone="error">{error}</Notice>}
+      {searchError && <Notice tone="error"><div className="search-retry">
+        <div><b>We couldn’t load new routes.</b><p>{searchError}</p>
+          {result && <small>Any routes below are from your previous successful search.</small>}</div>
+        <Button icon="refresh" disabled={searching} onClick={() => void runSearch(() => search())}>Retry search</Button>
+      </div></Notice>}
       {result?.warning && <Notice tone="amber">{result.warning}</Notice>}
       <div className="results-layout">
         <section>
@@ -340,6 +354,8 @@ export default function Planner() {
             ].map(([value, labelKey]) => (
               <button
                 key={value}
+                disabled={searchInput.mode === "provider" && value === "price" && !result?.journeys.some(j => j.price.totalCents !== null)}
+                title={value === "price" && searchInput.mode === "provider" ? "Requires complete fares; unknown prices are not zero." : undefined}
                 className={searchInput.preferences.priority === value ? "active" : ""}
                 aria-pressed={searchInput.preferences.priority === value}
                 onClick={() => {
@@ -348,7 +364,7 @@ export default function Planner() {
                     preferences: { ...searchInput.preferences, priority: value },
                   };
                   setSearchInput(next);
-                  void run(() => search(next));
+                  void runSearch(() => search(next));
                 }}
               >
                 {t(labelKey)}
@@ -360,7 +376,7 @@ export default function Planner() {
               <Icon name="info" size={14} /> {t("planner.sampleNote")}
             </div>
           )}
-          <div className={busy ? "results-loading" : ""}>
+          <div className={searching ? "results-loading" : ""}>
             {result?.journeys.map((j, i) => (
               <JourneyCard
                 key={j.id}
@@ -445,7 +461,7 @@ export default function Planner() {
                 <Button
                   kind="primary full"
                   onClick={() => void save()}
-                  disabled={busy}
+                  disabled={busy || searching || !!searchError}
                   icon="shield"
                 >
                   {t("planner.saveAndFollow")}

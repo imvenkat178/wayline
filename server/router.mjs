@@ -1,4 +1,8 @@
+import {protectConversationInput} from './domain/conversationPrivacy.mjs';
+import { shoppingRoutes } from "./shopping/routes.mjs";
+import { workspaceRoutes } from "./workspace-routes.mjs";
 import { handleCoreRoutes } from "./core-routes.mjs";
+import { resolveSavedRoute, nextCommuteDeparture } from "./domain/commutes.mjs";
 import { searchTrips, saveTrip } from "./domain/tripActions.mjs";
 import { createToolRunner } from "./domain/agentTools.mjs";
 import { hashToken, MIN_REPORT_COHORT } from "./store.mjs";
@@ -54,6 +58,8 @@ export async function handleApi(ctx) {
     emailProvider,
   } = ctx;
   const userId = session.userId;
+  if (await workspaceRoutes(ctx)) return;
+  if (await shoppingRoutes(ctx)) return;
   if (await handleCoreRoutes(ctx)) return;
   const userAgent = String(req.headers["user-agent"] ?? "").slice(0, 200);
   if (url.pathname === "/api/bootstrap") {
@@ -255,17 +261,23 @@ If you didn't request this, you can ignore this email.`,
   );
   if (recordMatch) {
     const [, kind, id] = recordMatch;
-    if (req.method === "GET")
-      return send(res, 200, id ? store.get(userId, id, kind) : store.list(userId, kind));
+    if (req.method === "GET") {
+      const decorate = value => kind === "commute" ? { ...value, nextDeparture: nextCommuteDeparture(value) } : value;
+      return send(res, 200, id ? decorate(store.get(userId, id, kind)) : store.list(userId, kind).map(decorate));
+    }
+    if (req.method === "PATCH" && id && ["favorite", "commute", "pass", "ticket", "traveler", "contact"].includes(kind)) {
+      const old = store.get(userId, id, kind);
+      if (!Number.isInteger(b.version) || b.version !== old.version)
+        throw new DomainError("This record changed. Refresh it before saving again.", 409, "VERSION_CONFLICT");
+      let value = validateRecord(kind, { ...old, ...b });
+      if (["favorite", "commute"].includes(kind) && ["mode", "from", "to", "fromPlace", "toPlace"].some(k => b[k] !== undefined && JSON.stringify(b[k]) !== JSON.stringify(old[k])))
+        value = await resolveSavedRoute(value, ctx.travel);
+      if (kind === "ticket" && value.journeyId) store.get(userId, value.journeyId, "journey");
+      return send(res, 200, store.put(userId, kind, value, { id, expectedVersion: b.version }));
+    }
     if (req.method === "POST" && !id) {
-      const value = validateRecord(kind, b);
-      if (
-        ["favorite", "commute"].includes(kind) &&
-        (!cities.some((c) => c.id === value.from) ||
-          !cities.some((c) => c.id === value.to) ||
-          value.from === value.to)
-      )
-        throw new DomainError("Choose different supported endpoints.");
+      let value = validateRecord(kind, b);
+      if (["favorite", "commute"].includes(kind)) value = await resolveSavedRoute(value, ctx.travel);
       if (kind === "ticket" && value.journeyId) store.get(userId, value.journeyId, "journey");
       if (kind === "report") {
         // Real confidence weighting (roadmap feature 99) -- how many OTHER distinct accounts
@@ -337,6 +349,7 @@ If you didn't request this, you can ignore this email.`,
     }
   }
   if (url.pathname === "/api/agent" && req.method === "POST") {
+    protectConversationInput(b.input);
     rateLimit(`agent:${userId}`, 20);
     const input = text(b.input, "Message", 2000);
     let journey = b.journeyId ? store.get(userId, b.journeyId, "journey") : null;
@@ -417,8 +430,16 @@ If you didn't request this, you can ignore this email.`,
       discoverAgencies(url.searchParams.get("from"), url.searchParams.get("to")),
     );
   if (url.pathname.startsWith("/api/stations/") && req.method === "GET") {
-    const s = stationGuide(url.pathname.split("/").pop());
-    if (!s) throw new DomainError("Station not found.", 404);
+    const id = decodeURIComponent(url.pathname.split("/").pop());
+    let s = stationGuide(id);
+    if (!s) {
+      const data = await ctx.travel.call("places", { q: id });
+      const p = data.places.find(p => p.id === id);
+      if (!p) throw new DomainError("Station not found.", 404);
+      s = { ...p, source: `${data.source} · checked ${data.fetchedAt}. Facilities and indoor paths are not verified.`,
+        facilities: [{ name: "Boarding platform", status: "Check the station departure board" }, { name: "Accessibility", status: "Verify current elevator service with MBTA" }],
+        directions: [`Go to ${p.name} at the mapped station location.`, "Match the route and destination on the departure board before boarding.", "Follow posted station signs; the map shows the station location, not an indoor path."] };
+    }
     return send(res, 200, s);
   }
   if (url.pathname === "/api/mbta/vehicles" && req.method === "GET")

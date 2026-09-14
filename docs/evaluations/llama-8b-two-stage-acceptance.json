@@ -1,0 +1,523 @@
+{
+  "schemaVersion": 2,
+  "acceptanceScope": "Intent and argument routing through the conversation HTTP executor; provider and complete-journey acceptance are separate.",
+  "startedAt": "2026-09-13T05:02:57.558Z",
+  "validationClass": "real Llama with fixture inventory",
+  "model": "llama3.1:8b-instruct-q4_K_M",
+  "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+  "numCtx": 8192,
+  "temperature": 0,
+  "ollamaVersion": "0.34.0",
+  "hardware": {
+    "ramBytes": 34032574464,
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13620H"
+  },
+  "codeHash": "9da5023d299234f5b37568d78362ce0a8042c1b3cbda3122b0f5b1f7e4e77dac",
+  "codeHashes": {
+    "server/domain/conversationPlanner.mjs": "9da5023d299234f5b37568d78362ce0a8042c1b3cbda3122b0f5b1f7e4e77dac",
+    "server/domain/conversationExecution.mjs": "41d57724c2adf01c9d40bba4fe9abeda1cac12bd013351c22ae2d55aedf95ce6",
+    "server/domain/workspaceInterpreter.mjs": "984352086fedd022ee6936e67fd3df97e81e7af81cdeb5ea0c93746602a60dd0",
+    "shared/travelerActions.mjs": "8c6f803c088425dbfd06cfcda8d6e4c676ccc11608a498476374273d9fd79e2b",
+    "server/adapters/llm.mjs": "32817eb94f3c8d063c02fdfeefde4051d53044556c3a46eb364c774f8737a4af"
+  },
+  "corpusHash": "5e83453f185a570b1c396af6c4447579687d5f0451bf75b906e6e57e942f575b",
+  "requiredCaseCount": 200,
+  "requestedRepeats": 2,
+  "results": [
+    {
+      "id": "search_options-1",
+      "repeat": 1,
+      "input": "Find a trip from Boston to New York tomorrow at 9 am",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "search_options"
+      ],
+      "commands": [
+        {
+          "op": "search_options",
+          "patch": {
+            "from": "bos",
+            "to": "nyc",
+            "departure": "2026-09-14T13:00:00.000Z"
+          }
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 37119,
+        "totalDurationNs": 28864092700,
+        "promptTokens": 447,
+        "outputTokens": 41,
+        "numCtx": 8192
+      },
+      "latencyMs": 37177,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "search_options-2",
+      "repeat": 1,
+      "input": "Search flights from BOS to JFK tomorrow at 9 am",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "clarify"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "fallback",
+        "modelCalls": 2,
+        "stage": "validate",
+        "failureKind": "validation",
+        "reason": "Local Llama could not produce a validated action. Please retry or use the direct controls.",
+        "latencyMs": 38535
+      },
+      "latencyMs": 38563,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "search_options-3",
+      "repeat": 1,
+      "input": "Refresh options for my route",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "search_options"
+      ],
+      "commands": [
+        {
+          "op": "search_options"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 12807,
+        "totalDurationNs": 8372008500,
+        "promptTokens": 439,
+        "outputTokens": 30,
+        "numCtx": 8192
+      },
+      "latencyMs": 12841,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "search_options-4",
+      "repeat": 1,
+      "input": "Find routes from bos to nyc tomorrow at 10 am",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "search_options"
+      ],
+      "commands": [
+        {
+          "op": "search_options",
+          "patch": {
+            "from": "bos",
+            "to": "nyc",
+            "departure": "2026-09-14T14:00:00.000Z"
+          }
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 17628,
+        "totalDurationNs": 11134179300,
+        "promptTokens": 446,
+        "outputTokens": 40,
+        "numCtx": 8192
+      },
+      "latencyMs": 17662,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "search_options-5",
+      "repeat": 1,
+      "input": "Search again with these requirements",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "clarify"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 29612,
+        "totalDurationNs": 23967844200,
+        "promptTokens": 438,
+        "outputTokens": 29,
+        "numCtx": 8192
+      },
+      "latencyMs": 29636,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "update_constraints-1",
+      "repeat": 1,
+      "input": "Leave two hours later",
+      "family": "planning",
+      "expected": [
+        "update_constraints"
+      ],
+      "actual": [
+        "exchange_ticket"
+      ],
+      "commands": [
+        {
+          "op": "exchange_ticket"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 31192,
+        "totalDurationNs": 24656238200,
+        "promptTokens": 572,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 31222,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": false,
+      "pass": false
+    },
+    {
+      "id": "update_constraints-2",
+      "repeat": 1,
+      "input": "Set my budget to $120",
+      "family": "planning",
+      "expected": [
+        "update_constraints"
+      ],
+      "actual": [
+        "update_constraints"
+      ],
+      "commands": [
+        {
+          "op": "update_constraints",
+          "patch": {
+            "preferences": {
+              "budgetCents": 12000
+            }
+          }
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 12439,
+        "totalDurationNs": 7743884400,
+        "promptTokens": 574,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 12469,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "update_constraints-3",
+      "repeat": 1,
+      "input": "Change to two travelers",
+      "family": "planning",
+      "expected": [
+        "update_constraints"
+      ],
+      "actual": [
+        "update_constraints"
+      ],
+      "commands": [
+        {
+          "op": "update_constraints",
+          "patch": {
+            "travelers": 2
+          }
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 11163,
+        "totalDurationNs": 6697392000,
+        "promptTokens": 572,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 11223,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "update_constraints-4",
+      "repeat": 1,
+      "input": "Avoid the bus",
+      "family": "planning",
+      "expected": [
+        "update_constraints"
+      ],
+      "actual": [
+        "search_options"
+      ],
+      "commands": [
+        {
+          "op": "search_options",
+          "patch": {
+            "preferences": {
+              "avoidBus": true
+            }
+          }
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 11763,
+        "totalDurationNs": 7600474000,
+        "promptTokens": 571,
+        "outputTokens": 28,
+        "numCtx": 8192
+      },
+      "latencyMs": 11794,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "update_constraints-5",
+      "repeat": 1,
+      "input": "Could you shift our start time forward by ninety minutes and leave the rest alone?",
+      "family": "planning",
+      "expected": [
+        "update_constraints"
+      ],
+      "actual": [
+        "update_constraints"
+      ],
+      "commands": [
+        {
+          "op": "update_constraints",
+          "patch": {
+            "departure": "2026-09-20T06:36:20.531Z"
+          }
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 11809,
+        "totalDurationNs": 6302136400,
+        "promptTokens": 584,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 11843,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "compare_options-1",
+      "repeat": 1,
+      "input": "Compare the first and third options",
+      "family": "planning",
+      "expected": [
+        "compare_options"
+      ],
+      "actual": [
+        "compare_options",
+        "clarify"
+      ],
+      "commands": [
+        {
+          "op": "compare_options",
+          "positions": [
+            1
+          ]
+        },
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 31726,
+        "totalDurationNs": 26939353100,
+        "promptTokens": 446,
+        "outputTokens": 48,
+        "numCtx": 8192
+      },
+      "latencyMs": 31768,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "compare_options-2",
+      "repeat": 1,
+      "input": "Which existing option is cheapest?",
+      "family": "planning",
+      "expected": [
+        "compare_options"
+      ],
+      "actual": [
+        "compare_options"
+      ],
+      "commands": [
+        {
+          "op": "compare_options"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 11822,
+        "totalDurationNs": 7538597700,
+        "promptTokens": 503,
+        "outputTokens": 30,
+        "numCtx": 8192
+      },
+      "latencyMs": 11847,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "compare_options-3",
+      "repeat": 1,
+      "input": "Show the fastest and recommended options",
+      "family": "planning",
+      "expected": [
+        "compare_options"
+      ],
+      "actual": [
+        "compare_options",
+        "compare_options"
+      ],
+      "commands": [
+        {
+          "op": "compare_options"
+        },
+        {
+          "op": "compare_options"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 16914,
+        "totalDurationNs": 10472440700,
+        "promptTokens": 446,
+        "outputTokens": 49,
+        "numCtx": 8192
+      },
+      "latencyMs": 16959,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    }
+  ],
+  "supplierSandbox": "not run",
+  "authorizedLiveProvider": "not run",
+  "interruptedAt": "2026-09-13T05:08:09.931Z",
+  "acceptancePassed": false,
+  "interruptionReason": "Stopped after early routing regressions; discovered duplicate system messages incompatible with installed Llama template. Preserved as failed diagnostic evidence."
+}

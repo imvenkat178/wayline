@@ -1,0 +1,90 @@
+{
+  "checkedAt": "2026-09-12T08:46:27.763Z",
+  "httpStatus": 200,
+  "routeCount": 5,
+  "fares": [
+    {
+      "totalCents": 480,
+      "kind": "tariff",
+      "travelers": 2,
+      "source": "https://cdn.mbta.com/MBTA_GTFS.zip",
+      "observedAt": "2026-09-11T07:28:51.698Z"
+    },
+    {
+      "totalCents": 480,
+      "kind": "tariff",
+      "travelers": 2,
+      "source": "https://cdn.mbta.com/MBTA_GTFS.zip",
+      "observedAt": "2026-09-11T07:28:51.698Z"
+    },
+    {
+      "totalCents": 480,
+      "kind": "tariff",
+      "travelers": 2,
+      "source": "https://cdn.mbta.com/MBTA_GTFS.zip",
+      "observedAt": "2026-09-11T07:28:51.698Z"
+    },
+    {
+      "totalCents": 480,
+      "kind": "tariff",
+      "travelers": 2,
+      "source": "https://cdn.mbta.com/MBTA_GTFS.zip",
+      "observedAt": "2026-09-11T07:28:51.698Z"
+    },
+    {
+      "totalCents": 480,
+      "kind": "tariff",
+      "travelers": 2,
+      "source": "https://cdn.mbta.com/MBTA_GTFS.zip",
+      "observedAt": "2026-09-11T07:28:51.698Z"
+    }
+  ],
+  "overBudgetRouteCount": 0,
+  "excluded": [
+    "Over total budget",
+    "Over total budget",
+    "Over total budget",
+    "Over total budget",
+    "Over total budget"
+  ],
+  "flightProviderConfigured": false,
+  "transactionsEnabled": false,
+  "travelServices": [
+    {
+      "name": "Travel MCP",
+      "status": "connected",
+      "lastSuccess": "2026-09-12T08:46:27.763Z"
+    },
+    {
+      "name": "MBTA places",
+      "status": "connected",
+      "lastSuccess": "2026-09-12T08:46:27.452Z"
+    },
+    {
+      "name": "MBTA predictions",
+      "status": "connected",
+      "lastSuccess": "2026-09-12T08:46:25.052Z"
+    },
+    {
+      "name": "MBTA vehicles",
+      "status": "connected",
+      "lastSuccess": "2026-09-12T08:46:24.647Z"
+    },
+    {
+      "name": "MBTA disruptions",
+      "status": "connected",
+      "lastSuccess": "2026-09-12T08:46:24.928Z"
+    },
+    {
+      "name": "Boston routing",
+      "status": "connected",
+      "lastSuccess": "2026-09-12T08:46:27.754Z"
+    },
+    {
+      "name": "NWS weather",
+      "status": "not checked",
+      "lastSuccess": null
+    }
+  ],
+  "note": "Live OTP/MBTA check. No live flight supplier credentials or carrier transaction was used."
+}

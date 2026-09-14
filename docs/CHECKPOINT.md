@@ -1,5 +1,7 @@
 # Checkpoint validation
 
+Current validation: [13 September local-Llama acceptance](LOCAL_LLAMA_REPORT.md). The record below is a historical checkpoint.
+
 Date: 8 September 2026. This records the work so far; it is not a production release certificate.
 
 | Check | Observed result |

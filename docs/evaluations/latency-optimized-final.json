@@ -1,0 +1,460 @@
+{
+  "startedAt": "2026-09-13T19:18:32.488Z",
+  "model": "llama3.1:8b-instruct-q4_K_M",
+  "validationClass": "real local Llama; isolated HTTP application with fixture inventory",
+  "pollMs": 100,
+  "rows": [
+    {
+      "repeat": 1,
+      "input": "Show my traveler profiles",
+      "expected": "manage_travelers",
+      "actual": [
+        "manage_travelers"
+      ],
+      "pass": true,
+      "wallMs": 3210,
+      "queueMs": 16,
+      "modelMs": 3099,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 3089004600,
+        "loadDurationNs": 3264600,
+        "promptEvalDurationNs": 854982000,
+        "generationDurationNs": 2217315000,
+        "cachedPromptTokens": 1922,
+        "promptTokens": 1937,
+        "outputTokens": 18,
+        "numCtx": 8192,
+        "latencyMs": 3099
+      }
+    },
+    {
+      "repeat": 1,
+      "input": "Set the trip budget to $120",
+      "expected": "update_constraints",
+      "actual": [
+        "update_constraints"
+      ],
+      "pass": true,
+      "wallMs": 4417,
+      "queueMs": 5,
+      "modelMs": 4370,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "verificationSkipped": 0,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 4364765400,
+        "loadDurationNs": 8731300,
+        "promptEvalDurationNs": 1034594000,
+        "generationDurationNs": 3217941000,
+        "cachedPromptTokens": 2134,
+        "promptTokens": 2159,
+        "outputTokens": 28,
+        "numCtx": 8192,
+        "latencyMs": 4370
+      }
+    },
+    {
+      "repeat": 1,
+      "input": "What if I leave two hours later?",
+      "expected": "branch_scenario",
+      "actual": [
+        "branch_scenario"
+      ],
+      "pass": true,
+      "wallMs": 3373,
+      "queueMs": 9,
+      "modelMs": 3327,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 3322378200,
+        "loadDurationNs": 6596400,
+        "promptEvalDurationNs": 649170000,
+        "generationDurationNs": 2605363000,
+        "cachedPromptTokens": 1927,
+        "promptTokens": 1941,
+        "outputTokens": 21,
+        "numCtx": 8192,
+        "latencyMs": 3327
+      }
+    },
+    {
+      "repeat": 1,
+      "input": "Which existing option is cheapest?",
+      "expected": "compare_options",
+      "actual": [
+        "compare_options"
+      ],
+      "pass": true,
+      "wallMs": 3017,
+      "queueMs": 4,
+      "modelMs": 2956,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 0,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 2952082300,
+        "loadDurationNs": 7083200,
+        "promptEvalDurationNs": 573584000,
+        "generationDurationNs": 2349795000,
+        "cachedPromptTokens": 1927,
+        "promptTokens": 1939,
+        "outputTokens": 19,
+        "numCtx": 8192,
+        "latencyMs": 2956
+      }
+    },
+    {
+      "repeat": 1,
+      "input": "Download my itinerary PDF",
+      "expected": "export_pdf",
+      "actual": [
+        "export_pdf"
+      ],
+      "pass": true,
+      "wallMs": 2655,
+      "queueMs": 5,
+      "modelMs": 2624,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 2615254600,
+        "loadDurationNs": 2599400,
+        "promptEvalDurationNs": 504451000,
+        "generationDurationNs": 2092822000,
+        "cachedPromptTokens": 1927,
+        "promptTokens": 1937,
+        "outputTokens": 17,
+        "numCtx": 8192,
+        "latencyMs": 2624
+      }
+    },
+    {
+      "repeat": 1,
+      "input": "I need to cancel the supplier order",
+      "expected": "cancel_ticket",
+      "actual": [
+        "cancel_ticket"
+      ],
+      "pass": true,
+      "wallMs": 3271,
+      "queueMs": 5,
+      "modelMs": 3173,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 3170505200,
+        "loadDurationNs": 2141400,
+        "promptEvalDurationNs": 658495000,
+        "generationDurationNs": 2496014000,
+        "cachedPromptTokens": 1927,
+        "promptTokens": 1940,
+        "outputTokens": 20,
+        "numCtx": 8192,
+        "latencyMs": 3173
+      }
+    },
+    {
+      "repeat": 1,
+      "input": "Import my train ticket",
+      "expected": "manage_tickets",
+      "actual": [
+        "manage_tickets"
+      ],
+      "pass": true,
+      "wallMs": 2677,
+      "queueMs": 6,
+      "modelMs": 2646,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 0,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 2634599500,
+        "loadDurationNs": 3116500,
+        "promptEvalDurationNs": 534078000,
+        "generationDurationNs": 2083864000,
+        "cachedPromptTokens": 1927,
+        "promptTokens": 1937,
+        "outputTokens": 17,
+        "numCtx": 8192,
+        "latencyMs": 2646
+      }
+    },
+    {
+      "repeat": 1,
+      "input": "Show my emergency contacts",
+      "expected": "manage_contacts",
+      "actual": [
+        "manage_contacts"
+      ],
+      "pass": true,
+      "wallMs": 2686,
+      "queueMs": 4,
+      "modelMs": 2640,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 0,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 2631542500,
+        "loadDurationNs": 2702200,
+        "promptEvalDurationNs": 536193000,
+        "generationDurationNs": 2080659999,
+        "cachedPromptTokens": 1927,
+        "promptTokens": 1937,
+        "outputTokens": 17,
+        "numCtx": 8192,
+        "latencyMs": 2640
+      }
+    },
+    {
+      "repeat": 2,
+      "input": "Show my traveler profiles",
+      "expected": "manage_travelers",
+      "actual": [
+        "manage_travelers"
+      ],
+      "pass": true,
+      "wallMs": 2752,
+      "queueMs": 5,
+      "modelMs": 2656,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 2653687000,
+        "loadDurationNs": 4793500,
+        "promptEvalDurationNs": 417187000,
+        "generationDurationNs": 2218388000,
+        "cachedPromptTokens": 1929,
+        "promptTokens": 1937,
+        "outputTokens": 18,
+        "numCtx": 8192,
+        "latencyMs": 2656
+      }
+    },
+    {
+      "repeat": 2,
+      "input": "Set the trip budget to $120",
+      "expected": "update_constraints",
+      "actual": [
+        "update_constraints"
+      ],
+      "pass": true,
+      "wallMs": 4112,
+      "queueMs": 5,
+      "modelMs": 4005,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "verificationSkipped": 0,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 4000175000,
+        "loadDurationNs": 4857200,
+        "promptEvalDurationNs": 745402000,
+        "generationDurationNs": 3152810000,
+        "cachedPromptTokens": 2145,
+        "promptTokens": 2159,
+        "outputTokens": 28,
+        "numCtx": 8192,
+        "latencyMs": 4005
+      }
+    },
+    {
+      "repeat": 2,
+      "input": "What if I leave two hours later?",
+      "expected": "branch_scenario",
+      "actual": [
+        "branch_scenario"
+      ],
+      "pass": true,
+      "wallMs": 3386,
+      "queueMs": 5,
+      "modelMs": 3295,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 3281883600,
+        "loadDurationNs": 2871400,
+        "promptEvalDurationNs": 643593000,
+        "generationDurationNs": 2581192000,
+        "cachedPromptTokens": 1927,
+        "promptTokens": 1941,
+        "outputTokens": 21,
+        "numCtx": 8192,
+        "latencyMs": 3295
+      }
+    },
+    {
+      "repeat": 2,
+      "input": "Which existing option is cheapest?",
+      "expected": "compare_options",
+      "actual": [
+        "compare_options"
+      ],
+      "pass": true,
+      "wallMs": 3007,
+      "queueMs": 5,
+      "modelMs": 2914,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 0,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 2911790800,
+        "loadDurationNs": 2055500,
+        "promptEvalDurationNs": 574912000,
+        "generationDurationNs": 2322928000,
+        "cachedPromptTokens": 1927,
+        "promptTokens": 1939,
+        "outputTokens": 19,
+        "numCtx": 8192,
+        "latencyMs": 2914
+      }
+    },
+    {
+      "repeat": 2,
+      "input": "Download my itinerary PDF",
+      "expected": "export_pdf",
+      "actual": [
+        "export_pdf"
+      ],
+      "pass": true,
+      "wallMs": 2640,
+      "queueMs": 4,
+      "modelMs": 2585,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 2582787200,
+        "loadDurationNs": 5135700,
+        "promptEvalDurationNs": 497942000,
+        "generationDurationNs": 2063949000,
+        "cachedPromptTokens": 1927,
+        "promptTokens": 1937,
+        "outputTokens": 17,
+        "numCtx": 8192,
+        "latencyMs": 2585
+      }
+    },
+    {
+      "repeat": 2,
+      "input": "I need to cancel the supplier order",
+      "expected": "cancel_ticket",
+      "actual": [
+        "cancel_ticket"
+      ],
+      "pass": true,
+      "wallMs": 18549,
+      "queueMs": 5,
+      "modelMs": 3106,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 3101770500,
+        "loadDurationNs": 4531700,
+        "promptEvalDurationNs": 627093000,
+        "generationDurationNs": 2456404000,
+        "cachedPromptTokens": 1927,
+        "promptTokens": 1940,
+        "outputTokens": 20,
+        "numCtx": 8192,
+        "latencyMs": 3106
+      }
+    },
+    {
+      "repeat": 2,
+      "input": "Import my train ticket",
+      "expected": "manage_tickets",
+      "actual": [
+        "manage_tickets"
+      ],
+      "pass": true,
+      "wallMs": 2637,
+      "queueMs": 6,
+      "modelMs": 2559,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 0,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 2554815700,
+        "loadDurationNs": 3854500,
+        "promptEvalDurationNs": 492037000,
+        "generationDurationNs": 2044462000,
+        "cachedPromptTokens": 1927,
+        "promptTokens": 1937,
+        "outputTokens": 17,
+        "numCtx": 8192,
+        "latencyMs": 2559
+      }
+    },
+    {
+      "repeat": 2,
+      "input": "Show my emergency contacts",
+      "expected": "manage_contacts",
+      "actual": [
+        "manage_contacts"
+      ],
+      "pass": true,
+      "wallMs": 2799,
+      "queueMs": 5,
+      "modelMs": 2694,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 0,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 2690530100,
+        "loadDurationNs": 2063000,
+        "promptEvalDurationNs": 460968000,
+        "generationDurationNs": 2214572000,
+        "cachedPromptTokens": 1927,
+        "promptTokens": 1937,
+        "outputTokens": 17,
+        "numCtx": 8192,
+        "latencyMs": 2694
+      }
+    }
+  ],
+  "codeHashes": {
+    "server/domain/conversationExecution.mjs": "cb97b4a4742f807c3a3b8052019f3eccd291a8dd557b21eb0d87f127afb12d58",
+    "server/domain/resolveSurfaceCommand.mjs": "565343d133cbe151c308c5b0df0b7ff44fada49db3c43ce39d5d5e207461f881",
+    "server/jobWorkers.mjs": "6339263663eb72d28f49f339c1b89a4aea1070280f475717fba2ae7f60e481fd",
+    "server/server.mjs": "772c0645041e9d98b7be2e4b6ba9766b0f5cf31fa5333a718ba2e2b587aa104d",
+    "server/jobs.mjs": "7345458fa3e49b18eaa494c422f5e246d32723abee66081d1ce8408000707fcd",
+    "server/domain/conversationPlanner.mjs": "ad620168dd787d88295fe2c56b57ab468ebc802643f565460d012f5180fecad4",
+    "server/domain/intentVerifier.mjs": "d1863a2493d6dfc67c7385bb4438afcbbf530cbabfb6c41cc8b823f8f0f2e0f2",
+    "server/adapters/llm.mjs": "d71f63d2b2a038c076d109b26f8233d4229a246cc888005d536969cdf9bbac5c"
+  },
+  "finishedAt": "2026-09-13T19:19:38.104Z",
+  "summary": {
+    "passed": 16,
+    "total": 16,
+    "modelCalls": 18,
+    "promptTokens": 31454,
+    "outputTokens": 314
+  },
+  "codeUnchanged": true,
+  "pass": true
+}

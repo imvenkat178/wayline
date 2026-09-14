@@ -11,7 +11,8 @@
 // difference -- so tests, CI, and normal operation never depend on LangSmith being configured
 // or reachable, and this environment's blocked network to most external hosts (see README.md's
 // "Known gaps" for the GTFS/Chromium/Ollama-registry precedents) can never break a plain run.
-import { traceable } from "langsmith/traceable";
+import { RunTree } from "langsmith/run_trees";
+import { traceable, withRunTree } from "langsmith/traceable";
 
 export function tracingEnabled(env = process.env) {
   return Boolean(env.LANGSMITH_TRACING === "true" && env.LANGSMITH_API_KEY);
@@ -20,5 +21,13 @@ export function tracingEnabled(env = process.env) {
 // name: a label shown in the LangSmith UI for this step (e.g. "classifyIntent", "composeReply").
 export function traced(name, fn, env = process.env) {
   if (!tracingEnabled(env)) return fn;
-  return traceable(fn, { name });
+  return traceable(fn, { name, processInputs: () => ({ step: name }), processOutputs: () => ({ completed: true }) });
+}
+
+// Suppress automatic LangGraph payload tracing even when global LangSmith flags are set.
+export function privateGraphExecution(fn) {
+  // LangGraph starts nested runs outside the parent trace context in this SDK version.
+  // Do not restore these process flags: a queued child run can outlive graph.invoke().
+  for (const key of ["LANGSMITH_TRACING","LANGCHAIN_TRACING","LANGCHAIN_TRACING_V2","LANGCHAIN_VERBOSE"]) delete process.env[key];
+  return withRunTree(new RunTree({name:"Wayline private execution",tracingEnabled:false}),fn);
 }

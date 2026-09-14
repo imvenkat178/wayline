@@ -9,24 +9,25 @@
 
 ## 1. Last step (read this first)
 
-- **When:** 2026-09-13
+- **When:** 2026-09-14
 - **Who:** Claude Code (Claude Opus 5)
-- **What happened:** Installed the agent memory kit and turned the launch-gap review into `ROADMAP.md`: 9 goals and 52 sub-goals, each with evidence checked against the code, docs, git or a test run. Then stored the current kit in `docs/agent-memory-kit/`, updated `scripts/check_handoff.py` to the kit version that adds `--base`, and added two generated pages, `docs/roadmap/index.html` and `docs/agent-memory-kit/index.html` (`npm run docs:memory`), published as private claude.ai artifacts. No application code changed.
-- **State left behind:** At the owner's request, the memory kit and both pages are committed on branch `chore/agent-memory-kit` (created from `main` at 0f02d7a, not pushed). That commit holds `AGENTS.md`, `CLAUDE.md`, `HANDOFF.md`, `ROADMAP.md`, `.agent-memory.json`, `scripts/roadmap.py`, `scripts/check_handoff.py`, `scripts/render-memory-pages.mjs`, `tests/agent-memory.test.mjs`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/workflows/ci.yml`, `.gitignore`, `docs/roadmap/`, `docs/agent-memory-kit/` and only the `docs:memory` line of `package.json`. The earlier local-Llama product work stays uncommitted in the working tree (G1.2), including its other `package.json` changes.
+- **What happened:** On 2026-09-14 added goal G10 (Documentation, 11 sub-goals) to `ROADMAP.md` and delivered its first references: `docs/README.md` (index), `docs/reference/API.md` (every endpoint), `docs/reference/CONFIGURATION.md` (all 59 environment variables), and `tests/docs-reference.test.mjs`, which fails when a server API path or environment variable is undocumented. Fixed out-of-date statements in `START_HERE.md` and `README.md`, completed `.env.example`, and added the references to the `AGENTS.md` documentation map. Then, at the owner's request, committed all remaining work, the local-Llama product release and this documentation, as one commit on `chore/agent-memory-kit` (G1.2, G10.1).
+  Earlier sessions (2026-09-13, see section 8): installed the agent memory kit and turned the launch-gap review into `ROADMAP.md`: 9 goals and 52 sub-goals, each with evidence checked against the code, docs, git or a test run. Then stored the current kit in `docs/agent-memory-kit/`, updated `scripts/check_handoff.py` to the kit version that adds `--base`, and added two generated pages, `docs/roadmap/index.html` and `docs/agent-memory-kit/index.html` (`npm run docs:memory`), published as private claude.ai artifacts. No application code changed.
+- **State left behind:** Everything is committed on branch `chore/agent-memory-kit`, created from `main` at 0f02d7a and not pushed: first the memory kit commit `6b97a3d`, then one commit with the local-Llama product release and the documentation work. The working tree is clean apart from ignored files. `main` and `origin/main` are unchanged.
 - **Resume by:**
   1. `git status --short` and compare it with section 2.
   2. `python scripts/roadmap.py next` to see actionable work and pending decisions.
-  3. Ask the owner the P0 decisions first: G1.2 (commit the work), G6.1 (Launch 1 scope), G2.1 (hosting) and G2.10 (model hosting). While waiting, start G2.2 (container image) or G3.5 (proxy-aware rate limiting), neither of which depends on a decision.
+  3. Ask whether to push `chore/agent-memory-kit` and open a pull request, which also confirms CI (G7.1). Then ask the P0 decisions: G6.1 (Launch 1 scope), G2.1 (hosting) and G2.10 (model hosting). While waiting, continue documentation with G10.3.3 (request and response bodies) or G10.5 (data model), or start G2.2 (container image) or G3.5 (proxy-aware rate limiting); none of these depends on a decision.
 
 ## 2. Repository state
 
 | Item | Current value |
 | --- | --- |
 | Branch | `chore/agent-memory-kit`, created from `main`; not pushed. `main` and `origin/main` are still at `0f02d7a` (https://github.com/imvenkat178/wayline, public) |
-| Last commit | The memory kit commit on `chore/agent-memory-kit` (2026-09-13), whose parent is `0f02d7a` 2026-09-11 "Boston core launch: real transit planning, AI trip agent, recovery, PDFs, encrypted offline/backups" |
-| Uncommitted | The local-Llama product work only: 176 entries counted before this session (69 tracked files modified or deleted, including 11 `standalone/assets` files and the non-memory `package.json` changes, plus untracked server modules, scripts, docs and `docs/evaluations/`). |
+| Last commit | The product release and documentation commit on `chore/agent-memory-kit` (2026-09-14), after `6b97a3d` (memory kit, 2026-09-13) and `0f02d7a` 2026-09-11 "Boston core launch: real transit planning, AI trip agent, recovery, PDFs, encrypted offline/backups" |
+| Uncommitted | None (ignored paths such as `data/`, `tmp/`, `models/` and `.env` excluded). |
 | Toolchain verified here | Windows 11; Node v24.19.0; npm 11.17.0; Python 3.12.10 (`python`; `python3` is only the Microsoft Store alias); git 2.55.0 |
-| Last full test run | 2026-09-13 `npm test` in Git Bash: 699 tests, 695 passed, 4 failed (backup cases broken by Git Bash's `whoami.exe`, G7.7); `tests/core-launch.test.mjs` under PowerShell: 25/25 passed; `npx tsc -b` passed; `npm run lint` 0 errors, 15 warnings; `npm run build` not run this session |
+| Last full test run | 2026-09-14 `npm test` under PowerShell: 704 tests, 702 passed; the 2 failures were the memory validator tests, run while the roadmap summary was stale before `roadmap.py write` (re-run afterwards below). Earlier, 2026-09-13 `npm test` in Git Bash: 699 tests, 695 passed, 4 failed (backup cases broken by Git Bash's `whoami.exe`, G7.7); `tests/core-launch.test.mjs` under PowerShell: 25/25 passed; `npx tsc -b` passed; `npm run lint` 0 errors, 15 warnings; `npm run build` not run this session |
 | CI | `.github/workflows/ci.yml`; last main run 34629463576 on 2026-09-11 succeeded. The new validator steps have not run on GitHub yet (G7.1). Open PR 1 (docs only) passed CI on 2026-09-12. |
 
 ## 3. Done (capability ledger)
@@ -41,6 +42,7 @@ Working and covered by tests unless noted. Git history and `docs/FEATURE_STATUS.
 - **Account security (G3.1):** scrypt passwords, hashed sessions, CSRF, AES-256-GCM records, TOTP MFA, device revocation, enumeration-resistant recovery, and export and deletion that propagate to jobs.
 - **Booking foundations (G5.7):** Duffel adapter with review binding, signed webhooks and reconciliation, fixture-tested only; every provider gate is off.
 - **CI (G7.1):** typecheck, lint, tests and build on pushes and pull requests to main.
+- **Technical references (G10.3, G10.4, G10.11):** `docs/README.md` indexes every document; `docs/reference/API.md` and `docs/reference/CONFIGURATION.md` cover every API path and environment variable, enforced by `tests/docs-reference.test.mjs`. Request and response bodies are not yet specified (G10.3.3).
 - **Shared agent memory (G1.1):** this file, `ROADMAP.md`, `AGENTS.md`, both validators inside `npm test` and CI, the stored kit in `docs/agent-memory-kit/`, and browsable pages regenerated by `npm run docs:memory`.
 
 ## 4. Next (current focus)
@@ -49,7 +51,7 @@ The complete goal tree lives in [ROADMAP.md](ROADMAP.md): goals, sub-goals and t
 
 Current focus, chosen by the last session:
 
-1. `G1.2` The unreleased work exists only on one laptop; ask the owner how to commit it before anything else.
+1. `G7.1` The branch is committed but not pushed; with the owner's approval, push it and confirm CI passes with the memory and documentation checks.
 2. `G6.1` The Launch 1 scope decides which hardening work matters; ask the owner to approve it.
 3. `G2.2` A container image unblocks deployment, OTP hosting and load testing, and needs no decision.
 4. `G3.5` IP rate limits break behind any reverse proxy; this is a code-only P0 fix.
@@ -72,8 +74,7 @@ Record new ideas in the "Ideas not yet goals" section of `ROADMAP.md`.
 - Many roadmap features display Sample or heuristic values (G6.2).
 - Web Push, cross-browser offline, OCR and barcode import are unverified on real devices (G7.3). There are no browser end-to-end tests in CI (G7.2).
 - In Git Bash on Windows, 4 backup tests fail because `whoami.exe` resolves to the GNU binary. Run tests in PowerShell or cmd until G7.7 is fixed.
-- Until G1.2 lands, `python scripts/check_handoff.py --strict` fails locally whenever `HANDOFF.md` is unmodified, because the uncommitted product work counts as code changes. Update `HANDOFF.md` during the session as the protocol requires and it passes.
-- The committed `AGENTS.md` and `HANDOFF.md` cite `docs/LOCAL_LLAMA_REPORT.md`, `docs/PROVIDER_READINESS.md` and other documents that exist only in the uncommitted product work (G1.2).
+- `npm run build` was not re-run before the 2026-09-14 commit; the committed `standalone/` output comes from the local-Llama release session. CI builds it on push.
 - On this machine `python3` is the Microsoft Store alias; use `python`. `tests/agent-memory.test.mjs` tries `python3`, then `python`.
 
 ## 7. Decisions (do not re-litigate without a reason)
@@ -86,6 +87,7 @@ Record new ideas in the "Ideas not yet goals" section of `ROADMAP.md`.
 | 2026-09-13 | `docs/`, `standalone/` and `output/` do not count as code for `--strict` (`.agent-memory.json`) | They are documentation or generated output, so they should not force a handoff entry on their own |
 | 2026-09-13 | The kit's `agent-memory.yml` workflow is stored in `docs/agent-memory-kit/templates/` but not installed; `ci.yml` runs the validators instead | Avoids duplicate CI jobs, and adding a workflow file needs a GitHub token with the `workflow` scope |
 | 2026-09-13 | The roadmap and kit pages are generated from `ROADMAP.md` and the kit README, never edited by hand | A hand-edited snapshot would drift from the validated source |
+| 2026-09-14 | Commit all remaining work (G1.2) as one commit on `chore/agent-memory-kit`, without pushing | The owner asked to commit all the work; the product release and the documentation edits overlap in `README.md`, `.env.example` and `package.json`, so separate commits would not be clean |
 
 ## 8. Session log (append newest first)
 
@@ -99,6 +101,20 @@ Template. Copy it and keep the heading format exactly: date | agent | one-line t
 - **Not done / left broken:** anything incomplete, failing, or skipped, and why.
 - **Next agent should:** the first concrete thing to do.
 -->
+
+### 2026-09-14 | Claude Code (Claude Opus 5) | Committed the product release and documentation
+- **Goal:** Commit all the work, as the owner asked.
+- **Changed:** Marked G1.2 and G10.1 done; refreshed sections 1, 2, 4, 6 and 7; regenerated `docs/roadmap/index.html`; committed every pending change (the local-Llama product release: server, shopping, domain, source, tests, scripts, standalone build, docs and `docs/evaluations/`; plus the documentation work) on `chore/agent-memory-kit`.
+- **Verified:** Before staging, scanned all 239 pending files for credential patterns (Duffel, OpenAI-style, LangSmith, GitHub and AWS keys, private keys, long secret assignments) and personal email addresses with no matches, and found no file over 2 MB and no `.env`, key or database files. The commit command ran only after `python scripts/roadmap.py check`, `python scripts/check_handoff.py --strict`, `python scripts/check_handoff.py --base origin/main` and `node --test tests/agent-memory.test.mjs tests/docs-reference.test.mjs` all succeeded in the same chained command. The full suite on this code earlier today: 704 tests, 702 passed, 2 memory tests failing only because the summary was stale at the time.
+- **Not done / left broken:** Not pushed. `npm run build` not re-run. CI has not run this branch.
+- **Next agent should:** Ask the owner whether to push and open a pull request, then confirm the CI run (G7.1).
+
+### 2026-09-14 | Claude Code (Claude Opus 5) | Added the documentation goal, API and configuration references
+- **Goal:** Close the documentation gaps found in the 2026-09-14 review: add a documentation goal, fix out-of-date statements, and write API and configuration references.
+- **Changed:** Added G10 (11 sub-goals) to `ROADMAP.md`. Wrote `docs/README.md`, `docs/reference/API.md` from every route handler and `docs/reference/CONFIGURATION.md` from every `env.` read. Added `tests/docs-reference.test.mjs`. Fixed the port and pilot steps in `START_HERE.md`; in `README.md` fixed the test count, Planner row and architecture table and linked the references; added seven runtime variables to `.env.example`; added three rows to the `AGENTS.md` documentation map; regenerated `docs/roadmap/index.html`.
+- **Verified:** Before the handoff update: `node --test tests/docs-reference.test.mjs` 2/2 passed; `npx eslint tests/docs-reference.test.mjs` passed; a scan found all 42 runtime variables in `.env.example`; `npm test` under PowerShell 704 tests, 702 passed, with only the two memory validator tests failing because the roadmap summary was not yet regenerated; `python scripts/roadmap.py write` then `check` OK. After this entry: `python scripts/check_handoff.py --strict` first failed because section 1 had renamed its **What happened** field, which was fixed; the post-fix results are the next command run, and `roadmap.py check`, the API and configuration reference tests and the agent entry-point test passed.
+- **Not done / left broken:** Nothing committed. Request and response bodies are not specified (G10.3.3). README still opens with the dated checkpoint narrative (G10.2.3). Data model, feature pages, architecture, operations and contributor documents are open (G10.5 to G10.9), and SECURITY.md waits on the owner (G10.10).
+- **Next agent should:** Ask the owner whether to commit the documentation work, then continue with G10.3.3 or G10.5.
 
 ### 2026-09-13 | Claude Code (Claude Opus 5) | Committed the memory kit and pages on a branch
 - **Goal:** Commit the two pages and implement the agent memory kit in the repository.

@@ -1,4 +1,5 @@
 import { SavedJourneyFeature } from "../components/JourneyCover";
+import { JourneyActions } from "../components/TripActions";
 import { useEffect, useState } from "react";
 import { useApp } from "../context";
 import { api, money, time, duration, readable, download } from "../api";
@@ -103,7 +104,7 @@ export default function Trips() {
       {filtered[0] && <SavedJourneyFeature journey={filtered[0]} open={() => { setActive(filtered[0]); navigate("journey"); }} assistant={() => { setActive(filtered[0]); openAgent(); }} />}
 <div className="trip-list">
         {filtered.map((j) => (
-          <article className="trip-row" key={j.id}>
+          <article className="saved-trip-card" key={j.id}><div className="trip-row">
             <div className="trip-date">
               <b>{new Date(j.departure).getDate()}</b>
               <small>{new Date(j.departure).toLocaleDateString("en-US", { month: "short" })}</small>
@@ -140,7 +141,7 @@ export default function Trips() {
               kind="icon-only"
               onClick={() => setRemove(j)}
             />
-          </article>
+          </div><JourneyActions journey={j} compact /></article>
         ))}
       </div>
       {!filtered.length && (

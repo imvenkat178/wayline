@@ -1,0 +1,483 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-09-13T04:58:42.722Z",
+  "validationClass": "real Llama with fixture inventory",
+  "model": "llama3.1:8b-instruct-q4_K_M",
+  "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+  "numCtx": 8192,
+  "temperature": 0,
+  "ollamaVersion": "0.34.0",
+  "hardware": {
+    "ramBytes": 34032574464,
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13620H"
+  },
+  "codeHash": "9da5023d299234f5b37568d78362ce0a8042c1b3cbda3122b0f5b1f7e4e77dac",
+  "corpusHash": "5e83453f185a570b1c396af6c4447579687d5f0451bf75b906e6e57e942f575b",
+  "requiredCaseCount": 200,
+  "requestedRepeats": 1,
+  "results": [
+    {
+      "id": "prepare_recovery-1",
+      "repeat": 1,
+      "input": "Find recovery alternatives for my delayed train",
+      "family": "monitoring",
+      "expected": [
+        "prepare_recovery"
+      ],
+      "actual": [
+        "prepare_recovery"
+      ],
+      "commands": [
+        {
+          "op": "prepare_recovery"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 77479,
+        "totalDurationNs": 21977681000,
+        "promptTokens": 560,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 77531,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_recovery-2",
+      "repeat": 1,
+      "input": "Prepare a backup route for this disruption",
+      "family": "monitoring",
+      "expected": [
+        "prepare_recovery"
+      ],
+      "actual": [
+        "prepare_recovery"
+      ],
+      "commands": [
+        {
+          "op": "prepare_recovery"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 10128,
+        "totalDurationNs": 3514949500,
+        "promptTokens": 560,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 10151,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_recovery-3",
+      "repeat": 1,
+      "input": "My bus was cancelled, find alternatives",
+      "family": "monitoring",
+      "expected": [
+        "prepare_recovery"
+      ],
+      "actual": [
+        "prepare_recovery"
+      ],
+      "commands": [
+        {
+          "op": "prepare_recovery"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 9091,
+        "totalDurationNs": 4493173700,
+        "promptTokens": 560,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 9121,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_recovery-4",
+      "repeat": 1,
+      "input": "Recover my journey with $50 extra",
+      "family": "monitoring",
+      "expected": [
+        "prepare_recovery"
+      ],
+      "actual": [
+        "prepare_recovery"
+      ],
+      "commands": [
+        {
+          "op": "prepare_recovery",
+          "maxExtraCents": 5000
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 13011,
+        "totalDurationNs": 7797167100,
+        "promptTokens": 455,
+        "outputTokens": 34,
+        "numCtx": 8192
+      },
+      "latencyMs": 13037,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_recovery-5",
+      "repeat": 1,
+      "input": "Find a recovery route arriving by tonight",
+      "family": "monitoring",
+      "expected": [
+        "prepare_recovery"
+      ],
+      "actual": [
+        "prepare_recovery"
+      ],
+      "commands": [
+        {
+          "op": "prepare_recovery",
+          "arrivalDeadline": "2026-09-14T03:59:00.000Z"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 14333,
+        "totalDurationNs": 5562350200,
+        "promptTokens": 560,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 14358,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "exchange_ticket-1",
+      "repeat": 1,
+      "input": "Exchange my issued ticket",
+      "family": "servicing",
+      "expected": [
+        "exchange_ticket"
+      ],
+      "actual": [
+        "exchange_ticket"
+      ],
+      "commands": [
+        {
+          "op": "exchange_ticket"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 26216,
+        "totalDurationNs": 20346417500,
+        "promptTokens": 501,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 26242,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "exchange_ticket-2",
+      "repeat": 1,
+      "input": "Change my existing flight booking",
+      "family": "servicing",
+      "expected": [
+        "exchange_ticket"
+      ],
+      "actual": [
+        "exchange_ticket"
+      ],
+      "commands": [
+        {
+          "op": "exchange_ticket"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 9704,
+        "totalDurationNs": 3782092700,
+        "promptTokens": 502,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 9729,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "exchange_ticket-3",
+      "repeat": 1,
+      "input": "Request a ticket exchange quote",
+      "family": "servicing",
+      "expected": [
+        "exchange_ticket"
+      ],
+      "actual": [
+        "exchange_ticket"
+      ],
+      "commands": [
+        {
+          "op": "exchange_ticket"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 10253,
+        "totalDurationNs": 4923578900,
+        "promptTokens": 502,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 10279,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "exchange_ticket-4",
+      "repeat": 1,
+      "input": "Reschedule my booked flight",
+      "family": "servicing",
+      "expected": [
+        "exchange_ticket"
+      ],
+      "actual": [
+        "exchange_ticket"
+      ],
+      "commands": [
+        {
+          "op": "exchange_ticket"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 11139,
+        "totalDurationNs": 5926133700,
+        "promptTokens": 502,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 11168,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "exchange_ticket-5",
+      "repeat": 1,
+      "input": "Change the date on my purchased ticket",
+      "family": "servicing",
+      "expected": [
+        "exchange_ticket"
+      ],
+      "actual": [
+        "exchange_ticket"
+      ],
+      "commands": [
+        {
+          "op": "exchange_ticket"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 16638,
+        "totalDurationNs": 6329485300,
+        "promptTokens": 504,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 16665,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "hypothetical-buy",
+      "repeat": 1,
+      "input": "What would happen if I bought the cheapest ticket?",
+      "family": "information",
+      "expected": [
+        "advice",
+        "branch_scenario"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "preferences": {
+              "priority": "price"
+            }
+          },
+          "name": "What would happen if I bought the cheapest ticket?"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 19283,
+        "totalDurationNs": 14184866500,
+        "promptTokens": 447,
+        "outputTokens": 31,
+        "numCtx": 8192
+      },
+      "latencyMs": 19317,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    }
+  ],
+  "supplierSandbox": "not run",
+  "authorizedLiveProvider": "not run",
+  "summary": {
+    "total": 11,
+    "passed": 11,
+    "accuracy": 1,
+    "families": {
+      "monitoring": {
+        "total": 5,
+        "passed": 5,
+        "accuracy": 1
+      },
+      "servicing": {
+        "total": 5,
+        "passed": 5,
+        "accuracy": 1
+      },
+      "information": {
+        "total": 1,
+        "passed": 1,
+        "accuracy": 1
+      }
+    },
+    "executionFailures": 0
+  },
+  "acceptancePassed": false,
+  "modelProcess": {
+    "models": [
+      {
+        "name": "llama3.1:8b-instruct-q4_K_M",
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "size": 6247216577,
+        "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "llama",
+          "families": [
+            "llama"
+          ],
+          "parameter_size": "8.0B",
+          "quantization_level": "Q4_K_M"
+        },
+        "expires_at": "2026-09-13T01:07:20.7410853-04:00",
+        "size_vram": 0,
+        "context_length": 8192
+      },
+      {
+        "name": "llama3.2:latest",
+        "model": "llama3.2:latest",
+        "size": 2561524365,
+        "digest": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "llama",
+          "families": [
+            "llama"
+          ],
+          "parameter_size": "3.2B",
+          "quantization_level": "Q4_K_M"
+        },
+        "expires_at": "2026-09-13T01:07:18.519379-04:00",
+        "size_vram": 0,
+        "context_length": 4096
+      }
+    ]
+  },
+  "finishedAt": "2026-09-13T05:02:20.943Z"
+}

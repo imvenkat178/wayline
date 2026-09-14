@@ -1,0 +1,402 @@
+{
+  "schemaVersion": 2,
+  "acceptanceScope": "Intent and argument routing through the conversation HTTP executor; provider and complete-journey acceptance are separate.",
+  "startedAt": "2026-09-13T06:30:02.746Z",
+  "validationClass": "real Llama with fixture inventory",
+  "model": "llama3.1:8b-instruct-q4_K_M",
+  "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+  "numCtx": 8192,
+  "temperature": 0,
+  "ollamaVersion": "0.34.0",
+  "hardware": {
+    "ramBytes": 34032574464,
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13620H"
+  },
+  "codeHash": "a83de74eef20e19f2b48c24ceed68d15807cfe17691ad6a144e39d6f4c6c81e4",
+  "codeHashes": {
+    "server/domain/intentVerifier.mjs": "7b51e0ee65ca68fd1b0e372ac39861a3bb9debb795bcf8ad9d83aaa7547f7041",
+    "server/domain/conversationPrivacy.mjs": "44efdb95a83011314b21fa24ed978992df0fa1e132cdd57b31f4ccecf611c33c",
+    "server/domain/conversationPlanner.mjs": "a83de74eef20e19f2b48c24ceed68d15807cfe17691ad6a144e39d6f4c6c81e4",
+    "server/domain/conversationExecution.mjs": "3202850cb433e2605e4537ef90446fe5c7912d5849d6ab0938bf781d44d44707",
+    "server/domain/workspaceInterpreter.mjs": "001129c76bd3b08e3f94a47da9d96c3c2fb63f7bcd9e7140a00b42796cd33032",
+    "server/domain/flightScopeLanguage.mjs": "b74822831a271a476442807a2b886719a7e37b94606110ba139516d80a4970f1",
+    "server/domain/resolveFlightCommand.mjs": "1690f5a63ba61f89c48b4598cc887ea1941caaa9d2276005a02d8f3f38ed6d12",
+    "server/domain/clarificationAnswer.mjs": "13fe5e8c567ff50825aa9e91cfa81eb4a5f519c83fc4431964ca7a6741a72aa5",
+    "server/domain/agentTools.mjs": "c92f046cf38fcc0be5a2faf56b36bf7c22de54d5abbbf5ce1f2c941e780bac60",
+    "shared/travelerActions.mjs": "a802191f5d92f8e4d2316182af8d30975049bf7b117a939d38d3b62dd0ac41b5",
+    "server/adapters/llm.mjs": "5aa25ae85601a28b1fa2c56f4c11a002f1239eec40653a02160e3834aead820e"
+  },
+  "corpusHash": "caa5de062121593be13374f14e881cd7462d6f0bbae9ef0a5a9066f90876b765",
+  "requiredCaseCount": 200,
+  "requestedRepeats": 1,
+  "results": [
+    {
+      "id": "flight-scope-return",
+      "repeat": 1,
+      "input": "Find flights from BOS to JFK on 2026-10-13 at 9 am returning on 2026-10-18",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "search_options"
+      ],
+      "commands": [
+        {
+          "op": "search_options",
+          "patch": {
+            "from": "BOS",
+            "to": "JFK",
+            "departure": "2026-10-13T13:00:00.000Z",
+            "mode": "flights",
+            "additionalFlights": [],
+            "returnDate": "2026-10-18",
+            "resolvedAirports": []
+          }
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 8067143000,
+        "promptTokens": 1561,
+        "outputTokens": 41,
+        "numCtx": 8192,
+        "latencyMs": 8084
+      },
+      "latencyMs": 8139,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "flight-scope-return-edit",
+      "repeat": 1,
+      "input": "Return on 2026-10-18",
+      "family": "planning",
+      "expected": [
+        "update_constraints"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "mode": "flights",
+            "additionalFlights": [],
+            "returnDate": "2026-10-18",
+            "resolvedAirports": []
+          },
+          "name": "Return on 2026-10-18"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 5087484500,
+        "promptTokens": 1789,
+        "outputTokens": 29,
+        "numCtx": 8192,
+        "latencyMs": 5094
+      },
+      "latencyMs": 5126,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": false,
+      "pass": false
+    },
+    {
+      "id": "flight-scope-flexible",
+      "repeat": 1,
+      "input": "Also check 2026-10-14",
+      "family": "planning",
+      "expected": [
+        "update_constraints",
+        "search_options"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "mode": "flights",
+            "flexibleDates": [
+              "2026-10-14"
+            ],
+            "resolvedAirports": []
+          },
+          "name": "Also check 2026-10-14"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 4793922100,
+        "promptTokens": 1789,
+        "outputTokens": 29,
+        "numCtx": 8192,
+        "latencyMs": 4817
+      },
+      "latencyMs": 4850,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": false,
+      "pass": false
+    },
+    {
+      "id": "flight-scope-airport",
+      "repeat": 1,
+      "input": "Also arrive at LGA",
+      "family": "planning",
+      "expected": [
+        "update_constraints"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "mode": "flights",
+            "destinationAirports": [
+              "LGA"
+            ],
+            "resolvedAirports": []
+          },
+          "name": "Also arrive at LGA"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 3649465300,
+        "promptTokens": 1781,
+        "outputTokens": 25,
+        "numCtx": 8192,
+        "latencyMs": 3673
+      },
+      "latencyMs": 3712,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": false,
+      "pass": false
+    },
+    {
+      "id": "flight-scope-multi-city",
+      "repeat": 1,
+      "input": "Search multi-city: BOS to JFK on 2026-10-13 at 9 am; JFK to BOS on 2026-10-18 at 9 am",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "search_options"
+      ],
+      "commands": [
+        {
+          "op": "search_options",
+          "patch": {
+            "from": "BOS",
+            "to": "JFK",
+            "departure": "2026-10-13T13:00:00.000Z",
+            "mode": "flights",
+            "additionalFlights": [
+              {
+                "from": "JFK",
+                "to": "BOS",
+                "departure": "2026-10-18T13:00:00.000Z"
+              }
+            ],
+            "returnDate": null,
+            "resolvedAirports": []
+          }
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 8315415100,
+        "promptTokens": 1570,
+        "outputTokens": 50,
+        "numCtx": 8192,
+        "latencyMs": 8318
+      },
+      "latencyMs": 8350,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "flight-scope-return-missing",
+      "repeat": 1,
+      "input": "Find round-trip flights from BOS to JFK on 2026-10-13 at 9 am",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "search_options"
+      ],
+      "commands": [],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 5497130400,
+        "promptTokens": 1555,
+        "outputTokens": 35,
+        "numCtx": 8192,
+        "latencyMs": 5510
+      },
+      "latencyMs": 5528,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "flight-scope-flexible-missing",
+      "repeat": 1,
+      "input": "Search flights with flexible dates",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 4223605300,
+        "promptTokens": 1781,
+        "outputTokens": 29,
+        "numCtx": 8192,
+        "latencyMs": 4244
+      },
+      "latencyMs": 4264,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "flight-scope-hypothetical-return",
+      "repeat": 1,
+      "input": "What if I return on 2026-10-18?",
+      "family": "planning",
+      "expected": [
+        "branch_scenario"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "mode": "flights",
+            "additionalFlights": [],
+            "returnDate": "2026-10-18",
+            "resolvedAirports": []
+          },
+          "name": "What if I return on 2026-10-18?"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 5569757200,
+        "promptTokens": 1797,
+        "outputTokens": 33,
+        "numCtx": 8192,
+        "latencyMs": 5577
+      },
+      "latencyMs": 5605,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    }
+  ],
+  "supplierSandbox": "not run",
+  "authorizedLiveProvider": "not run",
+  "summary": {
+    "total": 8,
+    "passed": 4,
+    "accuracy": 0.5,
+    "families": {
+      "planning": {
+        "total": 8,
+        "passed": 4,
+        "accuracy": 0.5
+      }
+    },
+    "executionFailures": 0
+  },
+  "codeUnchanged": true,
+  "acceptancePassed": false,
+  "modelProcess": {
+    "models": [
+      {
+        "name": "llama3.1:8b-instruct-q4_K_M",
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "size": 6247216577,
+        "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "llama",
+          "families": [
+            "llama"
+          ],
+          "parameter_size": "8.0B",
+          "quantization_level": "Q4_K_M"
+        },
+        "expires_at": "2026-09-13T02:35:48.6512687-04:00",
+        "size_vram": 0,
+        "context_length": 8192
+      }
+    ]
+  },
+  "finishedAt": "2026-09-13T06:30:48.678Z"
+}

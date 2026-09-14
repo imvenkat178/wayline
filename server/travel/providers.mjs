@@ -1,3 +1,4 @@
+import { DuffelAdapter } from "../shopping/duffel.mjs";
 import { fetchBounded, mbtaVehicles, mbtaAlerts } from "../adapters/providers.mjs";
 import { DomainError } from "../domain/journeys.mjs";
 import { cities } from "../catalog.mjs";
@@ -173,6 +174,8 @@ export async function nwsWeather({ lat, lon }) {
   );
 }
 export async function runTravelTool(name, args) {
+  if (name === "flight_search") return new DuffelAdapter().search(args);
+  if (name === "flight_refresh") return new DuffelAdapter().refresh(args);
   if (name === "health") return travelHealth();
   if (name === "places") return places(args.q);
   if (name === "predictions") return predictions(args);

@@ -1,0 +1,22 @@
+{
+  "at": "2026-09-13T16:58:04.365Z",
+  "validationClass": "isolated HTTP application with fixture inventory",
+  "rows": [
+    {
+      "path": "itinerary.pdf",
+      "status": 200,
+      "bytes": 16476,
+      "contentType": "application/pdf",
+      "durationMs": 107,
+      "pass": true
+    },
+    {
+      "path": "calendar",
+      "status": 200,
+      "bytes": 340,
+      "contentType": "text/calendar; charset=utf-8",
+      "durationMs": 19,
+      "pass": true
+    }
+  ]
+}

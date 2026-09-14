@@ -1,0 +1,263 @@
+{
+  "schemaVersion": 2,
+  "acceptanceScope": "Intent and argument routing through the conversation HTTP executor; provider and complete-journey acceptance are separate.",
+  "startedAt": "2026-09-13T16:54:08.969Z",
+  "validationClass": "real Llama with fixture inventory",
+  "model": "llama3.1:8b-instruct-q4_K_M",
+  "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+  "numCtx": 8192,
+  "temperature": 0,
+  "ollamaVersion": "0.34.0",
+  "hardware": {
+    "ramBytes": 34032574464,
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13620H"
+  },
+  "codeHash": "ad620168dd787d88295fe2c56b57ab468ebc802643f565460d012f5180fecad4",
+  "codeHashes": {
+    "server/domain/intentVerifier.mjs": "d1863a2493d6dfc67c7385bb4438afcbbf530cbabfb6c41cc8b823f8f0f2e0f2",
+    "server/domain/conversationPrivacy.mjs": "44efdb95a83011314b21fa24ed978992df0fa1e132cdd57b31f4ccecf611c33c",
+    "server/domain/conversationPlanner.mjs": "ad620168dd787d88295fe2c56b57ab468ebc802643f565460d012f5180fecad4",
+    "server/domain/resolveSurfaceCommand.mjs": "565343d133cbe151c308c5b0df0b7ff44fada49db3c43ce39d5d5e207461f881",
+    "server/domain/conversationExecution.mjs": "cb97b4a4742f807c3a3b8052019f3eccd291a8dd557b21eb0d87f127afb12d58",
+    "server/domain/workspaceInterpreter.mjs": "001129c76bd3b08e3f94a47da9d96c3c2fb63f7bcd9e7140a00b42796cd33032",
+    "server/domain/flightScopeLanguage.mjs": "b74822831a271a476442807a2b886719a7e37b94606110ba139516d80a4970f1",
+    "server/domain/resolveFlightCommand.mjs": "1690f5a63ba61f89c48b4598cc887ea1941caaa9d2276005a02d8f3f38ed6d12",
+    "server/domain/clarificationAnswer.mjs": "13fe5e8c567ff50825aa9e91cfa81eb4a5f519c83fc4431964ca7a6741a72aa5",
+    "server/domain/agentTools.mjs": "c92f046cf38fcc0be5a2faf56b36bf7c22de54d5abbbf5ce1f2c941e780bac60",
+    "server/domain/tripWorkspace.mjs": "15d1f1870c288ee79ffa66a7ec3f6a862e3cb8dd3c6e3d5e856fb78765929454",
+    "shared/travelerActions.mjs": "a802191f5d92f8e4d2316182af8d30975049bf7b117a939d38d3b62dd0ac41b5",
+    "server/adapters/llm.mjs": "d71f63d2b2a038c076d109b26f8233d4229a246cc888005d536969cdf9bbac5c"
+  },
+  "corpusKind": "heldout",
+  "corpusHash": "139dbe173a6deb8551d70e44f8609b146bb80ecd77b177629c32b3da00786130",
+  "requiredCaseCount": 200,
+  "requestedRepeats": 1,
+  "results": [
+    {
+      "id": "heldout-compare_options-2",
+      "repeat": 1,
+      "input": "Tell me which of the current routes you recommend",
+      "family": "planning",
+      "expected": [
+        "compare_options"
+      ],
+      "actual": [
+        "compare_options"
+      ],
+      "commands": [
+        {
+          "op": "compare_options"
+        }
+      ],
+      "modelCalls": 2,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 2,
+        "verificationSkipped": 0,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 15497704700,
+        "loadDurationNs": 67308400,
+        "promptEvalDurationNs": 9188435000,
+        "generationDurationNs": 6142681999,
+        "cachedPromptTokens": 1934,
+        "promptTokens": 2164,
+        "outputTokens": 30,
+        "numCtx": 8192,
+        "latencyMs": 15594
+      },
+      "latencyMs": 15638,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "heldout-cancel_ticket-35",
+      "repeat": 1,
+      "input": "Get me a quote to cancel the ticket I bought",
+      "family": "servicing",
+      "expected": [
+        "cancel_ticket"
+      ],
+      "actual": [
+        "cancel_ticket"
+      ],
+      "commands": [
+        {
+          "op": "cancel_ticket"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 5434763900,
+        "loadDurationNs": 10859800,
+        "promptEvalDurationNs": 863033000,
+        "generationDurationNs": 4468551000,
+        "cachedPromptTokens": 1929,
+        "promptTokens": 1945,
+        "outputTokens": 23,
+        "numCtx": 8192,
+        "latencyMs": 5437
+      },
+      "latencyMs": 5472,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "heldout-compare_options-43",
+      "repeat": 1,
+      "input": "Which one costs the least among these results?",
+      "family": "planning",
+      "expected": [
+        "compare_options"
+      ],
+      "actual": [
+        "compare_options"
+      ],
+      "commands": [
+        {
+          "op": "compare_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 0,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 5744625900,
+        "loadDurationNs": 7015000,
+        "promptEvalDurationNs": 1433091000,
+        "generationDurationNs": 4287091000,
+        "cachedPromptTokens": 1929,
+        "promptTokens": 1944,
+        "outputTokens": 22,
+        "numCtx": 8192,
+        "latencyMs": 5756
+      },
+      "latencyMs": 5786,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "heldout-cancel_ticket-44",
+      "repeat": 1,
+      "input": "Please cancel my existing reservation",
+      "family": "servicing",
+      "expected": [
+        "cancel_ticket"
+      ],
+      "actual": [
+        "cancel_ticket"
+      ],
+      "commands": [
+        {
+          "op": "cancel_ticket"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "verificationSkipped": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "totalDurationNs": 5671797700,
+        "loadDurationNs": 4680900,
+        "promptEvalDurationNs": 1543330000,
+        "generationDurationNs": 4109214000,
+        "cachedPromptTokens": 1929,
+        "promptTokens": 1940,
+        "outputTokens": 18,
+        "numCtx": 8192,
+        "latencyMs": 5675
+      },
+      "latencyMs": 5708,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    }
+  ],
+  "supplierSandbox": "not run",
+  "authorizedLiveProvider": "not run",
+  "summary": {
+    "total": 4,
+    "passed": 4,
+    "accuracy": 1,
+    "families": {
+      "planning": {
+        "total": 2,
+        "passed": 2,
+        "accuracy": 1
+      },
+      "servicing": {
+        "total": 2,
+        "passed": 2,
+        "accuracy": 1
+      }
+    },
+    "executionFailures": 0
+  },
+  "codeUnchanged": true,
+  "acceptancePassed": false,
+  "modelProcess": {
+    "models": [
+      {
+        "name": "llama3.1:8b-instruct-q4_K_M",
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "size": 6247216577,
+        "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "llama",
+          "families": [
+            "llama"
+          ],
+          "parameter_size": "8.0B",
+          "quantization_level": "Q4_K_M"
+        },
+        "expires_at": "2026-09-13T12:59:41.7196324-04:00",
+        "size_vram": 0,
+        "context_length": 8192
+      },
+      {
+        "name": "llama3.2:latest",
+        "model": "llama3.2:latest",
+        "size": 2561524365,
+        "digest": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "llama",
+          "families": [
+            "llama"
+          ],
+          "parameter_size": "3.2B",
+          "quantization_level": "Q4_K_M"
+        },
+        "expires_at": "2026-09-13T12:59:35.155238-04:00",
+        "size_vram": 0,
+        "context_length": 4096
+      }
+    ]
+  },
+  "finishedAt": "2026-09-13T16:54:41.754Z",
+  "qualityPassed": true
+}

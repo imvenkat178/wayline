@@ -1,0 +1,6359 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-09-12T21:31:30.788Z",
+  "validationClass": "real Llama with fixture inventory",
+  "model": "llama3.1:8b-instruct-q4_K_M",
+  "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+  "numCtx": 8192,
+  "temperature": 0,
+  "ollamaVersion": "0.34.0",
+  "hardware": {
+    "ramBytes": 34032574464,
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13620H"
+  },
+  "codeHash": "c03de37adf2c42754ba6605f0deb107c955df939ec95298aaf4a5e2be18467e2",
+  "corpusHash": "5e83453f185a570b1c396af6c4447579687d5f0451bf75b906e6e57e942f575b",
+  "requiredCaseCount": 200,
+  "requestedRepeats": 2,
+  "results": [
+    {
+      "id": "search_options-1",
+      "repeat": 1,
+      "input": "Find a trip from Boston to New York tomorrow at 9 am",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "search_options"
+      ],
+      "commands": [
+        {
+          "op": "search_options",
+          "patch": {
+            "from": "bos",
+            "to": "nyc",
+            "departure": "2026-09-13T13:00:00.000Z"
+          }
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 18997,
+        "totalDurationNs": 18986698700,
+        "promptTokens": 1070,
+        "outputTokens": 26,
+        "numCtx": 8192
+      },
+      "latencyMs": 19046,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "search_options-2",
+      "repeat": 1,
+      "input": "Search flights from BOS to JFK tomorrow at 9 am",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "search_options"
+      ],
+      "commands": [
+        {
+          "op": "search_options",
+          "patch": {
+            "from": "BOS",
+            "to": "JFK",
+            "departure": "2026-09-13T13:00:00.000Z",
+            "mode": "flights"
+          }
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3263,
+        "totalDurationNs": 3241111400,
+        "promptTokens": 1069,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3346,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "search_options-3",
+      "repeat": 1,
+      "input": "Refresh options for my route",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "search_options"
+      ],
+      "commands": [
+        {
+          "op": "search_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2744,
+        "totalDurationNs": 2741082800,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2780,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "search_options-4",
+      "repeat": 1,
+      "input": "Find routes from bos to nyc tomorrow at 10 am",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "search_options"
+      ],
+      "commands": [
+        {
+          "op": "search_options",
+          "patch": {
+            "from": "bos",
+            "to": "nyc",
+            "departure": "2026-09-13T14:00:00.000Z"
+          }
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 4164,
+        "totalDurationNs": 4161322000,
+        "promptTokens": 1069,
+        "outputTokens": 25,
+        "numCtx": 8192
+      },
+      "latencyMs": 4213,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "search_options-5",
+      "repeat": 1,
+      "input": "Search again with these requirements",
+      "family": "planning",
+      "expected": [
+        "search_options"
+      ],
+      "actual": [
+        "search_options"
+      ],
+      "commands": [
+        {
+          "op": "search_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2972,
+        "totalDurationNs": 2962851100,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 3008,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "update_constraints-1",
+      "repeat": 1,
+      "input": "Leave two hours later",
+      "family": "planning",
+      "expected": [
+        "update_constraints"
+      ],
+      "actual": [
+        "update_constraints"
+      ],
+      "commands": [
+        {
+          "op": "update_constraints",
+          "patch": {
+            "departure": "2026-09-19T23:32:03.368Z"
+          }
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2667,
+        "totalDurationNs": 2663481900,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2702,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "update_constraints-2",
+      "repeat": 1,
+      "input": "Set my budget to $120",
+      "family": "planning",
+      "expected": [
+        "update_constraints"
+      ],
+      "actual": [
+        "update_constraints"
+      ],
+      "commands": [
+        {
+          "op": "update_constraints",
+          "patch": {
+            "preferences": {
+              "budgetCents": 12000
+            }
+          }
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2829,
+        "totalDurationNs": 2818097100,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2875,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "update_constraints-3",
+      "repeat": 1,
+      "input": "Change to two travelers",
+      "family": "planning",
+      "expected": [
+        "update_constraints"
+      ],
+      "actual": [
+        "update_constraints"
+      ],
+      "commands": [
+        {
+          "op": "update_constraints",
+          "patch": {
+            "travelers": 2
+          }
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2569,
+        "totalDurationNs": 2558343700,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2617,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "update_constraints-4",
+      "repeat": 1,
+      "input": "Avoid the bus",
+      "family": "planning",
+      "expected": [
+        "update_constraints"
+      ],
+      "actual": [
+        "update_constraints"
+      ],
+      "commands": [
+        {
+          "op": "update_constraints",
+          "patch": {
+            "preferences": {
+              "avoidBus": true
+            }
+          }
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2356,
+        "totalDurationNs": 2344560600,
+        "promptTokens": 1060,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2403,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "update_constraints-5",
+      "repeat": 1,
+      "input": "Could you shift our start time forward by ninety minutes and leave the rest alone?",
+      "family": "planning",
+      "expected": [
+        "update_constraints"
+      ],
+      "actual": [
+        "update_constraints"
+      ],
+      "commands": [
+        {
+          "op": "update_constraints",
+          "patch": {
+            "departure": "2026-09-19T23:02:14.089Z"
+          }
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3841,
+        "totalDurationNs": 3829031800,
+        "promptTokens": 1073,
+        "outputTokens": 22,
+        "numCtx": 8192
+      },
+      "latencyMs": 3888,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "compare_options-1",
+      "repeat": 1,
+      "input": "Compare the first and third options",
+      "family": "planning",
+      "expected": [
+        "compare_options"
+      ],
+      "actual": [
+        "compare_options"
+      ],
+      "commands": [
+        {
+          "op": "compare_options",
+          "positions": [
+            1,
+            3
+          ]
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3181,
+        "totalDurationNs": 3175001200,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3207,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "compare_options-2",
+      "repeat": 1,
+      "input": "Which existing option is cheapest?",
+      "family": "planning",
+      "expected": [
+        "compare_options"
+      ],
+      "actual": [
+        "explain_option"
+      ],
+      "commands": [
+        {
+          "op": "explain_option"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2908,
+        "totalDurationNs": 2900287100,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2946,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "compare_options-3",
+      "repeat": 1,
+      "input": "Show the fastest and recommended options",
+      "family": "planning",
+      "expected": [
+        "compare_options"
+      ],
+      "actual": [
+        "compare_options"
+      ],
+      "commands": [
+        {
+          "op": "compare_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3019,
+        "totalDurationNs": 3009692500,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3068,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "compare_options-4",
+      "repeat": 1,
+      "input": "Compare options 1 and 2",
+      "family": "planning",
+      "expected": [
+        "compare_options"
+      ],
+      "actual": [
+        "compare_options"
+      ],
+      "commands": [
+        {
+          "op": "compare_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3158,
+        "totalDurationNs": 3153842800,
+        "promptTokens": 1064,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3188,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "compare_options-5",
+      "repeat": 1,
+      "input": "Recommend one of these routes",
+      "family": "planning",
+      "expected": [
+        "compare_options"
+      ],
+      "actual": [
+        "compare_options"
+      ],
+      "commands": [
+        {
+          "op": "compare_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2999,
+        "totalDurationNs": 2986702000,
+        "promptTokens": 1062,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3033,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "select_option-1",
+      "repeat": 1,
+      "input": "Choose the first option",
+      "family": "planning",
+      "expected": [
+        "select_option"
+      ],
+      "actual": [
+        "select_option"
+      ],
+      "commands": [
+        {
+          "op": "select_option",
+          "positions": [
+            1
+          ]
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2552,
+        "totalDurationNs": 2545635000,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2583,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "select_option-2",
+      "repeat": 1,
+      "input": "Select option 2",
+      "family": "planning",
+      "expected": [
+        "select_option"
+      ],
+      "actual": [
+        "select_option"
+      ],
+      "commands": [
+        {
+          "op": "select_option",
+          "positions": [
+            2
+          ]
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2542,
+        "totalDurationNs": 2531305500,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2584,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "select_option-3",
+      "repeat": 1,
+      "input": "Use the third option",
+      "family": "planning",
+      "expected": [
+        "select_option"
+      ],
+      "actual": [
+        "select_option"
+      ],
+      "commands": [
+        {
+          "op": "select_option",
+          "positions": [
+            3
+          ]
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2737,
+        "totalDurationNs": 2734894100,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2766,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "select_option-4",
+      "repeat": 1,
+      "input": "Pick the cheapest option",
+      "family": "planning",
+      "expected": [
+        "select_option"
+      ],
+      "actual": [
+        "compare_options"
+      ],
+      "commands": [
+        {
+          "op": "compare_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2898,
+        "totalDurationNs": 2887911300,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2932,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "select_option-5",
+      "repeat": 1,
+      "input": "Go with the recommended option",
+      "family": "planning",
+      "expected": [
+        "select_option"
+      ],
+      "actual": [
+        "compare_options"
+      ],
+      "commands": [
+        {
+          "op": "compare_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2895,
+        "totalDurationNs": 2883092300,
+        "promptTokens": 1062,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2924,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "replace_leg-1",
+      "repeat": 1,
+      "input": "Replace the bus with a train",
+      "family": "planning",
+      "expected": [
+        "replace_leg"
+      ],
+      "actual": [
+        "replace_leg"
+      ],
+      "commands": [
+        {
+          "op": "replace_leg",
+          "legMode": "bus",
+          "replacementMode": "train"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3015,
+        "totalDurationNs": 3005968500,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3038,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "Choose the exact leg in the itinerary timeline; that reference is ambiguous.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "replace_leg-2",
+      "repeat": 1,
+      "input": "Swap the train for a bus",
+      "family": "planning",
+      "expected": [
+        "replace_leg"
+      ],
+      "actual": [
+        "update_constraints"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3134,
+        "totalDurationNs": 3132041000,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3161,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "replace_leg-3",
+      "repeat": 1,
+      "input": "Change the metro to a bus",
+      "family": "planning",
+      "expected": [
+        "replace_leg"
+      ],
+      "actual": [
+        "update_constraints"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3448,
+        "totalDurationNs": 3430469500,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3474,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "replace_leg-4",
+      "repeat": 1,
+      "input": "Replace the flight with another flight",
+      "family": "planning",
+      "expected": [
+        "replace_leg"
+      ],
+      "actual": [
+        "replace_leg"
+      ],
+      "commands": [
+        {
+          "op": "replace_leg"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3268,
+        "totalDurationNs": 3265354400,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3289,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "Choose the exact leg in the itinerary timeline; that reference is ambiguous.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "replace_leg-5",
+      "repeat": 1,
+      "input": "Swap my bus leg for a train",
+      "family": "planning",
+      "expected": [
+        "replace_leg"
+      ],
+      "actual": [
+        "update_constraints"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3311,
+        "totalDurationNs": 3307538100,
+        "promptTokens": 1064,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3333,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "lock_leg-1",
+      "repeat": 1,
+      "input": "Keep the train",
+      "family": "planning",
+      "expected": [
+        "lock_leg"
+      ],
+      "actual": [
+        "lock_leg"
+      ],
+      "commands": [
+        {
+          "op": "lock_leg",
+          "legMode": "train",
+          "locked": true
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2452,
+        "totalDurationNs": 2437755300,
+        "promptTokens": 1060,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2475,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "lock_leg-2",
+      "repeat": 1,
+      "input": "Lock the bus service",
+      "family": "planning",
+      "expected": [
+        "lock_leg"
+      ],
+      "actual": [
+        "lock_leg"
+      ],
+      "commands": [
+        {
+          "op": "lock_leg",
+          "legMode": "bus",
+          "locked": true
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2481,
+        "totalDurationNs": 2469924900,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2514,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "Choose the exact leg in the itinerary timeline; that reference is ambiguous.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "lock_leg-3",
+      "repeat": 1,
+      "input": "Unlock the train",
+      "family": "planning",
+      "expected": [
+        "lock_leg"
+      ],
+      "actual": [
+        "lock_leg"
+      ],
+      "commands": [
+        {
+          "op": "lock_leg",
+          "legMode": "train",
+          "locked": false
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2260,
+        "totalDurationNs": 2249449800,
+        "promptTokens": 1060,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2290,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "lock_leg-4",
+      "repeat": 1,
+      "input": "Keep my flight",
+      "family": "planning",
+      "expected": [
+        "lock_leg"
+      ],
+      "actual": [
+        "lock_leg"
+      ],
+      "commands": [
+        {
+          "op": "lock_leg",
+          "legMode": "flight",
+          "locked": true
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2362,
+        "totalDurationNs": 2351174500,
+        "promptTokens": 1060,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2392,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "Choose the exact leg in the itinerary timeline; that reference is ambiguous.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "lock_leg-5",
+      "repeat": 1,
+      "input": "Lock the metro leg",
+      "family": "planning",
+      "expected": [
+        "lock_leg"
+      ],
+      "actual": [
+        "lock_leg"
+      ],
+      "commands": [
+        {
+          "op": "lock_leg",
+          "legMode": "metro",
+          "locked": true
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2616,
+        "totalDurationNs": 2614781800,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2635,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "Choose the exact leg in the itinerary timeline; that reference is ambiguous.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "branch_scenario-1",
+      "repeat": 1,
+      "input": "What if we leave two hours later?",
+      "family": "planning",
+      "expected": [
+        "branch_scenario"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "departure": "2026-09-19T23:33:16.505Z"
+          },
+          "name": "What if we leave two hours later?"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3489,
+        "totalDurationNs": 3478125800,
+        "promptTokens": 1065,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 3526,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "branch_scenario-2",
+      "repeat": 1,
+      "input": "How much would two travelers cost?",
+      "family": "planning",
+      "expected": [
+        "branch_scenario"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "travelers": 2
+          },
+          "name": "How much would two travelers cost?"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3077,
+        "totalDurationNs": 3074566000,
+        "promptTokens": 1064,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3121,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "branch_scenario-3",
+      "repeat": 1,
+      "input": "Save a scenario with a $200 budget",
+      "family": "planning",
+      "expected": [
+        "branch_scenario"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "preferences": {
+              "budgetCents": 20000
+            }
+          },
+          "name": "Save a scenario with a $200 budget"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3684,
+        "totalDurationNs": 3680676700,
+        "promptTokens": 1065,
+        "outputTokens": 22,
+        "numCtx": 8192
+      },
+      "latencyMs": 3723,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "branch_scenario-4",
+      "repeat": 1,
+      "input": "Create a scenario for tomorrow at 6 pm",
+      "family": "planning",
+      "expected": [
+        "branch_scenario"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "departure": "2026-09-13T22:00:00.000Z"
+          },
+          "name": "Create a scenario for tomorrow at 6 pm"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3766,
+        "totalDurationNs": 3750945100,
+        "promptTokens": 1066,
+        "outputTokens": 23,
+        "numCtx": 8192
+      },
+      "latencyMs": 3807,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "branch_scenario-5",
+      "repeat": 1,
+      "input": "What would change if we avoid the bus?",
+      "family": "planning",
+      "expected": [
+        "branch_scenario"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "preferences": {
+              "avoidBus": true
+            }
+          },
+          "name": "What would change if we avoid the bus?"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3443,
+        "totalDurationNs": 3426885900,
+        "promptTokens": 1066,
+        "outputTokens": 22,
+        "numCtx": 8192
+      },
+      "latencyMs": 3480,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "restore_scenario-1",
+      "repeat": 1,
+      "input": "Restore Morning plan",
+      "family": "planning",
+      "expected": [
+        "restore_scenario"
+      ],
+      "actual": [
+        "restore_scenario"
+      ],
+      "commands": [
+        {
+          "op": "restore_scenario",
+          "scenarioId": "45cfdbae-ddda-45de-81d3-503de56b2836"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2403,
+        "totalDurationNs": 2388336300,
+        "promptTokens": 1060,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2427,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "restore_scenario-2",
+      "repeat": 1,
+      "input": "Switch back to the Morning plan scenario",
+      "family": "planning",
+      "expected": [
+        "restore_scenario"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "departure": "2026-09-19T13:00:00.000Z"
+          },
+          "name": "Switch back to the Morning plan scenario"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3120,
+        "totalDurationNs": 3108206600,
+        "promptTokens": 1064,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 3163,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "restore_scenario-3",
+      "repeat": 1,
+      "input": "Use my saved scenario Morning plan",
+      "family": "planning",
+      "expected": [
+        "restore_scenario"
+      ],
+      "actual": [
+        "restore_scenario"
+      ],
+      "commands": [
+        {
+          "op": "restore_scenario",
+          "scenarioId": "51bd129b-ef50-4758-be05-7d3a95097332"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2542,
+        "totalDurationNs": 2540202400,
+        "promptTokens": 1063,
+        "outputTokens": 15,
+        "numCtx": 8192
+      },
+      "latencyMs": 2569,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "restore_scenario-4",
+      "repeat": 1,
+      "input": "Make Morning plan the active scenario",
+      "family": "planning",
+      "expected": [
+        "restore_scenario"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "departure": "2026-09-19T13:00:00.000Z"
+          },
+          "name": "Make Morning plan the active scenario"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3316,
+        "totalDurationNs": 3304612600,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3352,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "restore_scenario-5",
+      "repeat": 1,
+      "input": "Return to Morning plan",
+      "family": "planning",
+      "expected": [
+        "restore_scenario"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "patch": {
+            "departure": "2026-09-19T13:00:00.000Z"
+          },
+          "name": "Return to Morning plan"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2595,
+        "totalDurationNs": 2589262500,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2630,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "undo_draft_edit-1",
+      "repeat": 1,
+      "input": "Undo that",
+      "family": "planning",
+      "expected": [
+        "undo_draft_edit"
+      ],
+      "actual": [
+        "undo_draft_edit"
+      ],
+      "commands": [
+        {
+          "op": "undo_draft_edit"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2294,
+        "totalDurationNs": 2287890300,
+        "promptTokens": 1059,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2330,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "undo_draft_edit-2",
+      "repeat": 1,
+      "input": "Undo my last edit",
+      "family": "planning",
+      "expected": [
+        "undo_draft_edit"
+      ],
+      "actual": [
+        "undo_draft_edit"
+      ],
+      "commands": [
+        {
+          "op": "undo_draft_edit"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2784,
+        "totalDurationNs": 2772824800,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2819,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "undo_draft_edit-3",
+      "repeat": 1,
+      "input": "Revert the previous draft change",
+      "family": "planning",
+      "expected": [
+        "undo_draft_edit"
+      ],
+      "actual": [
+        "undo_draft_edit"
+      ],
+      "commands": [
+        {
+          "op": "undo_draft_edit"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3074,
+        "totalDurationNs": 3062365800,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3101,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "undo_draft_edit-4",
+      "repeat": 1,
+      "input": "Go back one draft revision",
+      "family": "planning",
+      "expected": [
+        "undo_draft_edit"
+      ],
+      "actual": [
+        "undo_draft_edit"
+      ],
+      "commands": [
+        {
+          "op": "undo_draft_edit"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2944,
+        "totalDurationNs": 2941040800,
+        "promptTokens": 1062,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2972,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "undo_draft_edit-5",
+      "repeat": 1,
+      "input": "Undo the departure change",
+      "family": "planning",
+      "expected": [
+        "undo_draft_edit"
+      ],
+      "actual": [
+        "undo_draft_edit"
+      ],
+      "commands": [
+        {
+          "op": "undo_draft_edit"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2761,
+        "totalDurationNs": 2752570700,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2787,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_review-1",
+      "repeat": 1,
+      "input": "Save this trip",
+      "family": "planning",
+      "expected": [
+        "prepare_review"
+      ],
+      "actual": [
+        "prepare_review"
+      ],
+      "commands": [
+        {
+          "op": "prepare_review"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2280,
+        "totalDurationNs": 2277444500,
+        "promptTokens": 1060,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2321,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_review-2",
+      "repeat": 1,
+      "input": "Review this plan before saving",
+      "family": "planning",
+      "expected": [
+        "prepare_review"
+      ],
+      "actual": [
+        "prepare_review"
+      ],
+      "commands": [
+        {
+          "op": "prepare_review"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2681,
+        "totalDurationNs": 2670919600,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2709,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_review-3",
+      "repeat": 1,
+      "input": "Save my current itinerary",
+      "family": "planning",
+      "expected": [
+        "prepare_review"
+      ],
+      "actual": [
+        "prepare_review"
+      ],
+      "commands": [
+        {
+          "op": "prepare_review"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2436,
+        "totalDurationNs": 2425729300,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2471,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_review-4",
+      "repeat": 1,
+      "input": "Prepare a review to save this journey",
+      "family": "planning",
+      "expected": [
+        "prepare_review"
+      ],
+      "actual": [
+        "prepare_review"
+      ],
+      "commands": [
+        {
+          "op": "prepare_review"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3063,
+        "totalDurationNs": 3060565500,
+        "promptTokens": 1064,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3095,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_review-5",
+      "repeat": 1,
+      "input": "Keep this as a saved plan",
+      "family": "planning",
+      "expected": [
+        "prepare_review"
+      ],
+      "actual": [
+        "prepare_review"
+      ],
+      "commands": [
+        {
+          "op": "prepare_review"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2990,
+        "totalDurationNs": 2981107300,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3020,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "collect_options-1",
+      "repeat": 1,
+      "input": "Load the flight offers",
+      "family": "planning",
+      "expected": [
+        "collect_options"
+      ],
+      "actual": [
+        "collect_options"
+      ],
+      "commands": [
+        {
+          "op": "collect_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2618,
+        "totalDurationNs": 2616161700,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2640,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "The local model or provider could not complete this turn. Retry or use direct controls.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "collect_options-2",
+      "repeat": 1,
+      "input": "Show the finished search results",
+      "family": "planning",
+      "expected": [
+        "collect_options"
+      ],
+      "actual": [
+        "collect_options"
+      ],
+      "commands": [
+        {
+          "op": "collect_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2744,
+        "totalDurationNs": 2732172200,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2771,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "The local model or provider could not complete this turn. Retry or use direct controls.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "collect_options-3",
+      "repeat": 1,
+      "input": "Collect the current offers",
+      "family": "planning",
+      "expected": [
+        "collect_options"
+      ],
+      "actual": [
+        "collect_options"
+      ],
+      "commands": [
+        {
+          "op": "collect_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2610,
+        "totalDurationNs": 2600428100,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2636,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "The local model or provider could not complete this turn. Retry or use direct controls.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "collect_options-4",
+      "repeat": 1,
+      "input": "Load completed flight search offers",
+      "family": "planning",
+      "expected": [
+        "collect_options"
+      ],
+      "actual": [
+        "collect_options"
+      ],
+      "commands": [
+        {
+          "op": "collect_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2739,
+        "totalDurationNs": 2728565500,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2773,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "The local model or provider could not complete this turn. Retry or use direct controls.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "collect_options-5",
+      "repeat": 1,
+      "input": "Show my returned offers",
+      "family": "planning",
+      "expected": [
+        "collect_options"
+      ],
+      "actual": [
+        "collect_options"
+      ],
+      "commands": [
+        {
+          "op": "collect_options"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2526,
+        "totalDurationNs": 2515755800,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2565,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "The local model or provider could not complete this turn. Retry or use direct controls.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "cancel_search-1",
+      "repeat": 1,
+      "input": "Cancel the search",
+      "family": "planning",
+      "expected": [
+        "cancel_search"
+      ],
+      "actual": [
+        "cancel_search"
+      ],
+      "commands": [
+        {
+          "op": "cancel_search"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2460,
+        "totalDurationNs": 2455707200,
+        "promptTokens": 1060,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2484,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "The local model or provider could not complete this turn. Retry or use direct controls.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "cancel_search-2",
+      "repeat": 1,
+      "input": "Stop searching for flights",
+      "family": "planning",
+      "expected": [
+        "cancel_search"
+      ],
+      "actual": [
+        "cancel_search"
+      ],
+      "commands": [
+        {
+          "op": "cancel_search"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2613,
+        "totalDurationNs": 2601410500,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2647,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "The local model or provider could not complete this turn. Retry or use direct controls.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "cancel_search-3",
+      "repeat": 1,
+      "input": "Stop the current search",
+      "family": "planning",
+      "expected": [
+        "cancel_search"
+      ],
+      "actual": [
+        "cancel_search"
+      ],
+      "commands": [
+        {
+          "op": "cancel_search"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2369,
+        "totalDurationNs": 2367271300,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2389,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "The local model or provider could not complete this turn. Retry or use direct controls.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "cancel_search-4",
+      "repeat": 1,
+      "input": "Cancel my flight search",
+      "family": "planning",
+      "expected": [
+        "cancel_search"
+      ],
+      "actual": [
+        "cancel_search"
+      ],
+      "commands": [
+        {
+          "op": "cancel_search"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2421,
+        "totalDurationNs": 2410388200,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2456,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "The local model or provider could not complete this turn. Retry or use direct controls.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "cancel_search-5",
+      "repeat": 1,
+      "input": "Do not continue this search",
+      "family": "planning",
+      "expected": [
+        "cancel_search"
+      ],
+      "actual": [
+        "cancel_search"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2781,
+        "totalDurationNs": 2769288900,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2813,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_recovery-1",
+      "repeat": 1,
+      "input": "Find recovery alternatives for my delayed train",
+      "family": "monitoring",
+      "expected": [
+        "prepare_recovery"
+      ],
+      "actual": [
+        "prepare_recovery"
+      ],
+      "commands": [
+        {
+          "op": "prepare_recovery"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3131,
+        "totalDurationNs": 3120818700,
+        "promptTokens": 1064,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3154,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "Choose the affected saved journey before preparing recovery. Your draft is unchanged.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_recovery-2",
+      "repeat": 1,
+      "input": "Prepare a backup route for this disruption",
+      "family": "monitoring",
+      "expected": [
+        "prepare_recovery"
+      ],
+      "actual": [
+        "branch_scenario"
+      ],
+      "commands": [
+        {
+          "op": "branch_scenario",
+          "name": "Prepare a backup route for this disruption"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3501,
+        "totalDurationNs": 3494453500,
+        "promptTokens": 1064,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 3542,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "prepare_recovery-3",
+      "repeat": 1,
+      "input": "My bus was cancelled, find alternatives",
+      "family": "monitoring",
+      "expected": [
+        "prepare_recovery"
+      ],
+      "actual": [
+        "prepare_recovery"
+      ],
+      "commands": [
+        {
+          "op": "prepare_recovery"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3058,
+        "totalDurationNs": 3053205700,
+        "promptTokens": 1064,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3080,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "Choose the affected saved journey before preparing recovery. Your draft is unchanged.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_recovery-4",
+      "repeat": 1,
+      "input": "Recover my journey with $50 extra",
+      "family": "monitoring",
+      "expected": [
+        "prepare_recovery"
+      ],
+      "actual": [
+        "prepare_recovery"
+      ],
+      "commands": [
+        {
+          "op": "prepare_recovery",
+          "maxExtraCents": 5000
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 4059,
+        "totalDurationNs": 4047865000,
+        "promptTokens": 1065,
+        "outputTokens": 22,
+        "numCtx": 8192
+      },
+      "latencyMs": 4093,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "Choose the affected saved journey before preparing recovery. Your draft is unchanged.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "prepare_recovery-5",
+      "repeat": 1,
+      "input": "Find a recovery route arriving by tonight",
+      "family": "monitoring",
+      "expected": [
+        "prepare_recovery"
+      ],
+      "actual": [
+        "prepare_recovery"
+      ],
+      "commands": [
+        {
+          "op": "prepare_recovery",
+          "arrivalDeadline": "2026-09-13T03:59:00.000Z"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3550,
+        "totalDurationNs": 3534280000,
+        "promptTokens": 1064,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 3570,
+      "httpStatus": 200,
+      "executionState": "failed",
+      "error": "Choose the affected saved journey before preparing recovery. Your draft is unchanged.",
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "explain_option-1",
+      "repeat": 1,
+      "input": "Explain the first option",
+      "family": "information",
+      "expected": [
+        "explain_option"
+      ],
+      "actual": [
+        "explain_option"
+      ],
+      "commands": [
+        {
+          "op": "explain_option",
+          "positions": [
+            1
+          ]
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3200,
+        "totalDurationNs": 3186549200,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 3255,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "explain_option-2",
+      "repeat": 1,
+      "input": "Explain baggage for my selected option",
+      "family": "information",
+      "expected": [
+        "explain_option"
+      ],
+      "actual": [
+        "explain_option"
+      ],
+      "commands": [
+        {
+          "op": "explain_option"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3507,
+        "totalDurationNs": 3495835700,
+        "promptTokens": 1064,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3534,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "explain_option-3",
+      "repeat": 1,
+      "input": "Show ticket conditions for this option",
+      "family": "information",
+      "expected": [
+        "explain_option"
+      ],
+      "actual": [
+        "explain_option"
+      ],
+      "commands": [
+        {
+          "op": "explain_option"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3432,
+        "totalDurationNs": 3426316300,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3459,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "explain_option-4",
+      "repeat": 1,
+      "input": "Explain the connection in option 2",
+      "family": "information",
+      "expected": [
+        "explain_option"
+      ],
+      "actual": [
+        "explain_option"
+      ],
+      "commands": [
+        {
+          "op": "explain_option",
+          "positions": [
+            2
+          ]
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3660,
+        "totalDurationNs": 3646015400,
+        "promptTokens": 1065,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 3686,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "explain_option-5",
+      "repeat": 1,
+      "input": "What is included in the selected fare?",
+      "family": "information",
+      "expected": [
+        "explain_option"
+      ],
+      "actual": [
+        "explain_option"
+      ],
+      "commands": [
+        {
+          "op": "explain_option"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3336,
+        "totalDurationNs": 3331934200,
+        "promptTokens": 1065,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 3361,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "advice-1",
+      "repeat": 1,
+      "input": "What can you tell me about traveling with luggage?",
+      "family": "information",
+      "expected": [
+        "advice"
+      ],
+      "actual": [
+        "explain_option"
+      ],
+      "commands": [
+        {
+          "op": "explain_option"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3564,
+        "totalDurationNs": 3551656300,
+        "promptTokens": 1067,
+        "outputTokens": 23,
+        "numCtx": 8192
+      },
+      "latencyMs": 3592,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": false,
+      "pass": false
+    },
+    {
+      "id": "advice-2",
+      "repeat": 1,
+      "input": "Explain how a separate ticket connection works",
+      "family": "information",
+      "expected": [
+        "advice"
+      ],
+      "actual": [
+        "explain_option"
+      ],
+      "commands": [
+        {
+          "op": "explain_option"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3262,
+        "totalDurationNs": 3248045000,
+        "promptTokens": 1065,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 3289,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": false,
+      "pass": false
+    },
+    {
+      "id": "advice-3",
+      "repeat": 1,
+      "input": "Can you guarantee this trip will be on time?",
+      "family": "information",
+      "expected": [
+        "advice"
+      ],
+      "actual": [
+        "explain_option"
+      ],
+      "commands": [
+        {
+          "op": "explain_option"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3596,
+        "totalDurationNs": 3594677800,
+        "promptTokens": 1067,
+        "outputTokens": 23,
+        "numCtx": 8192
+      },
+      "latencyMs": 3624,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": false,
+      "pass": false
+    },
+    {
+      "id": "advice-4",
+      "repeat": 1,
+      "input": "What evidence do you have for prices?",
+      "family": "information",
+      "expected": [
+        "advice"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3333,
+        "totalDurationNs": 3316148200,
+        "promptTokens": 1065,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 3361,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "advice-5",
+      "repeat": 1,
+      "input": "What travel questions can you answer?",
+      "family": "information",
+      "expected": [
+        "advice"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3286,
+        "totalDurationNs": 3283600100,
+        "promptTokens": 1064,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3318,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_travelers-1",
+      "repeat": 1,
+      "input": "Add a traveler profile",
+      "family": "personal",
+      "expected": [
+        "manage_travelers"
+      ],
+      "actual": [
+        "manage_travelers"
+      ],
+      "commands": [
+        {
+          "op": "manage_travelers"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2667,
+        "totalDurationNs": 2662395900,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2694,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_travelers-2",
+      "repeat": 1,
+      "input": "Edit my traveler details",
+      "family": "personal",
+      "expected": [
+        "manage_travelers"
+      ],
+      "actual": [
+        "manage_travelers"
+      ],
+      "commands": [
+        {
+          "op": "manage_travelers"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2808,
+        "totalDurationNs": 2797207000,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2837,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_travelers-3",
+      "repeat": 1,
+      "input": "Show saved travelers",
+      "family": "personal",
+      "expected": [
+        "manage_travelers"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2602,
+        "totalDurationNs": 2586355600,
+        "promptTokens": 1060,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2629,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "manage_travelers-4",
+      "repeat": 1,
+      "input": "I need to update a passenger profile",
+      "family": "personal",
+      "expected": [
+        "manage_travelers"
+      ],
+      "actual": [
+        "manage_travelers"
+      ],
+      "commands": [
+        {
+          "op": "manage_travelers"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2977,
+        "totalDurationNs": 2964289800,
+        "promptTokens": 1064,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 3003,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_travelers-5",
+      "repeat": 1,
+      "input": "Open the protected traveler form",
+      "family": "personal",
+      "expected": [
+        "manage_travelers"
+      ],
+      "actual": [
+        "manage_travelers"
+      ],
+      "commands": [
+        {
+          "op": "manage_travelers"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3020,
+        "totalDurationNs": 3006656900,
+        "promptTokens": 1062,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3043,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_contacts-1",
+      "repeat": 1,
+      "input": "Add an emergency contact",
+      "family": "personal",
+      "expected": [
+        "manage_contacts"
+      ],
+      "actual": [
+        "manage_contacts"
+      ],
+      "commands": [
+        {
+          "op": "manage_contacts"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2536,
+        "totalDurationNs": 2523967400,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2564,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_contacts-2",
+      "repeat": 1,
+      "input": "Change my emergency contact",
+      "family": "personal",
+      "expected": [
+        "manage_contacts"
+      ],
+      "actual": [
+        "manage_contacts"
+      ],
+      "commands": [
+        {
+          "op": "manage_contacts"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2530,
+        "totalDurationNs": 2528387100,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2552,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_contacts-3",
+      "repeat": 1,
+      "input": "Show my saved contacts",
+      "family": "personal",
+      "expected": [
+        "manage_contacts"
+      ],
+      "actual": [
+        "manage_contacts"
+      ],
+      "commands": [
+        {
+          "op": "manage_contacts"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2563,
+        "totalDurationNs": 2550852000,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2597,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_contacts-4",
+      "repeat": 1,
+      "input": "Open my contact details",
+      "family": "personal",
+      "expected": [
+        "manage_contacts"
+      ],
+      "actual": [
+        "manage_contacts"
+      ],
+      "commands": [
+        {
+          "op": "manage_contacts"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2647,
+        "totalDurationNs": 2636416600,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2674,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_contacts-5",
+      "repeat": 1,
+      "input": "I want to update my contacts",
+      "family": "personal",
+      "expected": [
+        "manage_contacts"
+      ],
+      "actual": [
+        "manage_contacts"
+      ],
+      "commands": [
+        {
+          "op": "manage_contacts"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2576,
+        "totalDurationNs": 2565736100,
+        "promptTokens": 1063,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2616,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_preferences-1",
+      "repeat": 1,
+      "input": "Edit my saved travel preferences",
+      "family": "personal",
+      "expected": [
+        "manage_preferences"
+      ],
+      "actual": [
+        "manage_preferences"
+      ],
+      "commands": [
+        {
+          "op": "manage_preferences"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2761,
+        "totalDurationNs": 2750508300,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2786,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_preferences-2",
+      "repeat": 1,
+      "input": "Show my travel preferences",
+      "family": "personal",
+      "expected": [
+        "manage_preferences"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2423,
+        "totalDurationNs": 2411201000,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2451,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "manage_preferences-3",
+      "repeat": 1,
+      "input": "Change my default travel settings",
+      "family": "personal",
+      "expected": [
+        "manage_preferences"
+      ],
+      "actual": [
+        "manage_preferences"
+      ],
+      "commands": [
+        {
+          "op": "manage_preferences"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2609,
+        "totalDurationNs": 2597771100,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2636,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_preferences-4",
+      "repeat": 1,
+      "input": "Open my preferences",
+      "family": "personal",
+      "expected": [
+        "manage_preferences"
+      ],
+      "actual": [
+        "manage_preferences"
+      ],
+      "commands": [
+        {
+          "op": "manage_preferences"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2338,
+        "totalDurationNs": 2324355900,
+        "promptTokens": 1060,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2363,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_preferences-5",
+      "repeat": 1,
+      "input": "Update my usual travel preferences",
+      "family": "personal",
+      "expected": [
+        "manage_preferences"
+      ],
+      "actual": [
+        "manage_preferences"
+      ],
+      "commands": [
+        {
+          "op": "manage_preferences"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2863,
+        "totalDurationNs": 2852736500,
+        "promptTokens": 1062,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2913,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_favorites-1",
+      "repeat": 1,
+      "input": "Save a favorite route",
+      "family": "personal",
+      "expected": [
+        "manage_favorites"
+      ],
+      "actual": [
+        "manage_favorites"
+      ],
+      "commands": [
+        {
+          "op": "manage_favorites"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2651,
+        "totalDurationNs": 2639091800,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2691,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_favorites-2",
+      "repeat": 1,
+      "input": "Show favorite routes",
+      "family": "personal",
+      "expected": [
+        "manage_favorites"
+      ],
+      "actual": [
+        "manage_favorites"
+      ],
+      "commands": [
+        {
+          "op": "manage_favorites"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2495,
+        "totalDurationNs": 2489372300,
+        "promptTokens": 1060,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2537,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_favorites-3",
+      "repeat": 1,
+      "input": "Edit a favorite route",
+      "family": "personal",
+      "expected": [
+        "manage_favorites"
+      ],
+      "actual": [
+        "manage_favorites"
+      ],
+      "commands": [
+        {
+          "op": "manage_favorites"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2682,
+        "totalDurationNs": 2670706900,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2709,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_favorites-4",
+      "repeat": 1,
+      "input": "Add a route to favorites",
+      "family": "personal",
+      "expected": [
+        "manage_favorites"
+      ],
+      "actual": [
+        "manage_favorites"
+      ],
+      "commands": [
+        {
+          "op": "manage_favorites"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2844,
+        "totalDurationNs": 2835213200,
+        "promptTokens": 1062,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2905,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_favorites-5",
+      "repeat": 1,
+      "input": "Manage my saved shortcuts",
+      "family": "personal",
+      "expected": [
+        "manage_favorites"
+      ],
+      "actual": [
+        "manage_favorites"
+      ],
+      "commands": [
+        {
+          "op": "manage_favorites"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2677,
+        "totalDurationNs": 2665827000,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2715,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_commutes-1",
+      "repeat": 1,
+      "input": "Create a recurring commute",
+      "family": "personal",
+      "expected": [
+        "manage_commutes"
+      ],
+      "actual": [
+        "manage_commutes"
+      ],
+      "commands": [
+        {
+          "op": "manage_commutes"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2857,
+        "totalDurationNs": 2845464600,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2883,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_commutes-2",
+      "repeat": 1,
+      "input": "Pause my commute",
+      "family": "personal",
+      "expected": [
+        "manage_commutes"
+      ],
+      "actual": [
+        "manage_commutes"
+      ],
+      "commands": [
+        {
+          "op": "manage_commutes"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2665,
+        "totalDurationNs": 2661698200,
+        "promptTokens": 1060,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2692,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_commutes-3",
+      "repeat": 1,
+      "input": "Change my commute schedule",
+      "family": "personal",
+      "expected": [
+        "manage_commutes"
+      ],
+      "actual": [
+        "manage_commutes"
+      ],
+      "commands": [
+        {
+          "op": "manage_commutes"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2937,
+        "totalDurationNs": 2926986500,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2978,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_commutes-4",
+      "repeat": 1,
+      "input": "Show my commutes",
+      "family": "personal",
+      "expected": [
+        "manage_commutes"
+      ],
+      "actual": [
+        "manage_commutes"
+      ],
+      "commands": [
+        {
+          "op": "manage_commutes"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2571,
+        "totalDurationNs": 2555678900,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2601,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_commutes-5",
+      "repeat": 1,
+      "input": "Schedule my weekday commute",
+      "family": "personal",
+      "expected": [
+        "manage_commutes"
+      ],
+      "actual": [
+        "manage_commutes"
+      ],
+      "commands": [
+        {
+          "op": "manage_commutes"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3637,
+        "totalDurationNs": 3626932000,
+        "promptTokens": 1061,
+        "outputTokens": 25,
+        "numCtx": 8192
+      },
+      "latencyMs": 3677,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_passes-1",
+      "repeat": 1,
+      "input": "Add a transit pass",
+      "family": "personal",
+      "expected": [
+        "manage_passes"
+      ],
+      "actual": [
+        "manage_passes"
+      ],
+      "commands": [
+        {
+          "op": "manage_passes"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2772,
+        "totalDurationNs": 2765930900,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2797,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_passes-2",
+      "repeat": 1,
+      "input": "Show my passes",
+      "family": "personal",
+      "expected": [
+        "manage_passes"
+      ],
+      "actual": [
+        "manage_passes"
+      ],
+      "commands": [
+        {
+          "op": "manage_passes"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2670,
+        "totalDurationNs": 2658790900,
+        "promptTokens": 1060,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2710,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_passes-3",
+      "repeat": 1,
+      "input": "Edit my pass renewal reminder",
+      "family": "personal",
+      "expected": [
+        "manage_passes"
+      ],
+      "actual": [
+        "manage_passes"
+      ],
+      "commands": [
+        {
+          "op": "manage_passes"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2865,
+        "totalDurationNs": 2851826500,
+        "promptTokens": 1062,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2890,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_passes-4",
+      "repeat": 1,
+      "input": "Record my monthly rail pass",
+      "family": "personal",
+      "expected": [
+        "manage_passes"
+      ],
+      "actual": [
+        "manage_passes"
+      ],
+      "commands": [
+        {
+          "op": "manage_passes"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2860,
+        "totalDurationNs": 2847497800,
+        "promptTokens": 1062,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2885,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_passes-5",
+      "repeat": 1,
+      "input": "Manage my transit passes",
+      "family": "personal",
+      "expected": [
+        "manage_passes"
+      ],
+      "actual": [
+        "manage_passes"
+      ],
+      "commands": [
+        {
+          "op": "manage_passes"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2802,
+        "totalDurationNs": 2800076600,
+        "promptTokens": 1061,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2828,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_tickets-1",
+      "repeat": 1,
+      "input": "Import my train ticket",
+      "family": "tickets",
+      "expected": [
+        "manage_tickets"
+      ],
+      "actual": [
+        "manage_tickets"
+      ],
+      "commands": [
+        {
+          "op": "manage_tickets"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2784,
+        "totalDurationNs": 2772214700,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2821,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_tickets-2",
+      "repeat": 1,
+      "input": "Show my tickets",
+      "family": "tickets",
+      "expected": [
+        "manage_tickets"
+      ],
+      "actual": [
+        "manage_tickets"
+      ],
+      "commands": [
+        {
+          "op": "manage_tickets"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2793,
+        "totalDurationNs": 2784923700,
+        "promptTokens": 1060,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2818,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_tickets-3",
+      "repeat": 1,
+      "input": "Link an imported ticket to this journey",
+      "family": "tickets",
+      "expected": [
+        "manage_tickets"
+      ],
+      "actual": [
+        "manage_tickets"
+      ],
+      "commands": [
+        {
+          "op": "manage_tickets"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2873,
+        "totalDurationNs": 2863344400,
+        "promptTokens": 1064,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2901,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_tickets-4",
+      "repeat": 1,
+      "input": "Retrieve my ticket document",
+      "family": "tickets",
+      "expected": [
+        "manage_tickets"
+      ],
+      "actual": [
+        "manage_tickets"
+      ],
+      "commands": [
+        {
+          "op": "manage_tickets"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2449,
+        "totalDurationNs": 2432273700,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2491,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_tickets-5",
+      "repeat": 1,
+      "input": "Inspect the uploaded ticket",
+      "family": "tickets",
+      "expected": [
+        "manage_tickets"
+      ],
+      "actual": [
+        "manage_tickets"
+      ],
+      "commands": [
+        {
+          "op": "manage_tickets"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2489,
+        "totalDurationNs": 2477523200,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2520,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_watches-1",
+      "repeat": 1,
+      "input": "Watch this fare for price drops",
+      "family": "monitoring",
+      "expected": [
+        "manage_watches"
+      ],
+      "actual": [
+        "manage_watches"
+      ],
+      "commands": [
+        {
+          "op": "manage_watches"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2984,
+        "totalDurationNs": 2973442300,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3025,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_watches-2",
+      "repeat": 1,
+      "input": "Set a price alert",
+      "family": "monitoring",
+      "expected": [
+        "manage_watches"
+      ],
+      "actual": [
+        "manage_watches"
+      ],
+      "commands": [
+        {
+          "op": "manage_watches"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2630,
+        "totalDurationNs": 2622151300,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2665,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_watches-3",
+      "repeat": 1,
+      "input": "Stop my fare watch",
+      "family": "monitoring",
+      "expected": [
+        "manage_watches"
+      ],
+      "actual": [
+        "manage_watches"
+      ],
+      "commands": [
+        {
+          "op": "manage_watches"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2658,
+        "totalDurationNs": 2648017400,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2691,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_watches-4",
+      "repeat": 1,
+      "input": "Show my price watches",
+      "family": "monitoring",
+      "expected": [
+        "manage_watches"
+      ],
+      "actual": [
+        "manage_watches"
+      ],
+      "commands": [
+        {
+          "op": "manage_watches"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3034,
+        "totalDurationNs": 3023289200,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 3069,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_watches-5",
+      "repeat": 1,
+      "input": "Notify me if the complete price falls below $100",
+      "family": "monitoring",
+      "expected": [
+        "manage_watches"
+      ],
+      "actual": [
+        "manage_notifications"
+      ],
+      "commands": [
+        {
+          "op": "manage_notifications"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3766,
+        "totalDurationNs": 3749350700,
+        "promptTokens": 1067,
+        "outputTokens": 23,
+        "numCtx": 8192
+      },
+      "latencyMs": 3792,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "manage_notifications-1",
+      "repeat": 1,
+      "input": "Change my notification settings",
+      "family": "monitoring",
+      "expected": [
+        "manage_notifications"
+      ],
+      "actual": [
+        "manage_notifications"
+      ],
+      "commands": [
+        {
+          "op": "manage_notifications"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2634,
+        "totalDurationNs": 2622165600,
+        "promptTokens": 1061,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2658,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_notifications-2",
+      "repeat": 1,
+      "input": "Show my travel alert settings",
+      "family": "monitoring",
+      "expected": [
+        "manage_notifications"
+      ],
+      "actual": [
+        "manage_notifications"
+      ],
+      "commands": [
+        {
+          "op": "manage_notifications"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2823,
+        "totalDurationNs": 2820884200,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2857,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_notifications-3",
+      "repeat": 1,
+      "input": "Turn off push notifications",
+      "family": "monitoring",
+      "expected": [
+        "manage_notifications"
+      ],
+      "actual": [
+        "manage_notifications"
+      ],
+      "commands": [
+        {
+          "op": "manage_notifications"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2436,
+        "totalDurationNs": 2433451400,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2463,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_notifications-4",
+      "repeat": 1,
+      "input": "Set quiet hours for alerts",
+      "family": "monitoring",
+      "expected": [
+        "manage_notifications"
+      ],
+      "actual": [
+        "manage_notifications"
+      ],
+      "commands": [
+        {
+          "op": "manage_notifications"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2725,
+        "totalDurationNs": 2713512900,
+        "promptTokens": 1062,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2762,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "manage_notifications-5",
+      "repeat": 1,
+      "input": "Manage how I receive journey updates",
+      "family": "monitoring",
+      "expected": [
+        "manage_notifications"
+      ],
+      "actual": [
+        "manage_notifications"
+      ],
+      "commands": [
+        {
+          "op": "manage_notifications"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3066,
+        "totalDurationNs": 3064249600,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3091,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "trip_status-1",
+      "repeat": 1,
+      "input": "Check my trip status",
+      "family": "monitoring",
+      "expected": [
+        "trip_status"
+      ],
+      "actual": [
+        "trip_status"
+      ],
+      "commands": [
+        {
+          "op": "trip_status"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2887,
+        "totalDurationNs": 2872740200,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2911,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "trip_status-2",
+      "repeat": 1,
+      "input": "Is my flight delayed?",
+      "family": "monitoring",
+      "expected": [
+        "trip_status"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2845,
+        "totalDurationNs": 2833749000,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2882,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "trip_status-3",
+      "repeat": 1,
+      "input": "What gate is my flight using?",
+      "family": "monitoring",
+      "expected": [
+        "trip_status"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3054,
+        "totalDurationNs": 3046775400,
+        "promptTokens": 1064,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3075,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "trip_status-4",
+      "repeat": 1,
+      "input": "Show current service alerts",
+      "family": "monitoring",
+      "expected": [
+        "trip_status"
+      ],
+      "actual": [
+        "trip_status"
+      ],
+      "commands": [
+        {
+          "op": "trip_status"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2796,
+        "totalDurationNs": 2785250900,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2822,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "trip_status-5",
+      "repeat": 1,
+      "input": "Check if my train is cancelled",
+      "family": "monitoring",
+      "expected": [
+        "trip_status"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3677,
+        "totalDurationNs": 3676511100,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3720,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "travel_weather-1",
+      "repeat": 1,
+      "input": "What is the weather for my trip?",
+      "family": "information",
+      "expected": [
+        "travel_weather"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3870,
+        "totalDurationNs": 3865195600,
+        "promptTokens": 1065,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 3894,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "travel_weather-2",
+      "repeat": 1,
+      "input": "Check rain at my destination",
+      "family": "information",
+      "expected": [
+        "travel_weather"
+      ],
+      "actual": [
+        "travel_weather"
+      ],
+      "commands": [
+        {
+          "op": "travel_weather"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2828,
+        "totalDurationNs": 2808878600,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2877,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "travel_weather-3",
+      "repeat": 1,
+      "input": "Show the journey weather forecast",
+      "family": "information",
+      "expected": [
+        "travel_weather"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2828,
+        "totalDurationNs": 2812817200,
+        "promptTokens": 1062,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2869,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "travel_weather-4",
+      "repeat": 1,
+      "input": "Will it rain on my trip?",
+      "family": "information",
+      "expected": [
+        "travel_weather"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3421,
+        "totalDurationNs": 3409979000,
+        "promptTokens": 1064,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3451,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "travel_weather-5",
+      "repeat": 1,
+      "input": "Check weather at my departure location",
+      "family": "information",
+      "expected": [
+        "travel_weather"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3593,
+        "totalDurationNs": 3578276200,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3616,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "station_guidance-1",
+      "repeat": 1,
+      "input": "Show station boarding guidance",
+      "family": "information",
+      "expected": [
+        "station_guidance"
+      ],
+      "actual": [
+        "station_guidance"
+      ],
+      "commands": [
+        {
+          "op": "station_guidance"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3150,
+        "totalDurationNs": 3134247200,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 3175,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "station_guidance-2",
+      "repeat": 1,
+      "input": "Where do I board at the station?",
+      "family": "information",
+      "expected": [
+        "station_guidance"
+      ],
+      "actual": [
+        "explain_option"
+      ],
+      "commands": [
+        {
+          "op": "explain_option"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3993,
+        "totalDurationNs": 3986060400,
+        "promptTokens": 1065,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 4021,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": false,
+      "pass": false
+    },
+    {
+      "id": "station_guidance-3",
+      "repeat": 1,
+      "input": "Find airport terminal guidance",
+      "family": "information",
+      "expected": [
+        "station_guidance"
+      ],
+      "actual": [
+        "station_guidance"
+      ],
+      "commands": [
+        {
+          "op": "station_guidance"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3616,
+        "totalDurationNs": 3600325400,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 3642,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "station_guidance-4",
+      "repeat": 1,
+      "input": "Is the station entrance accessible?",
+      "family": "information",
+      "expected": [
+        "station_guidance"
+      ],
+      "actual": [
+        "explain_option"
+      ],
+      "commands": [
+        {
+          "op": "explain_option"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3965,
+        "totalDurationNs": 3964053100,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3994,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": false,
+      "pass": false
+    },
+    {
+      "id": "station_guidance-5",
+      "repeat": 1,
+      "input": "Show guidance for South Station",
+      "family": "information",
+      "expected": [
+        "station_guidance"
+      ],
+      "actual": [
+        "explain_option"
+      ],
+      "commands": [
+        {
+          "op": "explain_option"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 15390,
+        "totalDurationNs": 15377953400,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 15416,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": false,
+      "pass": false
+    },
+    {
+      "id": "share_trip-1",
+      "repeat": 1,
+      "input": "Share my journey",
+      "family": "utilities",
+      "expected": [
+        "share_trip"
+      ],
+      "actual": [
+        "share_trip"
+      ],
+      "commands": [
+        {
+          "op": "share_trip"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2689,
+        "totalDurationNs": 2683520200,
+        "promptTokens": 1060,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2713,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "share_trip-2",
+      "repeat": 1,
+      "input": "Create a trip sharing link",
+      "family": "utilities",
+      "expected": [
+        "share_trip"
+      ],
+      "actual": [
+        "share_trip"
+      ],
+      "commands": [
+        {
+          "op": "share_trip"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2998,
+        "totalDurationNs": 2986462100,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 3022,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "share_trip-3",
+      "repeat": 1,
+      "input": "Let me share this itinerary",
+      "family": "utilities",
+      "expected": [
+        "share_trip"
+      ],
+      "actual": [
+        "share_trip"
+      ],
+      "commands": [
+        {
+          "op": "share_trip"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2667,
+        "totalDurationNs": 2664912000,
+        "promptTokens": 1062,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2688,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "share_trip-4",
+      "repeat": 1,
+      "input": "Make an expiring link for this trip",
+      "family": "utilities",
+      "expected": [
+        "share_trip"
+      ],
+      "actual": [
+        "share_trip"
+      ],
+      "commands": [
+        {
+          "op": "share_trip"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3655,
+        "totalDurationNs": 3643851900,
+        "promptTokens": 1065,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 3689,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "share_trip-5",
+      "repeat": 1,
+      "input": "Open trip sharing controls",
+      "family": "utilities",
+      "expected": [
+        "share_trip"
+      ],
+      "actual": [
+        "share_trip"
+      ],
+      "commands": [
+        {
+          "op": "share_trip"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2918,
+        "totalDurationNs": 2900306400,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2941,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "revoke_share-1",
+      "repeat": 1,
+      "input": "Revoke my shared trip link",
+      "family": "utilities",
+      "expected": [
+        "revoke_share"
+      ],
+      "actual": [
+        "revoke_share"
+      ],
+      "commands": [
+        {
+          "op": "revoke_share"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3236,
+        "totalDurationNs": 3233779200,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3258,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "revoke_share-2",
+      "repeat": 1,
+      "input": "Stop access to a shared itinerary",
+      "family": "utilities",
+      "expected": [
+        "revoke_share"
+      ],
+      "actual": [
+        "revoke_share"
+      ],
+      "commands": [
+        {
+          "op": "revoke_share"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3187,
+        "totalDurationNs": 3179180400,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3211,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "revoke_share-3",
+      "repeat": 1,
+      "input": "Delete the trip sharing link",
+      "family": "utilities",
+      "expected": [
+        "revoke_share"
+      ],
+      "actual": [
+        "revoke_share"
+      ],
+      "commands": [
+        {
+          "op": "revoke_share"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2959,
+        "totalDurationNs": 2955943000,
+        "promptTokens": 1062,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3008,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "revoke_share-4",
+      "repeat": 1,
+      "input": "Turn off my shared journey link",
+      "family": "utilities",
+      "expected": [
+        "revoke_share"
+      ],
+      "actual": [
+        "revoke_share"
+      ],
+      "commands": [
+        {
+          "op": "revoke_share"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3173,
+        "totalDurationNs": 3156600200,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3198,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "revoke_share-5",
+      "repeat": 1,
+      "input": "Manage revocation of shared links",
+      "family": "utilities",
+      "expected": [
+        "revoke_share"
+      ],
+      "actual": [
+        "revoke_share"
+      ],
+      "commands": [
+        {
+          "op": "revoke_share"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3225,
+        "totalDurationNs": 3216447700,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3254,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "export_calendar-1",
+      "repeat": 1,
+      "input": "Export my journey to calendar",
+      "family": "utilities",
+      "expected": [
+        "export_calendar"
+      ],
+      "actual": [
+        "export_calendar"
+      ],
+      "commands": [
+        {
+          "op": "export_calendar"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 9026,
+        "totalDurationNs": 9023782700,
+        "promptTokens": 1062,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 9049,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "export_calendar-2",
+      "repeat": 1,
+      "input": "Download the calendar file",
+      "family": "utilities",
+      "expected": [
+        "export_calendar"
+      ],
+      "actual": [
+        "export_calendar"
+      ],
+      "commands": [
+        {
+          "op": "export_calendar"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3736,
+        "totalDurationNs": 3720993900,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 3759,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "export_calendar-3",
+      "repeat": 1,
+      "input": "Add this itinerary to my calendar",
+      "family": "utilities",
+      "expected": [
+        "export_calendar"
+      ],
+      "actual": [
+        "export_calendar"
+      ],
+      "commands": [
+        {
+          "op": "export_calendar"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3599,
+        "totalDurationNs": 3597036500,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3632,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "export_calendar-4",
+      "repeat": 1,
+      "input": "Get an ICS file for the trip",
+      "family": "utilities",
+      "expected": [
+        "export_calendar"
+      ],
+      "actual": [
+        "export_calendar"
+      ],
+      "commands": [
+        {
+          "op": "export_calendar"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3697,
+        "totalDurationNs": 3684816300,
+        "promptTokens": 1065,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 3726,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "export_calendar-5",
+      "repeat": 1,
+      "input": "Export calendar events for this journey",
+      "family": "utilities",
+      "expected": [
+        "export_calendar"
+      ],
+      "actual": [
+        "export_calendar"
+      ],
+      "commands": [
+        {
+          "op": "export_calendar"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2924,
+        "totalDurationNs": 2911490800,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2948,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "export_pdf-1",
+      "repeat": 1,
+      "input": "Download my itinerary PDF",
+      "family": "utilities",
+      "expected": [
+        "export_pdf"
+      ],
+      "actual": [
+        "export_pdf"
+      ],
+      "commands": [
+        {
+          "op": "export_pdf"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2479,
+        "totalDurationNs": 2466477900,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2502,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "export_pdf-2",
+      "repeat": 1,
+      "input": "Export this trip as a PDF",
+      "family": "utilities",
+      "expected": [
+        "export_pdf"
+      ],
+      "actual": [
+        "export_pdf"
+      ],
+      "commands": [
+        {
+          "op": "export_pdf"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2922,
+        "totalDurationNs": 2913080600,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2959,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "export_pdf-3",
+      "repeat": 1,
+      "input": "Make a PDF of the saved journey",
+      "family": "utilities",
+      "expected": [
+        "export_pdf"
+      ],
+      "actual": [
+        "export_pdf"
+      ],
+      "commands": [
+        {
+          "op": "export_pdf"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3216,
+        "totalDurationNs": 3204155700,
+        "promptTokens": 1064,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3253,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "export_pdf-4",
+      "repeat": 1,
+      "input": "Get the printable itinerary PDF",
+      "family": "utilities",
+      "expected": [
+        "export_pdf"
+      ],
+      "actual": [
+        "export_pdf"
+      ],
+      "commands": [
+        {
+          "op": "export_pdf"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3085,
+        "totalDurationNs": 3073658200,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 3112,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "export_pdf-5",
+      "repeat": 1,
+      "input": "I need the trip PDF",
+      "family": "utilities",
+      "expected": [
+        "export_pdf"
+      ],
+      "actual": [
+        "export_pdf"
+      ],
+      "commands": [
+        {
+          "op": "export_pdf"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3022,
+        "totalDurationNs": 3011579800,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 3045,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "offline_pack-1",
+      "repeat": 1,
+      "input": "Make my trip available offline",
+      "family": "utilities",
+      "expected": [
+        "offline_pack"
+      ],
+      "actual": [
+        "offline_pack"
+      ],
+      "commands": [
+        {
+          "op": "offline_pack"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2913,
+        "totalDurationNs": 2898183700,
+        "promptTokens": 1062,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2935,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "offline_pack-2",
+      "repeat": 1,
+      "input": "Create an offline pack",
+      "family": "utilities",
+      "expected": [
+        "offline_pack"
+      ],
+      "actual": [
+        "offline_pack"
+      ],
+      "commands": [
+        {
+          "op": "offline_pack"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3012,
+        "totalDurationNs": 3004590700,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 3062,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "offline_pack-3",
+      "repeat": 1,
+      "input": "Open my offline journeys",
+      "family": "utilities",
+      "expected": [
+        "offline_pack"
+      ],
+      "actual": [
+        "offline_pack"
+      ],
+      "commands": [
+        {
+          "op": "offline_pack"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2714,
+        "totalDurationNs": 2701402700,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2751,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "offline_pack-4",
+      "repeat": 1,
+      "input": "Save an encrypted offline travel pack",
+      "family": "utilities",
+      "expected": [
+        "offline_pack"
+      ],
+      "actual": [
+        "offline_pack"
+      ],
+      "commands": [
+        {
+          "op": "offline_pack"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2910,
+        "totalDurationNs": 2900769900,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2942,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "offline_pack-5",
+      "repeat": 1,
+      "input": "Download the journey for offline use",
+      "family": "utilities",
+      "expected": [
+        "offline_pack"
+      ],
+      "actual": [
+        "export_pdf"
+      ],
+      "commands": [
+        {
+          "op": "export_pdf"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3077,
+        "totalDurationNs": 3065604900,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3101,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "ticket_receipt-1",
+      "repeat": 1,
+      "input": "Get my ticket receipt",
+      "family": "tickets",
+      "expected": [
+        "ticket_receipt"
+      ],
+      "actual": [
+        "manage_tickets"
+      ],
+      "commands": [
+        {
+          "op": "manage_tickets"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2866,
+        "totalDurationNs": 2850430400,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2890,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "ticket_receipt-2",
+      "repeat": 1,
+      "input": "Show the journey receipt",
+      "family": "tickets",
+      "expected": [
+        "ticket_receipt"
+      ],
+      "actual": [
+        "clarify"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2949,
+        "totalDurationNs": 2932295100,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2983,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "ticket_receipt-3",
+      "repeat": 1,
+      "input": "Download a receipt for this trip",
+      "family": "tickets",
+      "expected": [
+        "ticket_receipt"
+      ],
+      "actual": [
+        "clarify"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2987,
+        "totalDurationNs": 2985556800,
+        "promptTokens": 1063,
+        "outputTokens": 20,
+        "numCtx": 8192
+      },
+      "latencyMs": 3017,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "ticket_receipt-4",
+      "repeat": 1,
+      "input": "Retrieve the payment receipt",
+      "family": "tickets",
+      "expected": [
+        "ticket_receipt"
+      ],
+      "actual": [
+        "manage_tickets"
+      ],
+      "commands": [
+        {
+          "op": "manage_tickets"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2796,
+        "totalDurationNs": 2788573700,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2826,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "ticket_receipt-5",
+      "repeat": 1,
+      "input": "I need my travel receipt",
+      "family": "tickets",
+      "expected": [
+        "ticket_receipt"
+      ],
+      "actual": [
+        "clarify"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2598,
+        "totalDurationNs": 2588096300,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2639,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "book_ticket-1",
+      "repeat": 1,
+      "input": "Book this flight",
+      "family": "booking",
+      "expected": [
+        "book_ticket"
+      ],
+      "actual": [
+        "book_ticket"
+      ],
+      "commands": [
+        {
+          "op": "book_ticket"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2273,
+        "totalDurationNs": 2260221200,
+        "promptTokens": 1060,
+        "outputTokens": 16,
+        "numCtx": 8192
+      },
+      "latencyMs": 2320,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "book_ticket-2",
+      "repeat": 1,
+      "input": "Buy the selected tickets",
+      "family": "booking",
+      "expected": [
+        "book_ticket"
+      ],
+      "actual": [
+        "book_ticket"
+      ],
+      "commands": [
+        {
+          "op": "book_ticket"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2556,
+        "totalDurationNs": 2545736900,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2593,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "book_ticket-3",
+      "repeat": 1,
+      "input": "Purchase my ticket after review",
+      "family": "booking",
+      "expected": [
+        "book_ticket"
+      ],
+      "actual": [
+        "book_ticket"
+      ],
+      "commands": [
+        {
+          "op": "book_ticket"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2734,
+        "totalDurationNs": 2723693200,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2765,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "book_ticket-4",
+      "repeat": 1,
+      "input": "Reserve tickets for this itinerary",
+      "family": "booking",
+      "expected": [
+        "book_ticket"
+      ],
+      "actual": [
+        "book_ticket"
+      ],
+      "commands": [
+        {
+          "op": "book_ticket"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2768,
+        "totalDurationNs": 2763459100,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2795,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "book_ticket-5",
+      "repeat": 1,
+      "input": "I want to pay for this journey",
+      "family": "booking",
+      "expected": [
+        "book_ticket"
+      ],
+      "actual": [
+        "clarify"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3090,
+        "totalDurationNs": 3084327600,
+        "promptTokens": 1064,
+        "outputTokens": 21,
+        "numCtx": 8192
+      },
+      "latencyMs": 3112,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "order_status-1",
+      "repeat": 1,
+      "input": "Show my booking status",
+      "family": "booking",
+      "expected": [
+        "order_status"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2655,
+        "totalDurationNs": 2637414600,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2680,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "order_status-2",
+      "repeat": 1,
+      "input": "Was my payment captured?",
+      "family": "booking",
+      "expected": [
+        "order_status"
+      ],
+      "actual": [
+        "clarify"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2822,
+        "totalDurationNs": 2819898300,
+        "promptTokens": 1062,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2843,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "order_status-3",
+      "repeat": 1,
+      "input": "Have my tickets been issued?",
+      "family": "booking",
+      "expected": [
+        "order_status"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2964,
+        "totalDurationNs": 2952225200,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 2998,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "order_status-4",
+      "repeat": 1,
+      "input": "Check supplier order status",
+      "family": "booking",
+      "expected": [
+        "order_status"
+      ],
+      "actual": [
+        "order_status"
+      ],
+      "commands": [
+        {
+          "op": "order_status"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2556,
+        "totalDurationNs": 2541097400,
+        "promptTokens": 1061,
+        "outputTokens": 17,
+        "numCtx": 8192
+      },
+      "latencyMs": 2582,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    },
+    {
+      "id": "order_status-5",
+      "repeat": 1,
+      "input": "Show my orders and payments",
+      "family": "booking",
+      "expected": [
+        "order_status"
+      ],
+      "actual": [
+        "advice"
+      ],
+      "commands": [
+        {
+          "op": "advice"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3161,
+        "totalDurationNs": 3150106100,
+        "promptTokens": 1062,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3192,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "cancel_ticket-1",
+      "repeat": 1,
+      "input": "Cancel my booked ticket",
+      "family": "servicing",
+      "expected": [
+        "cancel_ticket"
+      ],
+      "actual": [
+        "clarify"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2922,
+        "totalDurationNs": 2907464200,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2944,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "cancel_ticket-2",
+      "repeat": 1,
+      "input": "Cancel my flight booking",
+      "family": "servicing",
+      "expected": [
+        "cancel_ticket"
+      ],
+      "actual": [
+        "clarify"
+      ],
+      "commands": [
+        {
+          "op": "clarify"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 2890,
+        "totalDurationNs": 2877869800,
+        "promptTokens": 1061,
+        "outputTokens": 18,
+        "numCtx": 8192
+      },
+      "latencyMs": 2939,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": false,
+      "argumentsPass": true,
+      "pass": false
+    },
+    {
+      "id": "cancel_ticket-3",
+      "repeat": 1,
+      "input": "Request cancellation of my issued tickets",
+      "family": "servicing",
+      "expected": [
+        "cancel_ticket"
+      ],
+      "actual": [
+        "cancel_ticket"
+      ],
+      "commands": [
+        {
+          "op": "cancel_ticket"
+        }
+      ],
+      "modelCalls": 1,
+      "inference": {
+        "source": "llama",
+        "modelCalls": 1,
+        "model": "llama3.1:8b-instruct-q4_K_M",
+        "latencyMs": 3041,
+        "totalDurationNs": 3040089600,
+        "promptTokens": 1063,
+        "outputTokens": 19,
+        "numCtx": 8192
+      },
+      "latencyMs": 3071,
+      "httpStatus": 200,
+      "executionState": "completed",
+      "error": null,
+      "intentPass": true,
+      "argumentsPass": true,
+      "pass": true
+    }
+  ],
+  "supplierSandbox": "not run",
+  "authorizedLiveProvider": "not run"
+}

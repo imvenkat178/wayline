@@ -4,6 +4,7 @@ import { api, readable } from "../api";
 import type { Agency } from "../types";
 import { Button, Icon, Badge, Field, Notice, Empty, Section, useAsync } from "../components/ui";
 import { JourneyMap } from "../components/JourneyMap";
+import { ServiceStatus } from "../components/ServiceStatus";
 interface FeedVehicle {
   id: string;
   vehicleId?: string;
@@ -95,6 +96,7 @@ export default function Lab() {
         </div>
         <Badge>LIVE FEEDS ≠ NATIONWIDE COVERAGE</Badge>
       </div>
+      <ServiceStatus />
       <div className="view-tabs scroll-tabs">
         {[
           "coverage",

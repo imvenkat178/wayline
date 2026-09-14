@@ -10,7 +10,7 @@ export async function fetchBounded(url, options = {}, maxBytes = 5_000_000) {
   const r = await fetch(url, {
     ...options,
     redirect: "error",
-    signal: AbortSignal.timeout(options.timeoutMs ?? 8000),
+    signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(options.timeoutMs ?? 8000)]) : AbortSignal.timeout(options.timeoutMs ?? 8000),
     headers: { Accept: "application/json", "User-Agent": "Wayline/2.0", ...options.headers },
   });
   if (!r.ok) throw new DomainError(`Provider returned HTTP ${r.status}.`, 502, "UPSTREAM_ERROR");

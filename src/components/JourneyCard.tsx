@@ -33,7 +33,7 @@ export function JourneyCard({ journey: j, selected, onSelect, rank }: {
             ))}
           </div>
         </div>
-        <span className="card-price">{money(j.price.totalCents)}<small>{j.travelers > 1 ? `${j.travelers} travelers total` : "total estimate"}</small></span>
+        <span className="card-price">{money(j.price.totalCents)}<small>{j.travelers > 1 ? `${j.travelers} travelers total` : j.price.kind === "tariff" ? "standard adult fare" : "total estimate"}</small></span>
       </div>
       <div className="journey-card-foot">
         <span><Icon name="shield" size={14} />{j.graph.overallRisk === "low" ? "Generous connection" : j.graph.overallRisk === "high" ? "Tight connection" : "Moderate buffer"}</span>

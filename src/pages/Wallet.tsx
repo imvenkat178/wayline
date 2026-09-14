@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import SupplierTickets from '../components/SupplierTickets';
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "../context";
 import { api, time, dateLabel, localInput, download, money } from "../api";
 import type { Ticket, Claim, SavedItem, Order } from "../types";
@@ -14,13 +15,14 @@ import {
   Section,
   useAsync,
 } from "../components/ui";
-export default function Wallet() {
-  const { boot, journeys, notify } = useApp();
+export default function Wallet({ initialTab = "tickets" }: { initialTab?: string } = {}) {
+  const { boot, journeys, notify, navigate, setActive } = useApp();
+  const [editing, setEditing] = useState<Ticket | null>(null), [viewing, setViewing] = useState<Ticket | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]),
     [claims, setClaims] = useState<Claim[]>([]),
     [passes, setPasses] = useState<SavedItem[]>([]),
     [orders, setOrders] = useState<Order[]>([]),
-    [tab, setTab] = useState("tickets"),
+    [tab, setTab] = useState(initialTab),
     [modal, setModal] = useState(false),
     [quoteModal, setQuoteModal] = useState(false);
   const [importedDoc, setImportedDoc] = useState<{
@@ -32,6 +34,14 @@ export default function Wallet() {
     [importPreview, setImportPreview] = useState(""),
     [importStatus, setImportStatus] = useState("");
   const { busy, error, run } = useAsync();
+  const importEpoch = useRef(0);
+  const [importing, setImporting] = useState(false);
+  const closeTicket = () => {
+    importEpoch.current++;
+    setImporting(false); setModal(false); setEditing(null);
+    setImportedDoc(null); setImportedBarcode(null); setImportPreview(""); setImportStatus("");
+  };
+  useEffect(() => () => { importEpoch.current++; }, []);
   const load = async () => {
     setTickets(await api("/records/ticket"));
     setClaims(await api("/records/claim"));
@@ -61,7 +71,7 @@ export default function Wallet() {
           <h1>Your ticket wallet</h1>
           <p>Confirmations, passes and travel records. All together.</p>
         </div>
-        <Button icon="plus" kind="primary" onClick={() => setModal(true)}>
+        <Button icon="plus" kind="primary" onClick={() => { setEditing(null); setModal(true); }}>
           Add a ticket
         </Button>
       </div>
@@ -81,6 +91,7 @@ export default function Wallet() {
       {error && <Notice tone="error">{error}</Notice>}
       {tab === "tickets" && (
         <>
+          <SupplierTickets/>
           <Notice>
             Imported details are private travel notes. Carry your carrier-issued ticket or barcode
             for boarding.
@@ -154,6 +165,19 @@ export default function Wallet() {
                   <Icon name="lock" />
                 </div>
                 <div className="button-row">
+                  <Button kind="small" onClick={() => {
+                    setEditing(t); setImportedDoc(t.document);
+                    setImportedBarcode(t.barcodeFormat && t.barcodeText ? { format: t.barcodeFormat, text: t.barcodeText } : null);
+                    setImportPreview(t.document && /^image\/(jpeg|png|webp)$/.test(t.document.type) ? `data:${t.document.type};base64,${t.document.base64}` : "");
+                    setModal(true);
+                  }}>Edit details</Button>
+                  {t.document && <Button kind="small" onClick={() => setViewing(t)}>View ticket photo</Button>}
+                  {t.journeyId && <>
+                    <a className="btn small" href={`/api/journeys/${t.journeyId}/itinerary.pdf`} download>Itinerary PDF</a>
+                    <Button kind="small" disabled={busy} onClick={() => void run(async () => {
+                      setActive(await api(`/journeys/${t.journeyId}`)); navigate("journey");
+                    })}>Open journey</Button>
+                  </>}
                   <Button
                     icon="download"
                     kind="small"
@@ -211,6 +235,7 @@ export default function Wallet() {
             Add and compare passes in Commute. Renewals here are reminders; billing remains with the
             operator.
           </Notice>
+          <Button onClick={() => navigate("commute")}>Manage passes</Button>
           <div className="card-grid">
             {passes.map((p) => (
               <Section key={p.id} title={p.name}>
@@ -306,14 +331,8 @@ export default function Wallet() {
       )}
       {modal && (
         <Modal
-          title="Add an existing ticket"
-          onClose={() => {
-            setModal(false);
-            setImportedDoc(null);
-            setImportedBarcode(null);
-            setImportPreview("");
-            setImportStatus("");
-          }}
+          title={editing ? "Edit imported ticket" : "Add an existing ticket"}
+          onClose={closeTicket}
         >
           <Notice>
             Your ticket information is encrypted on the server. No ticket is issued or verified by
@@ -325,19 +344,17 @@ export default function Wallet() {
               e.preventDefault();
               const d = Object.fromEntries(new FormData(e.currentTarget));
               void run(async () => {
-                await api("/records/ticket", "POST", {
+                await api(`/records/ticket${editing ? "/" + editing.id : ""}`, editing ? "PATCH" : "POST", {
                   ...d,
+                  version: editing?.version,
+                  paidCents: d.paid === "" ? null : Math.round(Number(d.paid) * 100),
                   departure: new Date(String(d.departure)).toISOString(),
                   document: importedDoc,
                   barcodeFormat: importedBarcode?.format ?? null,
                   barcodeText: importedBarcode?.text ?? null,
                 });
                 await load();
-                setModal(false);
-                setImportedDoc(null);
-                setImportedBarcode(null);
-                setImportPreview("");
-                setImportStatus("");
+                closeTicket();
                 notify("Ticket details saved.");
               });
             }}
@@ -350,9 +367,9 @@ export default function Wallet() {
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (!f) return;
+                    const epoch = ++importEpoch.current;
+                    setImporting(true);
                     void (async () => {
-                      setImportedDoc(null);
-                      setImportedBarcode(null);
                       if (f.size > 5_000_000) {
                         setImportStatus("Choose a photo smaller than 5 MB.");
                         return;
@@ -361,18 +378,20 @@ export default function Wallet() {
                       const { decodeBarcodeFromImage, loadImage, readFileAsDataUrl } =
                         await import("../barcode");
                       const dataUrl = await readFileAsDataUrl(f);
-                      setImportPreview(dataUrl);
                       const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
-                      setImportedDoc({ name: f.name, type: f.type, base64 });
                       const image = await loadImage(dataUrl);
                       const found = await decodeBarcodeFromImage(image);
+                      if (epoch !== importEpoch.current) return;
+                      setImportPreview(dataUrl);
+                      setImportedDoc({ name: f.name, type: f.type, base64 });
                       setImportedBarcode(found);
                       setImportStatus(
                         found
                           ? `Detected a ${found.format.replace(/_/g, " ")} barcode. Not verified by the operator.`
                           : "Photo attached. No barcode was detected in it.",
                       );
-                    })();
+                    })().catch(() => { if (epoch === importEpoch.current) setImportStatus("Could not read this photo. Choose another image."); })
+                      .finally(() => { if (epoch === importEpoch.current) setImporting(false); });
                   }}
                 />
               </Field>
@@ -387,7 +406,7 @@ export default function Wallet() {
                 <Notice tone={importedBarcode ? "" : "amber"}>{importStatus}</Notice>
               )}
               <Field label="Operator">
-                <input name="operator" required list="ticket-operators" />
+                <input name="operator" required list="ticket-operators" defaultValue={editing?.operator ?? ""} />
                 <datalist id="ticket-operators">
                   {Object.keys(boot.operatorLinks).map((n) => (
                     <option key={n}>{n}</option>
@@ -395,30 +414,30 @@ export default function Wallet() {
                 </datalist>
               </Field>
               <Field label="Service / train / bus">
-                <input name="service" required maxLength={80} />
+                <input name="service" required maxLength={80} defaultValue={editing?.service ?? ""} />
               </Field>
               <Field label="Confirmation code">
-                <input name="confirmation" required maxLength={100} autoComplete="off" />
+                <input name="confirmation" required maxLength={100} autoComplete="off" defaultValue={editing?.confirmation ?? ""} />
               </Field>
               <Field label="Passenger">
-                <input name="passenger" required defaultValue={boot.user.name} maxLength={100} />
+                <input name="passenger" required defaultValue={editing?.passenger ?? boot.user.name} maxLength={100} />
               </Field>
               <Field label="From">
-                <input name="origin" required maxLength={160} />
+                <input name="origin" required maxLength={160} defaultValue={editing?.origin ?? ""} />
               </Field>
               <Field label="To">
-                <input name="destination" required maxLength={160} />
+                <input name="destination" required maxLength={160} defaultValue={editing?.destination ?? ""} />
               </Field>
               <Field label="Departure · your device time">
                 <input
                   type="datetime-local"
                   required
                   name="departure"
-                  defaultValue={localInput()}
+                  defaultValue={localInput(editing ? new Date(editing.departure) : new Date())}
                 />
               </Field>
               <Field label="Link to journey">
-                <select name="journeyId">
+                <select name="journeyId" defaultValue={editing?.journeyId ?? ""}>
                   <option value="">No linked journey</option>
                   {journeys.map((j) => (
                     <option key={j.id} value={j.id}>
@@ -428,22 +447,30 @@ export default function Wallet() {
                 </select>
               </Field>
               <Field label="Seat (optional)">
-                <input name="seat" maxLength={40} />
+                <input name="seat" maxLength={40} defaultValue={editing?.seat ?? ""} />
               </Field>
               <Field label="Coach (optional)">
-                <input name="coach" maxLength={40} />
+                <input name="coach" maxLength={40} defaultValue={editing?.coach ?? ""} />
               </Field>
               <Field label="Platform from ticket (optional)">
-                <input name="platform" maxLength={40} />
+                <input name="platform" maxLength={40} defaultValue={editing?.platform ?? ""} />
               </Field>
+              <Field label="Amount paid ($, optional · self-reported)"><input name="paid" type="number" min="0" max="10000" step="0.01" defaultValue={editing?.paidCents == null ? "" : editing.paidCents / 100} /></Field>
             </div>
             {error && <Notice tone="error">{error}</Notice>}
-            <Button type="submit" kind="primary" disabled={busy}>
+            <Button type="submit" kind="primary" disabled={busy || importing}>
               Save ticket details
             </Button>
           </form>
         </Modal>
       )}
+      {viewing?.document && <Modal title="Imported ticket photo" onClose={() => setViewing(null)}>
+        <Notice>This is your original import. Wayline has not verified it with the operator.</Notice>
+        {/^image\/(jpeg|png|webp)$/.test(viewing.document.type)
+          ? <img className="ticket-document-full" src={`data:${viewing.document.type};base64,${viewing.document.base64}`} alt="Original imported ticket" />
+          : <Notice>Preview is unavailable for this document type.</Notice>}
+        {viewing.barcodeText && <p className="document-barcode"><b>{viewing.barcodeFormat}</b><br />{viewing.barcodeText}</p>}
+      </Modal>}
       {quoteModal && (
         <Modal title="Sandbox checkout" onClose={() => setQuoteModal(false)}>
           <Notice tone="amber">

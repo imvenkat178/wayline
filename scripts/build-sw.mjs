@@ -16,7 +16,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 
-const outDir = resolve(process.cwd(), "standalone");
+const outDir = resolve(process.cwd(), process.env.WAYLINE_BUILD_OUT_DIR ?? "standalone");
 const indexPath = resolve(outDir, "index.html");
 const swPath = resolve(outDir, "sw.js");
 

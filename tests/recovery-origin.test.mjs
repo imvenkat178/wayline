@@ -51,6 +51,21 @@ function alt(overrides = {}) {
 
 const NOW = Date.parse("2026-06-01T12:00:00.000Z");
 
+test("provider recovery between connections starts at the next boarding stop", () => {
+  const now = Date.parse("2026-09-12T12:10:00Z");
+  const leg = { fromStopId: "transfer", toStopId: "end", from: "Transfer station", to: "Destination", fromCoords: [-71.06,42.35], toCoords: [-71.12,42.37], departure: "2026-09-12T12:20:00Z", arrival: "2026-09-12T12:40:00Z" };
+  const position = recoveryPosition({ dataMode: "provider", state: "TRANSFERRING", timezone: "America/New_York", legs: [leg] }, now);
+  assert.equal(position.stopId,"transfer"); assert.equal(position.earliestDeparture,now);
+  const riding = recoveryPosition({ dataMode: "provider", state: "IN_TRANSIT", timezone: "America/New_York", legs: [leg] }, now);
+  assert.equal(riding.stopId,"end"); assert.equal(riding.earliestDeparture,Date.parse(leg.arrival));
+});
+
+test("provider recovery honors a delayed arrival after the scheduled arrival passed", () => {
+  const leg = { fromStopId: "start", toStopId: "transfer", from: "Start", to: "Transfer", fromCoords: [-71.06,42.35], toCoords: [-71.12,42.37], departure: "2026-09-12T12:00:00Z", arrival: "2026-09-12T12:15:00Z", predictedArrival: "2026-09-12T12:35:00Z" };
+  const position = recoveryPosition({ dataMode: "provider", state: "IN_TRANSIT", timezone: "America/New_York", legs: [leg] }, Date.parse("2026-09-12T12:20:00Z"));
+  assert.equal(position.stopId,"transfer"); assert.equal(position.earliestDeparture,Date.parse(leg.predictedArrival));
+});
+
 test("recoveryPosition: before departure, the traveler's stop is the journey's own origin", () => {
   const j = baseJourney({ state: "PLANNED" });
   const pos = recoveryPosition(j, NOW);

@@ -23,61 +23,22 @@ function journey(overrides = {}) {
   };
 }
 
-test("recoveryCost: falls back to the itinerary estimate when no paid amount is on file", () => {
-  const j = journey({ price: { totalCents: 5000 } });
-  const alt = journey({
-    price: { totalCents: 6000 },
-    legs: [leg({ departure: "2026-06-01T13:00:00.000Z" })],
-  });
-  const cost = recoveryCost(j, alt, null);
-  assert.equal(cost.basis, "estimate");
-  assert.equal(cost.incrementalCents, 1000);
-  assert.equal(cost.retainedLegCents, 0);
-  assert.equal(cost.nonrefundableCents, null);
+test("a nonrefundable $100 original and $80 replacement require $80 cash, $180 spent",()=>{
+ const c=recoveryCost(journey({price:{totalCents:10000}}),journey({price:{totalCents:8000}}),10000);
+ assert.equal(c.cashRequiredNowCents,8000);assert.equal(c.totalSpentCents,18000);
+ assert.equal(c.planPriceDifferenceCents,-2000);assert.equal(c.incrementalCents,8000);
 });
-
-test("recoveryCost: uses a self-reported paid amount as the baseline instead of the estimate", () => {
-  const j = journey({ price: { totalCents: 5000 } });
-  const alt = journey({
-    price: { totalCents: 6000 },
-    legs: [leg({ departure: "2026-06-01T13:00:00.000Z" })],
-  });
-  const cost = recoveryCost(j, alt, 4200);
-  assert.equal(cost.basis, "paid");
-  assert.equal(cost.incrementalCents, 6000 - 4200);
+test("matching a priced leg does not prove ticket reuse",()=>{
+ const c=recoveryCost(journey(),journey(),5000);
+ assert.equal(c.retainedLegCents,0);assert.equal(c.cashRequiredNowCents,5000);
 });
-
-test("recoveryCost: nets out a leg that is identical between the original and the alternative", () => {
-  const sharedLeg = leg({ id: "walk-start", mode: "walk", priceCents: 0 });
-  const mainLeg = leg({ priceCents: 4500 });
-  const j = journey({ price: { totalCents: 5000 }, legs: [sharedLeg, mainLeg] });
-  const alt = journey({
-    price: { totalCents: 6000 },
-    legs: [sharedLeg, leg({ priceCents: 5500, departure: "2026-06-01T13:00:00.000Z" })],
-  });
-  const cost = recoveryCost(j, alt, null);
-  // sharedLeg contributes 0 in priceCents here, so retainedLegCents is 0 even though it matched --
-  // use a priced shared leg to prove retention actually nets out real cost.
-  assert.equal(cost.retainedLegCents, 0);
+test("unknown payment history does not turn a known replacement into unknown",()=>{
+ const c=recoveryCost(journey({price:{totalCents:null}}),journey({price:{totalCents:8000}}));
+ assert.equal(c.cashRequiredNowCents,8000);assert.equal(c.totalSpentCents,null);
 });
-
-test("recoveryCost: a priced shared leg reduces the incremental cost", () => {
-  const sharedLeg = leg({ id: "feeder", mode: "metro", priceCents: 175 });
-  const j = journey({ price: { totalCents: 5000 }, legs: [sharedLeg] });
-  const alt = journey({ price: { totalCents: 6000 }, legs: [sharedLeg] });
-  const cost = recoveryCost(j, alt, null);
-  assert.equal(cost.retainedLegCents, 175);
-  assert.equal(cost.incrementalCents, 6000 - 5000 - 175);
+test("unknown replacement prices remain unknown",()=>{
+ assert.equal(recoveryCost(journey(),journey({price:{totalCents:null}}),5000).cashRequiredNowCents,null);
 });
-
-test("recoveryCost: unknown pricing on either side yields an unknown, not a wrong number", () => {
-  const j = journey({ price: { totalCents: null } });
-  const alt = journey({ price: { totalCents: 6000 } });
-  const cost = recoveryCost(j, alt, null);
-  assert.equal(cost.incrementalCents, null);
-  assert.equal(cost.basis, "unknown");
-});
-
 test("ticket paidCents: optional and defaults to null when omitted", () => {
   const ticket = validateRecord("ticket", {
     operator: "Amtrak",

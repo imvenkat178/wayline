@@ -12,6 +12,9 @@ export class TravelClient {
   connecting = null;
   failures = [];
   closed = false;
+  probing = null;
+  lastChecked = null;
+  lastProbe = [];
   status = { name: "Travel MCP", status: "not checked", lastSuccess: null };
   async connect() {
     if (this.closed) throw new DomainError("Travel service is stopping.", 503);
@@ -26,7 +29,7 @@ export class TravelClient {
       );
     this.connecting = (async () => {
       const env = { ...getDefaultEnvironment() };
-      for (const k of ["ENABLE_EXTERNAL_FEEDS", "OTP_GRAPHQL_URL", "MBTA_API_KEY"])
+      for (const k of ["ENABLE_EXTERNAL_FEEDS", "OTP_GRAPHQL_URL", "MBTA_API_KEY", "DUFFEL_ACCESS_TOKEN", "DUFFEL_LIVE_ENABLED", "DUFFEL_BACKGROUND_SHOPPING_ALLOWED", "DUFFEL_PRICE_HISTORY_ALLOWED"])
         if (process.env[k]) env[k] = process.env[k];
       const transport = new StdioClientTransport({
         command: process.execPath,
@@ -114,7 +117,20 @@ export class TravelClient {
     this.status = { ...this.status, status: "connected", lastSuccess: new Date().toISOString() };
     return output.data;
   }
-  async probe() {
+  probe() {
+    if (this.probing) return this.probing;
+    if (this.lastChecked && Date.now() - Date.parse(this.lastChecked) < 15000)
+      return Promise.resolve(this.lastProbe);
+    this.probing = this.performProbe().then((results) => {
+      this.lastProbe = results;
+      return results;
+    }).finally(() => {
+      this.lastChecked = new Date().toISOString();
+      this.probing = null;
+    });
+    return this.probing;
+  }
+  async performProbe() {
     const results = await Promise.allSettled([
       this.call("places", { q: "South Station" }),
       this.call("vehicles"),

@@ -1,4 +1,6 @@
+import { applyBostonTariff } from "../shopping/bostonFares.mjs";
 import { createHash } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 import { fetchBounded, normalizeGtfsId } from "../adapters/providers.mjs";
 import { DomainError, connectionGraph, leaveNow } from "../domain/journeys.mjs";
 export const OTP_QUERY = `query Plan($from:PlanLabeledLocationInput!,$to:PlanLabeledLocationInput!,$when:PlanDateTimeInput!,$preferences:PlanPreferencesInput!){planConnection(origin:$from,destination:$to,dateTime:$when,preferences:$preferences,first:5){edges{node{duration start end walkTime numberOfTransfers legs{mode start{scheduledTime estimated{time}} end{scheduledTime estimated{time}} duration serviceDate from{name lat lon stop{gtfsId platformCode parentStation{gtfsId}}} to{name lat lon stop{gtfsId platformCode parentStation{gtfsId}}} route{shortName longName gtfsId agency{gtfsId name}} trip{gtfsId directionId} legGeometry{points}}}} routingErrors{code description}}}`;
@@ -33,13 +35,18 @@ export async function otpPlan(input) {
       },
     },
   };
-  const bytes = await fetchBounded(process.env.OTP_GRAPHQL_URL, {
+  const bytes = await requestRouting({
     method: "POST",
     timeoutMs: 15000,
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ query: OTP_QUERY, variables }),
   });
-  const r = JSON.parse(bytes.toString());
+  let r;
+  try {
+    r = JSON.parse(bytes.toString());
+  } catch {
+    throw new DomainError("Boston routing returned an unreadable response. Retry the search.", 502, "OTP_SCHEMA_ERROR");
+  }
   if (r.errors?.length)
     throw new DomainError(
       "Boston routing rejected this request. " + r.errors[0].message,
@@ -55,7 +62,11 @@ export async function otpPlan(input) {
   const excluded = [];
   const eligible = journeys.filter((j) => {
     const reason =
-      j.walkMinutes > (p.maxWalkMinutes ?? 120)
+      j.price.totalCents !== null && p.budgetCents > 0 && j.price.totalCents > p.budgetCents
+        ? "Over total budget"
+        : Date.parse(j.departure) < Date.parse(input.departure)
+          ? "Before departure window"
+          : j.walkMinutes > (p.maxWalkMinutes ?? 120)
         ? "Walking limit"
         : j.transfers > (p.maxTransfers ?? 8)
           ? "Transfer limit"
@@ -68,15 +79,39 @@ export async function otpPlan(input) {
     return !reason;
   });
   return {
-    journeys: eligible,
+    journeys: eligible.sort((a,b) => p.priority === "price" ? (a.price.totalCents ?? Infinity) - (b.price.totalCents ?? Infinity) || a.durationMinutes-b.durationMinutes : p.priority === "fastest" ? a.durationMinutes-b.durationMinutes : 0),
     excluded,
     dataMode: "provider",
     reason: eligible.length
       ? undefined
       : "No eligible itineraries returned. Try a later departure or different preferences.",
     warning:
-      "Live Boston schedules. Fares and accessibility details require operator verification; no tickets are issued.",
+      "Live Boston schedules. Supported single subway rides use the published standard adult tariff; other fares remain unknown and cannot be verified against your budget. No tickets are issued.",
   };
+}
+async function requestRouting(options) {
+  const deadline = Date.now() + options.timeoutMs;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await fetchBounded(process.env.OTP_GRAPHQL_URL, {
+        ...options,
+        timeoutMs: Math.max(1, deadline - Date.now()),
+      });
+    } catch (error) {
+      const timedOut = error.name === "TimeoutError" || error.name === "AbortError" || Date.now() >= deadline;
+      // A sleeping or restarting local router can drop a connection. Retry this
+      // read-only query once, within the original total timeout budget.
+      if (error instanceof TypeError && !timedOut && attempt === 0 && deadline - Date.now() > 300) {
+        await delay(250);
+        continue;
+      }
+      if (timedOut)
+        throw new DomainError("Boston routing took too long to respond. Retry the search shortly.", 503, "ROUTING_TIMEOUT");
+      if (error instanceof TypeError || error.code === "UPSTREAM_ERROR")
+        throw new DomainError("Boston routing is temporarily unavailable. Check connections, then retry your search.", 503, "ROUTING_UNAVAILABLE");
+      throw error;
+    }
+  }
 }
 export function normalizeItinerary(i, input) {
   const stamp = (v) => new Date(typeof v === "number" ? v : v).toISOString();
@@ -168,7 +203,7 @@ export function normalizeItinerary(i, input) {
     observedAt: new Date().toISOString(),
   };
   return {
-    ...j,
+    ...applyBostonTariff(j, input),
     graph: connectionGraph(j, { preferences: input.preferences }),
     leave: leaveNow(j, input.preferences),
   };

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { stations, type Trip } from './model';
 import { Icon } from '../components/ui';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { journeyMapStyle, mapTileRequest } from '../mapStyle';
+import { loadMapLibre } from '../mapRuntime';
 
 export default function RouteMap({ trip, large = false }: { trip: Trip; large?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
@@ -13,9 +15,9 @@ export default function RouteMap({ trip, large = false }: { trip: Trip; large?: 
   useEffect(() => {
     let stopped = false;
     setLoaded(false); setError('');
-    void import('maplibre-gl').then(lib => {
+    void loadMapLibre().then(lib => {
       if (stopped || !host.current) return;
-      const map = new lib.Map({ container: host.current, style: { version: 8, sources: { base: { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors' } }, layers: [{ id: 'base', source: 'base', type: 'raster', paint: { 'raster-saturation': -0.85, 'raster-opacity': 0.78 } }] }, center: from.coords, zoom: 6, attributionControl: { compact: true } });
+      const map = new lib.Map({ container: host.current, style: journeyMapStyle(), transformRequest: mapTileRequest, center: from.coords, zoom: 6, attributionControl: { compact: false } });
       mapRef.current = map;
       map.addControl(new lib.NavigationControl({ showCompass: false }), 'bottom-right');
       map.addControl(new lib.FullscreenControl(), 'bottom-right');

@@ -1,3 +1,4 @@
+import {archiveContractualTransactions} from './shopping/transactionRetention.mjs';
 import { createBackup, purgeBackupsAfterDeletion } from "./backups.mjs";
 import { DatabaseSync } from "node:sqlite";
 import {
@@ -77,6 +78,7 @@ export class Store {
    CREATE INDEX IF NOT EXISTS idx_pending_logins_user ON pending_logins(user_id);
    CREATE TABLE IF NOT EXISTS recovery_tokens(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,expires_at INTEGER NOT NULL,used_at INTEGER) STRICT;
    CREATE INDEX IF NOT EXISTS idx_recovery_tokens_user ON recovery_tokens(user_id);
+   CREATE TABLE IF NOT EXISTS retained_transactions(id TEXT PRIMARY KEY,payload TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT;
    CREATE TABLE IF NOT EXISTS records(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,kind TEXT NOT NULL,payload TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,expires_at INTEGER,dedupe_hash TEXT) STRICT;
    CREATE TABLE IF NOT EXISTS journey_observations(journey_id TEXT PRIMARY KEY REFERENCES records(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,journey_version INTEGER NOT NULL,payload TEXT NOT NULL,observed_at INTEGER NOT NULL) STRICT;
    CREATE INDEX IF NOT EXISTS idx_records_user_kind_time ON records(user_id,kind,updated_at DESC);
@@ -860,7 +862,9 @@ export class Store {
       .all(userId);
   }
   share(userId, journeyId, { hours = 24, location = false } = {}) {
-    this.get(userId, journeyId, "journey");
+    const kind=this.db.prepare("SELECT kind FROM records WHERE user_id=? AND id=?").get(userId,journeyId)?.kind;
+    if (!["journey","travel-comparison"].includes(kind)) throw new DomainError("Only a saved journey or comparison can be shared.",404);
+    this.get(userId,journeyId,kind);
     if (!Number.isInteger(hours) || hours < 1 || hours > 168)
       throw new DomainError("Share expiry must be 1–168 hours.");
     const token = randomBytes(32).toString("base64url"),
@@ -897,7 +901,9 @@ export class Store {
       .prepare("SELECT * FROM shares WHERE token_hash=? AND expires_at>?")
       .get(hashToken(token), Date.now());
     if (!s) throw new DomainError("This sharing link has expired or was revoked.", 404);
-    const j = this.get(s.user_id, s.journey_id, "journey");
+    const record = this.get(s.user_id, s.journey_id);
+    const kind=this.db.prepare("SELECT kind FROM records WHERE user_id=? AND id=?").get(s.user_id,s.journey_id)?.kind;
+    const j = kind === "travel-comparison" ? {from:record.candidate.services[0].origin.name,to:record.candidate.services.at(-1).destination.name,departure:record.candidate.departure,arrival:record.candidate.arrival,state:"SAVED COMPARISON - NOT BOOKED",dataMode:record.candidate.live===false?"illustrative":"provider",updatedAt:record.updatedAt,legs:[]} : record;
     const location = JSON.parse(s.scopes).location;
     return {
       from: j.from,
@@ -949,7 +955,7 @@ export class Store {
     this.transaction(() => {
       this.db
         .prepare(
-          "DELETE FROM records WHERE user_id=? AND kind IN ('journey','ticket','claim','alert','agent','report','search','recovery','idempotency','order','quote','pending-action')",
+          "DELETE FROM records WHERE user_id=? AND kind IN ('journey','ticket','claim','alert','agent','report','search','recovery','idempotency','order','quote','pending-action','shopping-search','shopping-review','travel-comparison','price-watch','supplier-operation','supplier-event','conversation','conversation-turn','trip-draft','draft-revision','candidate-set','draft-scenario','conversation-execution','conversation-clarification','booking-details','booking-review','booking-change-search','supplier-recovery','provider-checkout','supplier-monitor','airport-reference','flight-observation')",
         )
         .run(userId);
       // Deleting 'alert' rows above can orphan a still-pending push-deliver job queued for
@@ -962,6 +968,7 @@ export class Store {
            AND NOT EXISTS(SELECT 1 FROM records WHERE id=json_extract(jobs.payload,'$.alertId') AND kind='alert')`,
         )
         .run(userId);
+      this.db.prepare("DELETE FROM jobs WHERE user_id=? AND kind IN ('shopping-query','shopping-connection','price-watch-check','supplier-monitor-check','conversation-execution')").run(userId);
       this.audit(userId, "HISTORY_DELETED");
     });
     if (this.backupsEnabled) purgeBackupsAfterDeletion(this);
@@ -972,19 +979,25 @@ export class Store {
   // shares, and now jobs (Phase 4). Deleting the user row alone propagates to all of them.
   deleteAccount(userId) {
     this.transaction(() => {
+      const operations=this.db.prepare("SELECT * FROM records WHERE user_id=? AND kind='booking-operation'").all(userId).map(r=>this.decode(r));
+      if(operations.some(op=>!["completed","declined","review-required"].includes(op.state)))throw new DomainError("Submitted supplier transactions must be reconciled before deleting this account. Conversation history can be deleted separately.",409,"RECONCILIATION_PENDING");
+      const pendingRefund=this.db.prepare("SELECT * FROM records WHERE user_id=? AND kind='supplier-order'").all(userId).some(r=>this.decode(r).paymentState==='refund-pending');
+      if(pendingRefund)throw new DomainError('A supplier refund is still pending. Reconcile its outcome before deleting the account; conversation history can be deleted separately.',409,'RECONCILIATION_PENDING');
+      archiveContractualTransactions(this,userId);
       this.db.prepare("DELETE FROM users WHERE id=?").run(userId);
       this.db.prepare("DELETE FROM audit WHERE user_id=?").run(userId);
     });
     if (this.backupsEnabled) purgeBackupsAfterDeletion(this);
   }
   cleanup(now = Date.now()) {
+    this.db.prepare('DELETE FROM retained_transactions WHERE expires_at<=?').run(now);
     this.db.prepare("DELETE FROM sessions WHERE expires_at<=?").run(now);
     this.db.prepare("DELETE FROM shares WHERE expires_at<=?").run(now);
     this.db.prepare("DELETE FROM records WHERE expires_at IS NOT NULL AND expires_at<=?").run(now);
     this.db.prepare("DELETE FROM audit WHERE at<?").run(now - 90 * 86400000);
     this.db
       .prepare(
-        "DELETE FROM users WHERE email_hash IS NULL AND created_at<? AND NOT EXISTS(SELECT 1 FROM sessions WHERE sessions.user_id=users.id)",
+        "DELETE FROM users WHERE email_hash IS NULL AND created_at<? AND NOT EXISTS(SELECT 1 FROM sessions WHERE sessions.user_id=users.id) AND NOT EXISTS(SELECT 1 FROM records WHERE records.user_id=users.id AND records.kind IN ('booking-operation','supplier-order'))",
       )
       .run(now - 14 * 86400000);
     // Finished one-shot jobs are kept for a while so a dead-lettered job can still be reviewed

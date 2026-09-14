@@ -69,7 +69,7 @@ export async function itineraryPdf(j, tickets = []) {
   }
   doc.rect(0, 0, 612, 158).fill(ink);
   doc.font("Heading").fontSize(23).fillColor("#ffce8f").text("Wayline", 42, 30);
-  doc.font("Body").fontSize(10).fillColor("#ffffff").text("COMPLETE JOURNEY ITINERARY", 42, 65);
+  doc.font("Body").fontSize(10).fillColor("#ffffff").text("TRIP ITINERARY", 42, 65);
   doc
     .font("Heading")
     .fontSize(22)
@@ -103,17 +103,17 @@ export async function itineraryPdf(j, tickets = []) {
       j.walkMinutes +
       " minutes walking",
   );
-  heading("Your complete itinerary");
+  heading("Your itinerary");
   j.legs.forEach((leg, index) => {
     const details = [
       leg.from + " to " + leg.to,
-      date(leg.departure) + " - " + date(leg.arrival),
+      date(leg.departure, leg.fromTimezone) + " - " + date(leg.arrival, leg.toTimezone),
       leg.operator + " / " + leg.service,
       leg.mode === "walk"
         ? "Walking connection"
         : leg.platform
           ? "Platform: " + leg.platform
-          : "Platform: confirm with operator",
+          : leg.mode === "flight" ? "Gate: confirm with the airline" : "Platform: confirm with operator",
       leg.mode === "walk"
         ? "Follow the saved walking connection and station signs."
         : (leg.boardingHint ?? ""),
@@ -145,7 +145,7 @@ export async function itineraryPdf(j, tickets = []) {
   }
   paragraph("Recorded total: " + money(j.price.totalCents), 12, accent);
   paragraph(
-    "Amounts are planning estimates unless identified as an imported purchase record. Verify fares, eligibility and cancellation conditions with each operator.",
+    j.priceNotice ?? "Amounts are planning estimates unless identified as an imported purchase record. Verify fares, eligibility and cancellation conditions with each operator.",
     9,
     muted,
   );
@@ -196,9 +196,9 @@ export async function itineraryPdf(j, tickets = []) {
       "\nSchedule observed: " + (j.observedAt ? date(j.observedAt) : "Not recorded") +
       "\nLive observations: " + (j.liveUpdatedAt ? date(j.liveUpdatedAt) : "Not recorded") +
       "\nSource: " +
-      (j.dataMode === "provider"
+      (j.source ?? (j.dataMode === "provider"
         ? "OpenTripPlanner / MBTA GTFS and available realtime updates"
-        : "Wayline illustrative sample data") +
+        : "Wayline illustrative sample data")) +
       "\nTimezone: " +
       j.timezone,
     9,

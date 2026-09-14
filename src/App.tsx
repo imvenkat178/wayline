@@ -49,7 +49,7 @@ function navLabels(locale: Locale) {
 
 export default function App() {
   const [boot, setBoot] = useState<Bootstrap | null>(null),
-    [page, setPage] = useState<Page>("plan"),
+    [page, setPage] = useState<Page>("assistant"),
     [journeys, setJourneys] = useState<Journey[]>([]),
     [active, setActive] = useState<Journey | null>(null),
     [result, setResult] = useState<SearchResult | null>(null),

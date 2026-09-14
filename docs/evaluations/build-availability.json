@@ -1,0 +1,11 @@
+{
+  "startedAt": "2026-09-13T17:04:28.475Z",
+  "base": "http://127.0.0.1:4174",
+  "scope": "HTTP availability of an already-open app while npm build stages and publishes",
+  "checks": 132,
+  "failures": [],
+  "maxResponseMs": 47,
+  "buildExitCode": 0,
+  "pass": true,
+  "finishedAt": "2026-09-13T17:04:45.316Z"
+}

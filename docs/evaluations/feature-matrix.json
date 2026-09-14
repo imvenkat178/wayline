@@ -1,0 +1,921 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-13T19:42:03.350Z",
+  "status": "local acceptance passed; provider capabilities gated",
+  "validationClasses": {
+    "localModel": "real Llama with fixture inventory",
+    "supplierSandbox": "not run",
+    "authorizedLiveProvider": "not run"
+  },
+  "deterministic": {
+    "lastFullRun": {
+      "total": 699,
+      "passed": 699,
+      "failed": 0,
+      "log": "tmp/optimization-final-validation.log"
+    },
+    "pass": true
+  },
+  "model": {
+    "file": "docs/evaluations/llama-8b-optimized-final.json",
+    "acceptancePassed": true,
+    "summary": {
+      "total": 518,
+      "passed": 512,
+      "accuracy": 0.9884169884169884,
+      "families": {
+        "planning": {
+          "total": 168,
+          "passed": 166,
+          "accuracy": 0.9880952380952381
+        },
+        "monitoring": {
+          "total": 50,
+          "passed": 50,
+          "accuracy": 1
+        },
+        "information": {
+          "total": 56,
+          "passed": 56,
+          "accuracy": 1
+        },
+        "personal": {
+          "total": 74,
+          "passed": 74,
+          "accuracy": 1
+        },
+        "tickets": {
+          "total": 26,
+          "passed": 26,
+          "accuracy": 1
+        },
+        "utilities": {
+          "total": 62,
+          "passed": 60,
+          "accuracy": 0.967741935483871
+        },
+        "booking": {
+          "total": 26,
+          "passed": 24,
+          "accuracy": 0.9230769230769231
+        },
+        "servicing": {
+          "total": 40,
+          "passed": 40,
+          "accuracy": 1
+        },
+        "clarification": {
+          "total": 16,
+          "passed": 16,
+          "accuracy": 1
+        }
+      },
+      "executionFailures": 0
+    }
+  },
+  "criticalJourneys": {
+    "file": "docs/evaluations/local-llama-optimized-journeys.json",
+    "passed": 12,
+    "total": 12,
+    "pass": true
+  },
+  "providerGates": [
+    "No supplier sandbox or authorized live-provider validation was run. Financial integration tests use injected fixture transports.",
+    "Distribusion network implementation requires partner documentation and contracted US inventory; the fail-closed integration contract is implemented.",
+    "Duffel Cards collection and authentication require provider approval and sandbox/live certification. External checkout requires an approved contract transport and exact destination allowlist.",
+    "FlightAware observations and background alerts require approved Standard access, a license ID and an explicit permitted retention period.",
+    "Imported tickets do not grant servicing authority. Supplier e-ticket identifiers are downloadable; the current order response does not supply boarding-pass or ticket-PDF files.",
+    "Recovery preserves completed travel and original ticket records. Coupon reuse remains unknown until authoritative supplier evidence exists.",
+    "Cheapest means the lowest complete known cost within disclosed coverage. Unknown mandatory baggage, connection or card fees prevent a complete-price claim.",
+    "Protected forms handle sensitive inputs and financial reviews. Conversational intent recognition does not itself submit a supplier transaction."
+  ],
+  "rows": [
+    {
+      "action": "search_options",
+      "family": "planning",
+      "description": "Search routes using trip requirements",
+      "inputs": [
+        "patch"
+      ],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/trip-workspace.test.mjs",
+        "tests/workspace-flights.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/flight-conversation-scope.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 22,
+        "attempted": 22
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "update_constraints",
+      "family": "planning",
+      "description": "Edit an unbooked trip draft: dates, budget, passengers, bags or accessibility. Already booked flights use exchange_ticket.",
+      "inputs": [
+        "patch"
+      ],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/trip-workspace.test.mjs",
+        "tests/workspace-flights.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/flight-conversation-scope.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 20,
+        "attempted": 20
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "compare_options",
+      "family": "planning",
+      "description": "Compare or recommend existing options by price, speed or resilience",
+      "inputs": [
+        "setId",
+        "optionIds",
+        "positions"
+      ],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/trip-workspace.test.mjs",
+        "tests/workspace-flights.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/flight-conversation-scope.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 16,
+        "attempted": 16
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "select_option",
+      "family": "planning",
+      "description": "Choose, pick or go with an existing option by number or label (cheapest, fastest, recommended)",
+      "inputs": [
+        "setId",
+        "optionIds",
+        "positions"
+      ],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/trip-workspace.test.mjs",
+        "tests/workspace-flights.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/flight-conversation-scope.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 14,
+        "attempted": 14
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "replace_leg",
+      "family": "planning",
+      "description": "Swap/change one transport mode for another, or replace a whole flight ticket group",
+      "inputs": [
+        "setId",
+        "optionIds",
+        "positions",
+        "legId",
+        "legMode",
+        "replacementMode"
+      ],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/trip-workspace.test.mjs",
+        "tests/workspace-flights.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/flight-conversation-scope.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "lock_leg",
+      "family": "planning",
+      "description": "Keep, lock or unlock a service",
+      "inputs": [
+        "legId",
+        "legMode",
+        "locked"
+      ],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/trip-workspace.test.mjs",
+        "tests/workspace-flights.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/flight-conversation-scope.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "branch_scenario",
+      "family": "planning",
+      "description": "Explore hypothetical changes without editing the active trip",
+      "inputs": [
+        "patch",
+        "name"
+      ],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/trip-workspace.test.mjs",
+        "tests/workspace-flights.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/flight-conversation-scope.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 18,
+        "attempted": 18
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "restore_scenario",
+      "family": "planning",
+      "description": "Activate an EXISTING explicitly named what-if scenario. Never use for disruption recovery or replacement routes.",
+      "inputs": [
+        "scenarioId"
+      ],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/trip-workspace.test.mjs",
+        "tests/workspace-flights.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/flight-conversation-scope.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "undo_draft_edit",
+      "family": "planning",
+      "description": "Undo the last draft edit",
+      "inputs": [],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/trip-workspace.test.mjs",
+        "tests/workspace-flights.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/flight-conversation-scope.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "prepare_review",
+      "family": "planning",
+      "description": "Save or keep this itinerary in My journeys as a plan. Not a PDF, not a purchase.",
+      "inputs": [
+        "setId",
+        "optionIds"
+      ],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/trip-workspace.test.mjs",
+        "tests/workspace-flights.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/flight-conversation-scope.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "collect_options",
+      "family": "planning",
+      "description": "Load finished flight search offers",
+      "inputs": [
+        "searchId"
+      ],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/trip-workspace.test.mjs",
+        "tests/workspace-flights.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/flight-conversation-scope.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 10,
+        "attempted": 12
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "cancel_search",
+      "family": "planning",
+      "description": "Stop searching for options",
+      "inputs": [
+        "searchId"
+      ],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/trip-workspace.test.mjs",
+        "tests/workspace-flights.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/flight-conversation-scope.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "prepare_recovery",
+      "family": "monitoring",
+      "description": "Recover disrupted travel, get back on track, find a replacement route within extra-cash and arrival constraints.",
+      "inputs": [
+        "maxExtraCents",
+        "arrivalDeadline"
+      ],
+      "confirmation": "none",
+      "ui": "SupplierRecoveryForm",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/recovery-origin.test.mjs",
+        "tests/recovery-economics.test.mjs",
+        "tests/supplier-recovery.test.mjs",
+        "tests/supplier-monitoring.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/notifications.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "explain_option",
+      "family": "information",
+      "description": "Explain costs, baggage or conditions of a SPECIFIC selected or numbered option",
+      "inputs": [
+        "setId",
+        "optionIds",
+        "positions"
+      ],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/agent.test.mjs",
+        "tests/workspace-flights.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "advice",
+      "family": "information",
+      "description": "Explain general travel concepts, guarantees, price evidence and capabilities; no changes",
+      "inputs": [],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/agent.test.mjs",
+        "tests/workspace-flights.test.mjs"
+      ],
+      "model": {
+        "passing": 14,
+        "attempted": 14
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "manage_travelers",
+      "family": "personal",
+      "description": "Add, edit or inspect traveler profiles using a protected form",
+      "inputs": [],
+      "confirmation": "protected-form",
+      "ui": "ConversationTools",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/workspace-areas.test.mjs",
+        "tests/auth-router.test.mjs",
+        "tests/notifications.test.mjs"
+      ],
+      "model": {
+        "passing": 14,
+        "attempted": 14
+      },
+      "readiness": "Protected controls; provider prerequisites apply where indicated"
+    },
+    {
+      "action": "manage_contacts",
+      "family": "personal",
+      "description": "Add, edit or inspect emergency contacts",
+      "inputs": [],
+      "confirmation": "protected-form",
+      "ui": "ConversationTools",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/workspace-areas.test.mjs",
+        "tests/auth-router.test.mjs",
+        "tests/notifications.test.mjs"
+      ],
+      "model": {
+        "passing": 14,
+        "attempted": 14
+      },
+      "readiness": "Protected controls; provider prerequisites apply where indicated"
+    },
+    {
+      "action": "manage_preferences",
+      "family": "personal",
+      "description": "Change or inspect saved travel preferences",
+      "inputs": [],
+      "confirmation": "protected-form",
+      "ui": "ConversationTools",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/workspace-areas.test.mjs",
+        "tests/auth-router.test.mjs",
+        "tests/notifications.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Protected controls; provider prerequisites apply where indicated"
+    },
+    {
+      "action": "manage_favorites",
+      "family": "personal",
+      "description": "Save, edit or inspect favorite routes",
+      "inputs": [],
+      "confirmation": "protected-form",
+      "ui": "ConversationTools",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/workspace-areas.test.mjs",
+        "tests/auth-router.test.mjs",
+        "tests/notifications.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Protected controls; provider prerequisites apply where indicated"
+    },
+    {
+      "action": "manage_commutes",
+      "family": "personal",
+      "description": "Create, schedule, pause or inspect recurring commutes",
+      "inputs": [],
+      "confirmation": "protected-form",
+      "ui": "ConversationTools",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/workspace-areas.test.mjs",
+        "tests/auth-router.test.mjs",
+        "tests/notifications.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Protected controls; provider prerequisites apply where indicated"
+    },
+    {
+      "action": "manage_passes",
+      "family": "personal",
+      "description": "Add or inspect transit passes and renewal reminders",
+      "inputs": [],
+      "confirmation": "protected-form",
+      "ui": "ConversationTools",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/workspace-areas.test.mjs",
+        "tests/auth-router.test.mjs",
+        "tests/notifications.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Protected controls; provider prerequisites apply where indicated"
+    },
+    {
+      "action": "manage_tickets",
+      "family": "tickets",
+      "description": "Import, inspect, link or retrieve ticket documents",
+      "inputs": [],
+      "confirmation": "protected-form",
+      "ui": "SupplierTickets + Wallet",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/ticket-import.test.mjs",
+        "tests/workspace-areas.test.mjs",
+        "tests/supplier-adapters.test.mjs",
+        "tests/provider-checkout.test.mjs"
+      ],
+      "model": {
+        "passing": 14,
+        "attempted": 14
+      },
+      "readiness": "Protected controls; provider prerequisites apply where indicated"
+    },
+    {
+      "action": "manage_watches",
+      "family": "monitoring",
+      "description": "Watch fares, set a price alert or pause a price watch",
+      "inputs": [],
+      "confirmation": "protected-form",
+      "ui": "ConversationTools",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/recovery-origin.test.mjs",
+        "tests/recovery-economics.test.mjs",
+        "tests/supplier-recovery.test.mjs",
+        "tests/supplier-monitoring.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/notifications.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Protected controls; provider prerequisites apply where indicated"
+    },
+    {
+      "action": "manage_notifications",
+      "family": "monitoring",
+      "description": "Change notification settings or inspect alerts",
+      "inputs": [],
+      "confirmation": "protected-form",
+      "ui": "SupplierMonitorForm + Profile",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/recovery-origin.test.mjs",
+        "tests/recovery-economics.test.mjs",
+        "tests/supplier-recovery.test.mjs",
+        "tests/supplier-monitoring.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/notifications.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Protected controls; provider prerequisites apply where indicated"
+    },
+    {
+      "action": "trip_status",
+      "family": "monitoring",
+      "description": "Check live trip status, delays, gates or alerts",
+      "inputs": [],
+      "confirmation": "none",
+      "ui": "SupplierMonitorForm",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/recovery-origin.test.mjs",
+        "tests/recovery-economics.test.mjs",
+        "tests/supplier-recovery.test.mjs",
+        "tests/supplier-monitoring.test.mjs",
+        "tests/shopping.test.mjs",
+        "tests/notifications.test.mjs"
+      ],
+      "model": {
+        "passing": 16,
+        "attempted": 16
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "travel_weather",
+      "family": "information",
+      "description": "Weather forecasts: will it rain, temperature, conditions at origin or destination",
+      "inputs": [],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/agent.test.mjs",
+        "tests/workspace-flights.test.mjs"
+      ],
+      "model": {
+        "passing": 18,
+        "attempted": 18
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "station_guidance",
+      "family": "information",
+      "description": "Find station, airport or boarding guidance",
+      "inputs": [],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/agent.test.mjs",
+        "tests/workspace-flights.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "share_trip",
+      "family": "utilities",
+      "description": "Create a revocable trip sharing link",
+      "inputs": [],
+      "confirmation": "protected-form",
+      "ui": "ConversationTools",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/core-launch.test.mjs",
+        "tests/offline-boot.test.mjs",
+        "tests/service-worker.test.mjs",
+        "tests/flight-utilities.test.mjs",
+        "tests/supplier-adapters.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Protected controls; provider prerequisites apply where indicated"
+    },
+    {
+      "action": "revoke_share",
+      "family": "utilities",
+      "description": "Revoke a previously shared link",
+      "inputs": [],
+      "confirmation": "protected-form",
+      "ui": "ConversationTools",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/core-launch.test.mjs",
+        "tests/offline-boot.test.mjs",
+        "tests/service-worker.test.mjs",
+        "tests/flight-utilities.test.mjs",
+        "tests/supplier-adapters.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Protected controls; provider prerequisites apply where indicated"
+    },
+    {
+      "action": "export_calendar",
+      "family": "utilities",
+      "description": "Export the saved journey to a calendar",
+      "inputs": [],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/core-launch.test.mjs",
+        "tests/offline-boot.test.mjs",
+        "tests/service-worker.test.mjs",
+        "tests/flight-utilities.test.mjs",
+        "tests/supplier-adapters.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 14
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "export_pdf",
+      "family": "utilities",
+      "description": "Download the saved itinerary PDF",
+      "inputs": [],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/core-launch.test.mjs",
+        "tests/offline-boot.test.mjs",
+        "tests/service-worker.test.mjs",
+        "tests/flight-utilities.test.mjs",
+        "tests/supplier-adapters.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 14
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "offline_pack",
+      "family": "utilities",
+      "description": "Prepare or inspect an offline travel pack",
+      "inputs": [],
+      "confirmation": "protected-form",
+      "ui": "ConversationTools + OfflinePacks",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/core-launch.test.mjs",
+        "tests/offline-boot.test.mjs",
+        "tests/service-worker.test.mjs",
+        "tests/flight-utilities.test.mjs",
+        "tests/supplier-adapters.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Protected controls; provider prerequisites apply where indicated"
+    },
+    {
+      "action": "ticket_receipt",
+      "family": "tickets",
+      "description": "Retrieve a receipt, proof of payment or accounting record for a saved journey or supplier order",
+      "inputs": [],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/ticket-import.test.mjs",
+        "tests/workspace-areas.test.mjs",
+        "tests/supplier-adapters.test.mjs",
+        "tests/provider-checkout.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "book_ticket",
+      "family": "booking",
+      "description": "Purchase or reserve tickets; requires exact transaction review",
+      "inputs": [],
+      "confirmation": "exact-review",
+      "ui": "BookingConversationForm",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/booking-workflows.test.mjs",
+        "tests/provider-checkout.test.mjs",
+        "tests/supplier-adapters.test.mjs",
+        "tests/transaction-retention.test.mjs"
+      ],
+      "model": {
+        "passing": 10,
+        "attempted": 12
+      },
+      "readiness": "Implemented; supplier approval/certification required"
+    },
+    {
+      "action": "order_status",
+      "family": "booking",
+      "description": "Check whether a booking went through, a card was charged, or tickets were issued. Booking and payment status, not vehicle delays.",
+      "inputs": [],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/booking-workflows.test.mjs",
+        "tests/provider-checkout.test.mjs",
+        "tests/supplier-adapters.test.mjs",
+        "tests/transaction-retention.test.mjs"
+      ],
+      "model": {
+        "passing": 14,
+        "attempted": 14
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    },
+    {
+      "action": "cancel_ticket",
+      "family": "servicing",
+      "description": "Request cancellation, inspect eligibility or get a fresh cancellation quote for an actual booking",
+      "inputs": [],
+      "confirmation": "exact-review",
+      "ui": "BookingConversationForm",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/booking-workflows.test.mjs",
+        "tests/supplier-adapters.test.mjs",
+        "tests/transaction-retention.test.mjs"
+      ],
+      "model": {
+        "passing": 14,
+        "attempted": 14
+      },
+      "readiness": "Implemented; supplier approval/certification required"
+    },
+    {
+      "action": "exchange_ticket",
+      "family": "servicing",
+      "description": "Reschedule, move, change dates or exchange an already booked, purchased or issued flight/ticket; open a protected form and fresh supplier review",
+      "inputs": [],
+      "confirmation": "exact-review",
+      "ui": "BookingConversationForm",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/booking-workflows.test.mjs",
+        "tests/supplier-adapters.test.mjs",
+        "tests/transaction-retention.test.mjs"
+      ],
+      "model": {
+        "passing": 12,
+        "attempted": 12
+      },
+      "readiness": "Implemented; supplier approval/certification required"
+    },
+    {
+      "action": "refund_ticket",
+      "family": "servicing",
+      "description": "Refund eligibility, getting money back, refund quotes and requests for purchased tickets. Opens a fresh review.",
+      "inputs": [],
+      "confirmation": "exact-review",
+      "ui": "BookingConversationForm",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/booking-workflows.test.mjs",
+        "tests/supplier-adapters.test.mjs",
+        "tests/transaction-retention.test.mjs"
+      ],
+      "model": {
+        "passing": 14,
+        "attempted": 14
+      },
+      "readiness": "Implemented; supplier approval/certification required"
+    },
+    {
+      "action": "clarify",
+      "family": "clarification",
+      "description": "Ask which action or reference was intended; ambiguous yes never confirms",
+      "inputs": [],
+      "confirmation": "none",
+      "ui": "TripWorkspace",
+      "tests": [
+        "tests/traveler-workflows.test.mjs",
+        "tests/flight-clarification-http.test.mjs"
+      ],
+      "model": {
+        "passing": 16,
+        "attempted": 16
+      },
+      "readiness": "Available inventory and retrieved evidence determine results"
+    }
+  ]
+}

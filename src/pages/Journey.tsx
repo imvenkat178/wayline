@@ -20,6 +20,7 @@ import { saveOffline } from "../offline";
 import { shellReady } from "../serviceWorker";
 import { Scanner } from "../components/Scanner";
 import {JourneyActions} from '../components/TripActions';
+import { JourneyWeather } from "../components/JourneyWeather";
 export default function JourneyPage() {
   const { active, setActive, journeys, boot, navigate, refresh, notify, searchInput, openAgent } =
     useApp();
@@ -285,6 +286,7 @@ export default function JourneyPage() {
           </Section>
         </div>
         <aside className="stack">
+          <JourneyWeather journey={j} />
           <div className="guardian-panel">
             <div className="guardian-heading">
               <div className="guardian-orb">

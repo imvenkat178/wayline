@@ -98,6 +98,9 @@ between tools; these files are not.
 | `docs/roadmap/index.html` | Browsable roadmap page generated from `ROADMAP.md` | Run `npm run docs:memory` after editing `ROADMAP.md` |
 | `docs/agent-memory-kit/` | The agent memory kit's README, templates and generated `index.html` page | The upstream kit changes; regenerate with `npm run docs:memory` |
 | `README.md` | Setup, configuration, architecture, security boundaries and known gaps | A user-visible capability, setting or limit changes |
+| `docs/README.md` | Index of every guide and reference | A document is added, moved or retired |
+| `docs/reference/API.md` | Every HTTP endpoint with access, limits and errors | A route is added or its behaviour changes (`tests/docs-reference.test.mjs` enforces paths) |
+| `docs/reference/CONFIGURATION.md` | Every environment variable with default and effect | Code reads a new variable or a default changes (`tests/docs-reference.test.mjs` enforces names) |
 | `START_HERE.md` | Shortest path to running the app | Install or run steps change |
 | `docs/FEATURE_STATUS.md` | Status of all 105 original roadmap features plus dated checkpoints | A feature's status changes |
 | `docs/LOCAL_LLAMA_REPORT.md` | Measured model acceptance results | Only after a new evaluation run |

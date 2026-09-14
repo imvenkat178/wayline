@@ -1,34 +1,8 @@
-// The Agent feature's orchestration layer, built with LangGraph (@langchain/langgraph,
-// open-source, no account needed) on top of agent.mjs's pure functions.
-//
-// Before this pass, agent.mjs did everything inline: regex-parse the message, optionally ask a
-// locally configured Ollama model to classify intent (JSON-schema-constrained to a fixed list,
-// never free text), then always render a hardcoded template string for the final reply. That
-// logic still exists, unchanged in substance, as agent.mjs's parseRequest()/groundedReply() --
-// this module doesn't replace it, it orchestrates it and adds one new, optional step: when a
-// real local model is configured (OLLAMA_BASE_URL/OLLAMA_MODEL), it composes a more natural
-// phrasing of the exact same grounded facts groundedReply() already produced, instead of always
-// shipping the hardcoded template text verbatim.
-//
-// Why a graph, and not just two sequential function calls: LangGraph's contribution here is
-// making "does a model exist, and did it produce something safe to use" a first-class,
-// independently testable part of the flow (addConditionalEdges), and giving LangSmith tracing
-// (adapters/tracing.mjs) real per-step structure to record -- classifyIntent,
-// buildGroundedReply, composeReply each show up as their own traced node when LangSmith is
-// configured, instead of one opaque function call.
-//
-// The safety property carried over from the original code, unchanged: the model is NEVER the
-// source of a fact. classifyIntent only ever picks from a fixed, closed list (intents), falling
-// back to the regex classifier on any failure or unrecognized answer; composeReply is only ever
-// asked to rephrase groundedReply()'s already-correct output, under an explicit instruction not
-// to add or change anything, and isSuspectRewrite() below rejects any rewrite that drops a
-// number the original reply carried or pads far beyond its length. Whenever no model is
-// configured, the model errors, or its rewrite looks suspect, the ORIGINAL deterministic text
-// from agent.mjs ships -- exactly what shipped before this pass, byte for byte.
+// Models select validated intents and tools. Operational facts are rendered from evidence.
 import { StateGraph, Annotation, START, END } from "@langchain/langgraph";
 import { intents, parseRequest, groundedReply } from "./agent.mjs";
 import { defaultChatProvider } from "../adapters/llm.mjs";
-import { traced } from "../adapters/tracing.mjs";
+import { traced, privateGraphExecution } from "../adapters/tracing.mjs";
 
 const AgentState = Annotation.Root({
   input: Annotation(),
@@ -139,141 +113,14 @@ function buildGroundedReply(state) {
   return { reply: built.reply, actions: built.actions, evidence: built.evidence };
 }
 
-// R04: words whose presence changes what a sentence actually asserts. A rewrite that silently
-// drops every one of these the original relied on may have flipped or overclaimed the original's
-// meaning (e.g. "no confirmed disruption" losing its "no" reads as confirming one). Matched on
-// word boundaries so "not" doesn't spuriously match inside "notice" or "notification"; the
-// contraction is matched as a plain substring since "n't" has no word boundary of its own.
-const NEGATION_MARKERS = [
-  "not",
-  "no",
-  "n't",
-  "never",
-  "without",
-  "cannot",
-  "unable",
-  "unavailable",
-];
-// Words that mark a claim as a sample, an estimate, or otherwise not a confirmed fact. Dropping
-// every one of these in a rewrite silently upgrades a hedge into a flat assertion.
-const UNCERTAINTY_MARKERS = [
-  "sample",
-  "illustrative",
-  "estimate",
-  "estimated",
-  "approximate",
-  "approximately",
-  "may",
-  "might",
-  "could",
-  "possibly",
-  "unverified",
-  "not verified",
-  "unconfirmed",
-  "unknown",
-  "self-reported",
-];
-function markerPattern(marker) {
-  const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return marker.includes("'") ? new RegExp(escaped) : new RegExp(`\\b${escaped}\\b`);
-}
-function markerCount(text, markers) {
-  const lower = text.toLowerCase();
-  return markers.filter((m) => markerPattern(m).test(lower)).length;
-}
-
-// A deliberately conservative guard, not a fact-checker: composeReply's system prompt (never add,
-// remove or change a fact/number/name/time/amount) is the primary defense, and this is the
-// backstop for when a small local model doesn't follow it. It cannot verify new prose is TRUE,
-// but it can and does verify the rewrite didn't (a) drop or add any number relative to the
-// original -- symmetric on both sides, so a rewrite that keeps every original number but tacks on
-// an unsupported extra one (e.g. an invented boarding platform) is caught just as surely as one
-// that drops a number outright, (b) silently drop every negation/hedge word the original carried,
-// which can flip or overclaim its meaning, or (c) implausibly balloon in length, a sign of padding
-// in unrelated content.
-function isSuspectRewrite(original, rewritten) {
-  if (!rewritten || typeof rewritten !== "string") return true;
-  const trimmed = rewritten.trim();
-  if (!trimmed || trimmed.length > original.length * 3 + 200) return true;
-  const originalNumbers = new Set(original.match(/\d+(\.\d+)?/g) ?? []);
-  const rewrittenNumbers = new Set(trimmed.match(/\d+(\.\d+)?/g) ?? []);
-  for (const n of originalNumbers) if (!rewrittenNumbers.has(n)) return true;
-  for (const n of rewrittenNumbers) if (!originalNumbers.has(n)) return true;
-  if (markerCount(original, NEGATION_MARKERS) > 0 && markerCount(trimmed, NEGATION_MARKERS) === 0)
-    return true;
-  if (
-    markerCount(original, UNCERTAINTY_MARKERS) > 0 &&
-    markerCount(trimmed, UNCERTAINTY_MARKERS) === 0
-  )
-    return true;
-  return false;
-}
-
-// A small local model asked to "reply with only the rephrased message" still sometimes narrates
-// itself first ("Here's a rephrased version:") and/or wraps the actual reply in quotation marks.
-// This strips exactly that shape -- a single leading narration line ending in a colon, then a
-// matching pair of wrapping quotes -- so that leftover framing never reaches the user. It never
-// touches the wording of the reply itself, so it can't hide a fact-dropping rewrite from
-// isSuspectRewrite: the check above still runs on its output.
-function stripComposeWrapper(text) {
-  let out = text.trim();
-  const narrationLine = /^[A-Z][^\n]{0,80}:\s*\n+/;
-  if (narrationLine.test(out)) out = out.replace(narrationLine, "").trim();
-  const quotePairs = [
-    ['"', '"'],
-    ["'", "'"],
-    ["“", "”"],
-    ["‘", "’"],
-  ];
-  for (const [open, close] of quotePairs) {
-    if (out.startsWith(open) && out.endsWith(close) && out.length > 1) {
-      out = out.slice(1, -1).trim();
-      break;
-    }
-  }
-  return out;
-}
-
-async function composeReply(state) {
-  const { provider, reply, mode } = state;
-  if (!provider?.available) return {};
-  try {
-    const rewritten = await provider.chat({
-      messages: [
-        {
-          role: "system",
-          content:
-            "Rephrase the assistant message below in a warmer, more conversational tone. Do not add, remove or change any fact, number, name, time or amount. If you cannot rephrase it without changing a fact, repeat it unchanged. Reply with only the rephrased message, nothing else.",
-        },
-        { role: "user", content: reply },
-      ],
-      maxTokens: 400,
-    });
-    const cleaned = typeof rewritten === "string" ? stripComposeWrapper(rewritten) : rewritten;
-    if (isSuspectRewrite(reply, cleaned)) return {};
-    return { reply: cleaned, mode: `${mode} · composed` };
-  } catch {
-    return {};
-  }
-}
-
-function shouldCompose(state) {
-  return state.provider?.available ? "composeReply" : END;
-}
-
 const graph = new StateGraph(AgentState)
   .addNode("executeTravelTools", async state => ({ toolResponse: state.toolRunner ? await state.toolRunner(state) : null }))
   .addNode("classifyIntent", traced("classifyIntent", classifyIntent))
   .addNode("buildGroundedReply", buildGroundedReply)
-  .addNode("composeReply", traced("composeReply", composeReply))
   .addEdge(START, "executeTravelTools")
   .addConditionalEdges("executeTravelTools", state => state.toolResponse ? END : "classifyIntent", { [END]: END, classifyIntent: "classifyIntent" })
   .addEdge("classifyIntent", "buildGroundedReply")
-  .addConditionalEdges("buildGroundedReply", shouldCompose, {
-    composeReply: "composeReply",
-    [END]: END,
-  })
-  .addEdge("composeReply", END)
+  .addEdge("buildGroundedReply", END)
   .compile();
 
 // `provider` is injectable so tests can supply a mock/fake chat model without touching process
@@ -281,7 +128,7 @@ const graph = new StateGraph(AgentState)
 // OLLAMA_BASE_URL/OLLAMA_MODEL are set, otherwise the no-op provider from adapters/llm.mjs).
 export async function runAgentGraph({ input, journey, preferences, history = [], provider, toolRunner }) {
   const parsed = parseRequest(input);
-  const result = await graph.invoke({
+  const result = await privateGraphExecution(() => graph.invoke({
     input,
     toolRunner,
     history,
@@ -289,7 +136,7 @@ export async function runAgentGraph({ input, journey, preferences, history = [],
     preferences,
     parsed,
     provider: provider ?? defaultChatProvider(),
-  });
+  }, { callbacks: [] }));
   if (result.toolResponse) return { ...result.toolResponse, parsed };
   return {
     reply: result.reply,

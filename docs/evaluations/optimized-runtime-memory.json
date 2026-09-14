@@ -1,0 +1,11 @@
+{
+  "capturedAt": "2026-09-13T17:07:22.826Z",
+  "phase": "expanded corpus running",
+  "model": "llama3.1:8b-instruct-q4_K_M",
+  "context": 8192,
+  "processId": 2796,
+  "workingSetBytes": 6478983168,
+  "processLifetimePeakWorkingSetBytes": 6740512768,
+  "otherLocalModelWorkingSetBytes": 3446534144,
+  "notes": "OS snapshot, not an isolated peak benchmark. Another 4096-context local model runner and Boston routing were also active."
+}

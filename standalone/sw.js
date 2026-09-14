@@ -18,7 +18,7 @@
 // to clean up. The literal value here only ever ships if that step is skipped -- it's never
 // registered under `vite dev` (see main.tsx), so this default is effectively unreachable in
 // practice, not a silent fallback to worry about.
-const CACHE_VERSION = "wayline-shell-c39a4ded69bb6bca";
+const CACHE_VERSION = "wayline-shell-3190352c65954c59";
 
 // Entry points whose URL does NOT change between builds -- always safe to precache regardless
 // of build content.
@@ -35,7 +35,7 @@ const SHELL_URLS = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg", "/
 // same as this file's behavior always was before this fix -- not a crash, and not silently
 // wrong, since the fetch handler's cache-first branch below still opportunistically fills in
 // whatever a page actually requests.
-const BUILD_ASSETS = ["/assets/index-6NrbdTGJ.js","/assets/rolldown-runtime-C0FnF6B9.js","/assets/ui-cvqmYFAQ.js","/assets/index-BvlG6KpM.css"];
+const BUILD_ASSETS = ["/assets/index-iJ2ac9qO.js","/assets/rolldown-runtime-C0FnF6B9.js","/assets/jsx-runtime-CKeovgl0.js","/assets/api-CgwzoExf.js","/assets/ui-Cp-U-5DX.js","/assets/index-DfwyGUYZ.css"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
