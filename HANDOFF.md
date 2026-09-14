@@ -11,9 +11,9 @@
 
 - **When:** 2026-09-14
 - **Who:** Claude Code (Claude Opus 5)
-- **What happened:** On 2026-09-14 added goal G10 (Documentation, 11 sub-goals) to `ROADMAP.md` and delivered its first references: `docs/README.md` (index), `docs/reference/API.md` (every endpoint), `docs/reference/CONFIGURATION.md` (all 59 environment variables), and `tests/docs-reference.test.mjs`, which fails when a server API path or environment variable is undocumented. Fixed out-of-date statements in `START_HERE.md` and `README.md`, completed `.env.example`, and added the references to the `AGENTS.md` documentation map. Then, at the owner's request, committed all remaining work, the local-Llama product release and this documentation, as one commit on `chore/agent-memory-kit` (G1.2, G10.1).
+- **What happened:** Later on 2026-09-14 a push of `chore/agent-memory-kit` was first rejected for a missing `workflow` scope; after the owner granted it, the branch was pushed using the GitHub CLI credential. Open PR 1 was also compared with the branch for G1.3 (conflicts in `README.md` and `docs/FEATURE_STATUS.md`; the owner's decision is pending). Earlier on 2026-09-14 added goal G10 (Documentation, 11 sub-goals) to `ROADMAP.md` and delivered its first references: `docs/README.md` (index), `docs/reference/API.md` (every endpoint), `docs/reference/CONFIGURATION.md` (all 59 environment variables), and `tests/docs-reference.test.mjs`, which fails when a server API path or environment variable is undocumented. Fixed out-of-date statements in `START_HERE.md` and `README.md`, completed `.env.example`, and added the references to the `AGENTS.md` documentation map. Then, at the owner's request, committed all remaining work, the local-Llama product release and this documentation, as one commit on `chore/agent-memory-kit` (G1.2, G10.1).
   Earlier sessions (2026-09-13, see section 8): installed the agent memory kit and turned the launch-gap review into `ROADMAP.md`: 9 goals and 52 sub-goals, each with evidence checked against the code, docs, git or a test run. Then stored the current kit in `docs/agent-memory-kit/`, updated `scripts/check_handoff.py` to the kit version that adds `--base`, and added two generated pages, `docs/roadmap/index.html` and `docs/agent-memory-kit/index.html` (`npm run docs:memory`), published as private claude.ai artifacts. No application code changed.
-- **State left behind:** Everything is committed on branch `chore/agent-memory-kit`, created from `main` at 0f02d7a and not pushed: first the memory kit commit `6b97a3d`, then one commit with the local-Llama product release and the documentation work. The working tree is clean apart from ignored files. `main` and `origin/main` are unchanged.
+- **State left behind:** Everything is committed on branch `chore/agent-memory-kit`, created from `main` at 0f02d7a and pushed to origin on 2026-09-14: first the memory kit commit `6b97a3d`, then `6529424` with the local-Llama product release and the documentation work. The later memory updates (`HANDOFF.md`, `ROADMAP.md`, `docs/roadmap/index.html`) are uncommitted. `main` and `origin/main` are unchanged.
 - **Resume by:**
   1. `git status --short` and compare it with section 2.
   2. `python scripts/roadmap.py next` to see actionable work and pending decisions.
@@ -23,12 +23,12 @@
 
 | Item | Current value |
 | --- | --- |
-| Branch | `chore/agent-memory-kit`, created from `main`; not pushed. `main` and `origin/main` are still at `0f02d7a` (https://github.com/imvenkat178/wayline, public) |
+| Branch | `chore/agent-memory-kit`, created from `main`, pushed and tracking `origin/chore/agent-memory-kit` at `6529424`. `main` and `origin/main` are still at `0f02d7a` (https://github.com/imvenkat178/wayline, public) |
 | Last commit | The product release and documentation commit on `chore/agent-memory-kit` (2026-09-14), after `6b97a3d` (memory kit, 2026-09-13) and `0f02d7a` 2026-09-11 "Boston core launch: real transit planning, AI trip agent, recovery, PDFs, encrypted offline/backups" |
-| Uncommitted | None (ignored paths such as `data/`, `tmp/`, `models/` and `.env` excluded). |
+| Uncommitted | Memory updates after `6529424`: `HANDOFF.md`, `ROADMAP.md` (G1.3.1 checked, G1.3.2 added) and the regenerated `docs/roadmap/index.html`. |
 | Toolchain verified here | Windows 11; Node v24.19.0; npm 11.17.0; Python 3.12.10 (`python`; `python3` is only the Microsoft Store alias); git 2.55.0 |
 | Last full test run | 2026-09-14 `npm test` under PowerShell: 704 tests, 702 passed; the 2 failures were the memory validator tests, run while the roadmap summary was stale before `roadmap.py write` (re-run afterwards below). Earlier, 2026-09-13 `npm test` in Git Bash: 699 tests, 695 passed, 4 failed (backup cases broken by Git Bash's `whoami.exe`, G7.7); `tests/core-launch.test.mjs` under PowerShell: 25/25 passed; `npx tsc -b` passed; `npm run lint` 0 errors, 15 warnings; `npm run build` not run this session |
-| CI | `.github/workflows/ci.yml`; last main run 34629463576 on 2026-09-11 succeeded. The new validator steps have not run on GitHub yet (G7.1). Open PR 1 (docs only) passed CI on 2026-09-12. |
+| CI | `.github/workflows/ci.yml`; last main run 34629463576 on 2026-09-11 succeeded. The new validator steps have not run on GitHub yet (G7.1): the workflow triggers only on pushes to `main` and pull requests into `main`, and `gh run list --branch chore/agent-memory-kit` showed no runs after the 2026-09-14 push. Open PR 1 (docs only) passed CI on 2026-09-12. |
 
 ## 3. Done (capability ledger)
 
@@ -51,7 +51,7 @@ The complete goal tree lives in [ROADMAP.md](ROADMAP.md): goals, sub-goals and t
 
 Current focus, chosen by the last session:
 
-1. `G7.1` The branch is committed but not pushed; with the owner's approval, push it and confirm CI passes with the memory and documentation checks.
+1. `G7.1` The branch is pushed but CI has not run; with the owner's approval, open a pull request into `main` so CI runs the memory and documentation checks.
 2. `G6.1` The Launch 1 scope decides which hardening work matters; ask the owner to approve it.
 3. `G2.2` A container image unblocks deployment, OTP hosting and load testing, and needs no decision.
 4. `G3.5` IP rate limits break behind any reverse proxy; this is a code-only P0 fix.
@@ -75,6 +75,7 @@ Record new ideas in the "Ideas not yet goals" section of `ROADMAP.md`.
 - Web Push, cross-browser offline, OCR and barcode import are unverified on real devices (G7.3). There are no browser end-to-end tests in CI (G7.2).
 - In Git Bash on Windows, 4 backup tests fail because `whoami.exe` resolves to the GNU binary. Run tests in PowerShell or cmd until G7.7 is fixed.
 - `npm run build` was not re-run before the 2026-09-14 commit; the committed `standalone/` output comes from the local-Llama release session. CI builds it on push.
+- Since 2026-09-14 this repository authenticates to GitHub with a repository-scoped credential the owner supplied, stored in Windows Credential Manager for `https://github.com/imvenkat178/wayline.git`. `.git/config` resets `credential.helper` to `manager` and sets `credential.useHttpPath=true`; global git settings and other repositories are unchanged. An authenticated `git ls-remote` succeeded with it; pushing workflow changes with it is untested until the next push that touches `.github/workflows/`. Never write the credential into files, logs or chat.
 - On this machine `python3` is the Microsoft Store alias; use `python`. `tests/agent-memory.test.mjs` tries `python3`, then `python`.
 
 ## 7. Decisions (do not re-litigate without a reason)
@@ -101,6 +102,34 @@ Template. Copy it and keep the heading format exactly: date | agent | one-line t
 - **Not done / left broken:** anything incomplete, failing, or skipped, and why.
 - **Next agent should:** the first concrete thing to do.
 -->
+
+### 2026-09-14 | Claude Code (Claude Opus 5) | Preserved pull request 1's plans as history
+- **Goal:** Apply the owner's choice for PR 1 (close it and keep its planning documents), and commit and push the pending memory updates.
+- **Changed:** Added `docs/history/CONVERSATIONAL_TRIP_WORKSPACE.md`, `docs/history/CHEAPEST_MULTIMODAL_TRAVEL_PLAN.md` and `docs/history/REVIEW_2026-09-12.md`, copied from PR 1 commit `083ea53` with a historical note under each title and relative links adjusted for the new folder. Added a History section to `docs/README.md` and linked the preserved C01–C12 plan from `docs/MULTIMODAL_IMPLEMENTATION.md`.
+- **Verified:** All 41 relative links in the three copies resolve to existing files (checked 2026-09-14). The commit command compares each copy with PR 1's original and stops unless the only differences are the added note and adjusted links.
+- **Not done / left broken:** PR 1 is closed and the pull request into `main` is opened after this commit is pushed; G1.3 is marked done in a follow-up commit once those actions have real results.
+- **Next agent should:** Confirm the follow-up commit recorded the pull request numbers and the CI result.
+
+### 2026-09-14 | Claude Code (Claude Opus 5) | Configured a repository-scoped GitHub credential
+- **Goal:** Store the owner's GitHub credential for this repository only, not globally.
+- **Changed:** In `.git/config`, replaced the `!gh auth git-credential` helper with an empty reset followed by `manager`, and set `credential.useHttpPath=true`. Saved the credential in Windows Credential Manager for `https://github.com/imvenkat178/wayline.git` with `git credential approve`. Updated section 6 of this file. No commit made.
+- **Verified:** `git config --global --get-regexp ^credential` returned nothing before and after. `git credential fill` for this repository's path returned username `imvenkat178` with a password (value not printed). `git ls-remote origin refs/heads/chore/agent-memory-kit` succeeded non-interactively and returned `6529424`. In a scratch repository with the same settings, `git credential fill` for `imvenkat178/some-other-repo.git` returned no credential ("could not read Username ... terminal prompts disabled"), confirming the entry is scoped to this repository path.
+- **Not done / left broken:** Pushing workflow file changes with this credential is untested. The owner was advised to revoke this credential later because it was shared in chat; the older global `git:https://github.com` entry is unchanged.
+- **Next agent should:** Ask the owner whether to open a pull request into `main` and which PR 1 option to apply.
+
+### 2026-09-14 | Claude Code (Claude Opus 5) | Pushed the branch with the workflow scope
+- **Goal:** Retry the push after the owner added the `workflow` scope.
+- **Changed:** Pushed `chore/agent-memory-kit` to origin. Updated sections 1, 2, 4 and 6 of this file and regenerated `docs/roadmap/index.html`. No commit made.
+- **Verified:** `gh auth status` listed `'workflow'`, but a plain `git push` was still rejected for the missing scope. `git config --show-origin` showed `credential.helper=manager` in the system gitconfig and `!gh auth git-credential` in `.git/config`. `git -c credential.helper= -c "credential.helper=!gh auth git-credential" push -u origin chore/agent-memory-kit` succeeded; `git ls-remote` returned `6529424874fb76ad62b98ab9e68c1da9c65705a5`, equal to local HEAD, with `6b97a3d` and `6529424` ahead of `origin/main`. `gh run list --branch chore/agent-memory-kit` listed no runs.
+- **Not done / left broken:** No pull request opened, so CI has not run (G7.1). PR 1 still awaits the owner's choice (G1.3.2). The stored Git Credential Manager token is unchanged. These memory edits are uncommitted.
+- **Next agent should:** Ask the owner whether to open a pull request into `main`, and which PR 1 option to apply.
+
+### 2026-09-14 | Claude Code (Claude Opus 5) | Push rejected and pull request 1 compared
+- **Goal:** Push the committed work, then resolve open pull request 1 (G1.3).
+- **Changed:** Checked G1.3.1 and added G1.3.2 in `ROADMAP.md`; added a known limit for the push; regenerated `docs/roadmap/index.html`. Fetched `origin/docs/cheapest-multimodal-flight-plan`. No commit made.
+- **Verified:** `git push -u origin chore/agent-memory-kit` was rejected: GitHub refused to update `.github/workflows/ci.yml` without the `workflow` scope; `gh auth status` showed scopes `gist`, `read:org`, `repo` on two later checks, so no retry was made. `gh pr view 1`: open, 2 commits (30fb62b, 083ea53), 7 documentation files, reported mergeable into main. `git merge-tree --write-tree` merged PR 1 into `origin/main` cleanly and into `chore/agent-memory-kit` with conflicts in `README.md` and `docs/FEATURE_STATUS.md`. `docs/MULTIMODAL_IMPLEMENTATION.md` on the branch describes itself as the implementation checkpoint for PR 1's C01–C12 plan and reports C01 (cash accounting, factual AI) as implemented; this was read from the document, not re-tested.
+- **Not done / left broken:** Not pushed. PR 1 is still open pending the owner's choice (G1.3.2). These memory edits are uncommitted.
+- **Next agent should:** Ask the owner to grant the `workflow` scope and choose what to do with PR 1, then apply both.
 
 ### 2026-09-14 | Claude Code (Claude Opus 5) | Committed the product release and documentation
 - **Goal:** Commit all the work, as the owner asked.

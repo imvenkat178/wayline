@@ -1,6 +1,6 @@
 # Multimodal travel implementation — 12 September 2026
 
-This is an implementation checkpoint for [the reviewed C01–C12 plan](https://github.com/imvenkat178/wayline/pull/1), not a declaration that all commercial travel services are connected. The Boston pilot remains operational. No paid account, public deployment, supplier booking or payment has been enabled.
+This is an implementation checkpoint for [the reviewed C01–C12 plan](history/CHEAPEST_MULTIMODAL_TRAVEL_PLAN.md) (originally [pull request 1](https://github.com/imvenkat178/wayline/pull/1)), not a declaration that all commercial travel services are connected. The Boston pilot remains operational. No paid account, public deployment, supplier booking or payment has been enabled.
 
 ## What works
 

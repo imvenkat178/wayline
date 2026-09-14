@@ -61,6 +61,16 @@ Start with the document that matches what you need. Planned documents are tracke
 | [ROADMAP.md](../ROADMAP.md) | See every goal, sub-goal and task, or browse it at [roadmap/index.html](roadmap/index.html) |
 | [agent-memory-kit/](agent-memory-kit/README.md) | Read about the memory kit and its templates |
 
+## History
+
+Plans and reviews kept for the record. They describe earlier states of the code, not current behaviour.
+
+| Document | Use it to |
+| --- | --- |
+| [history/CONVERSATIONAL_TRIP_WORKSPACE.md](history/CONVERSATIONAL_TRIP_WORKSPACE.md) | Read the 12 September plan that made the chat trip workspace the main feature (S01–S08) |
+| [history/CHEAPEST_MULTIMODAL_TRAVEL_PLAN.md](history/CHEAPEST_MULTIMODAL_TRAVEL_PLAN.md) | Read the flight, ground pricing and recovery plan behind packages C01–C12 |
+| [history/REVIEW_2026-09-12.md](history/REVIEW_2026-09-12.md) | Read the 12 September repository review and findings N01–N06 |
+
 ## Original materials
 
 [original/](original/README.md) keeps the first README, START_HERE and FREE_STACK files unchanged.
