@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { Store } from '../server/store.mjs';
 import { createConversation, runWorkspaceTurn, workspaceSnapshot } from '../server/domain/tripWorkspace.mjs';
@@ -21,7 +21,7 @@ function fixture(t) {
   process.env.DUFFEL_ACCESS_TOKEN = 'test-fixture-only'; process.env.ENABLE_EXTERNAL_FEEDS = 'true';
   t.after(() => {
     for (const [key, value] of [['DUFFEL_ACCESS_TOKEN', env.token], ['ENABLE_EXTERNAL_FEEDS', env.external]]) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
-    store.close(); assert.ok(resolve(directory).startsWith(resolve('tmp') + '\\')); rmSync(directory, { recursive: true, force: true });
+    store.close(); assert.ok(resolve(directory).startsWith(resolve('tmp') + sep)); rmSync(directory, { recursive: true, force: true });
   });
   const state = { refresh: null, connecting: false, missingBags: false, testInventory: false, calls: [] };
   function offers(request) {

@@ -11,9 +11,9 @@
 
 - **When:** 2026-09-14
 - **Who:** Claude Code (Claude Opus 5)
-- **What happened:** Later on 2026-09-14 a push of `chore/agent-memory-kit` was first rejected for a missing `workflow` scope; after the owner granted it, the branch was pushed using the GitHub CLI credential. Open PR 1 was also compared with the branch for G1.3 (conflicts in `README.md` and `docs/FEATURE_STATUS.md`; the owner's decision is pending). Earlier on 2026-09-14 added goal G10 (Documentation, 11 sub-goals) to `ROADMAP.md` and delivered its first references: `docs/README.md` (index), `docs/reference/API.md` (every endpoint), `docs/reference/CONFIGURATION.md` (all 59 environment variables), and `tests/docs-reference.test.mjs`, which fails when a server API path or environment variable is undocumented. Fixed out-of-date statements in `START_HERE.md` and `README.md`, completed `.env.example`, and added the references to the `AGENTS.md` documentation map. Then, at the owner's request, committed all remaining work, the local-Llama product release and this documentation, as one commit on `chore/agent-memory-kit` (G1.2, G10.1).
+- **What happened:** Last, on 2026-09-14, PR 1 was closed without merging, with its three plans kept in `docs/history/` (commit `917cb7d`), and PR #2 was opened from `chore/agent-memory-kit` into `main` (https://github.com/imvenkat178/wayline/pull/2). Its first CI run (34879457353) failed in `npm test` because 15 flight workspace tests asserted a Windows-only path separator; the test was fixed and pushed. Before that, a push of `chore/agent-memory-kit` was first rejected for a missing `workflow` scope; after the owner granted it, the branch was pushed using the GitHub CLI credential. Open PR 1 was also compared with the branch for G1.3 (conflicts in `README.md` and `docs/FEATURE_STATUS.md`; the owner's decision is pending). Earlier on 2026-09-14 added goal G10 (Documentation, 11 sub-goals) to `ROADMAP.md` and delivered its first references: `docs/README.md` (index), `docs/reference/API.md` (every endpoint), `docs/reference/CONFIGURATION.md` (all 59 environment variables), and `tests/docs-reference.test.mjs`, which fails when a server API path or environment variable is undocumented. Fixed out-of-date statements in `START_HERE.md` and `README.md`, completed `.env.example`, and added the references to the `AGENTS.md` documentation map. Then, at the owner's request, committed all remaining work, the local-Llama product release and this documentation, as one commit on `chore/agent-memory-kit` (G1.2, G10.1).
   Earlier sessions (2026-09-13, see section 8): installed the agent memory kit and turned the launch-gap review into `ROADMAP.md`: 9 goals and 52 sub-goals, each with evidence checked against the code, docs, git or a test run. Then stored the current kit in `docs/agent-memory-kit/`, updated `scripts/check_handoff.py` to the kit version that adds `--base`, and added two generated pages, `docs/roadmap/index.html` and `docs/agent-memory-kit/index.html` (`npm run docs:memory`), published as private claude.ai artifacts. No application code changed.
-- **State left behind:** Everything is committed on branch `chore/agent-memory-kit`, created from `main` at 0f02d7a and pushed to origin on 2026-09-14: first the memory kit commit `6b97a3d`, then `6529424` with the local-Llama product release and the documentation work. The later memory updates (`HANDOFF.md`, `ROADMAP.md`, `docs/roadmap/index.html`) are uncommitted. `main` and `origin/main` are unchanged.
+- **State left behind:** Everything is committed on branch `chore/agent-memory-kit`, created from `main` at 0f02d7a, pushed to origin on 2026-09-14 and open as PR #2 into `main`: `6b97a3d` (memory kit), `6529424` (local-Llama release and documentation), `917cb7d` (PR 1 plans kept as history), and a follow-up commit with the test portability fix and these notes. The CI result for that follow-up commit was not yet known when this was written; check PR #2. `main` and `origin/main` are unchanged.
 - **Resume by:**
   1. `git status --short` and compare it with section 2.
   2. `python scripts/roadmap.py next` to see actionable work and pending decisions.
@@ -23,12 +23,12 @@
 
 | Item | Current value |
 | --- | --- |
-| Branch | `chore/agent-memory-kit`, created from `main`, pushed and tracking `origin/chore/agent-memory-kit` at `6529424`. `main` and `origin/main` are still at `0f02d7a` (https://github.com/imvenkat178/wayline, public) |
-| Last commit | The product release and documentation commit on `chore/agent-memory-kit` (2026-09-14), after `6b97a3d` (memory kit, 2026-09-13) and `0f02d7a` 2026-09-11 "Boston core launch: real transit planning, AI trip agent, recovery, PDFs, encrypted offline/backups" |
-| Uncommitted | Memory updates after `6529424`: `HANDOFF.md`, `ROADMAP.md` (G1.3.1 checked, G1.3.2 added) and the regenerated `docs/roadmap/index.html`. |
+| Branch | `chore/agent-memory-kit`, created from `main`, pushed and tracking `origin/chore/agent-memory-kit`, open as PR #2 into `main`. `main` and `origin/main` are still at `0f02d7a` (https://github.com/imvenkat178/wayline, public) |
+| Last commit | The CI test fix and handoff commit on `chore/agent-memory-kit` (2026-09-14), after `917cb7d` (PR 1 history), `6529424` (product release and documentation), `6b97a3d` (memory kit, 2026-09-13) and `0f02d7a` 2026-09-11 "Boston core launch: real transit planning, AI trip agent, recovery, PDFs, encrypted offline/backups" |
+| Uncommitted | None after the CI test fix commit (ignored paths such as `data/`, `tmp/`, `models/` and `.env` excluded). |
 | Toolchain verified here | Windows 11; Node v24.19.0; npm 11.17.0; Python 3.12.10 (`python`; `python3` is only the Microsoft Store alias); git 2.55.0 |
 | Last full test run | 2026-09-14 `npm test` under PowerShell: 704 tests, 702 passed; the 2 failures were the memory validator tests, run while the roadmap summary was stale before `roadmap.py write` (re-run afterwards below). Earlier, 2026-09-13 `npm test` in Git Bash: 699 tests, 695 passed, 4 failed (backup cases broken by Git Bash's `whoami.exe`, G7.7); `tests/core-launch.test.mjs` under PowerShell: 25/25 passed; `npx tsc -b` passed; `npm run lint` 0 errors, 15 warnings; `npm run build` not run this session |
-| CI | `.github/workflows/ci.yml`; last main run 34629463576 on 2026-09-11 succeeded. The new validator steps have not run on GitHub yet (G7.1): the workflow triggers only on pushes to `main` and pull requests into `main`, and `gh run list --branch chore/agent-memory-kit` showed no runs after the 2026-09-14 push. Open PR 1 (docs only) passed CI on 2026-09-12. |
+| CI | `.github/workflows/ci.yml`; last main run 34629463576 on 2026-09-11 succeeded. PR #2's first run 34879457353 (2026-09-14, head `917cb7d`) failed in `npm test`: 689 of 704 tests passed, and all 15 failures in `tests/workspace-flights.test.mjs` came from a cleanup assertion that hard-coded the Windows `\` separator; the build and memory validator steps were skipped. The fix is pushed and its CI result is not yet recorded (G7.1). The workflow triggers only on pushes to `main` and pull requests into `main`. |
 
 ## 3. Done (capability ledger)
 
@@ -51,7 +51,7 @@ The complete goal tree lives in [ROADMAP.md](ROADMAP.md): goals, sub-goals and t
 
 Current focus, chosen by the last session:
 
-1. `G7.1` The branch is pushed but CI has not run; with the owner's approval, open a pull request into `main` so CI runs the memory and documentation checks.
+1. `G7.1` Check PR #2's CI run for the portability fix; when it passes, the memory validator steps have run on GitHub and G7.1.2 can be checked.
 2. `G6.1` The Launch 1 scope decides which hardening work matters; ask the owner to approve it.
 3. `G2.2` A container image unblocks deployment, OTP hosting and load testing, and needs no decision.
 4. `G3.5` IP rate limits break behind any reverse proxy; this is a code-only P0 fix.
@@ -88,6 +88,7 @@ Record new ideas in the "Ideas not yet goals" section of `ROADMAP.md`.
 | 2026-09-13 | `docs/`, `standalone/` and `output/` do not count as code for `--strict` (`.agent-memory.json`) | They are documentation or generated output, so they should not force a handoff entry on their own |
 | 2026-09-13 | The kit's `agent-memory.yml` workflow is stored in `docs/agent-memory-kit/templates/` but not installed; `ci.yml` runs the validators instead | Avoids duplicate CI jobs, and adding a workflow file needs a GitHub token with the `workflow` scope |
 | 2026-09-13 | The roadmap and kit pages are generated from `ROADMAP.md` and the kit README, never edited by hand | A hand-edited snapshot would drift from the validated source |
+| 2026-09-14 | Close PR 1 without merging and keep its three planning documents in `docs/history/` (G1.3) | Its plan was largely implemented on `chore/agent-memory-kit`; merging it would conflict in `README.md` and `docs/FEATURE_STATUS.md` and reintroduce out-of-date status statements. Its README restructure feeds G10.2.3; its branch is kept |
 | 2026-09-14 | Commit all remaining work (G1.2) as one commit on `chore/agent-memory-kit`, without pushing | The owner asked to commit all the work; the product release and the documentation edits overlap in `README.md`, `.env.example` and `package.json`, so separate commits would not be clean |
 
 ## 8. Session log (append newest first)
@@ -102,6 +103,13 @@ Template. Copy it and keep the heading format exactly: date | agent | one-line t
 - **Not done / left broken:** anything incomplete, failing, or skipped, and why.
 - **Next agent should:** the first concrete thing to do.
 -->
+
+### 2026-09-14 | Claude Code (Claude Opus 5) | Opened PR 2, closed PR 1 and fixed a Linux-only test failure
+- **Goal:** Open the pull request into `main`, close PR 1 as agreed, and get CI passing.
+- **Changed:** Opened PR #2 (`chore/agent-memory-kit` into `main`) and closed PR 1 with a comment linking PR #2 and `docs/history/`. Fixed `tests/workspace-flights.test.mjs` to use `path.sep` instead of a hard-coded Windows separator. Marked G1.3 done, added G7.1.4, recorded the PR 1 decision in section 7, and updated sections 1, 2 and 4.
+- **Verified:** `gh pr create` returned https://github.com/imvenkat178/wayline/pull/2; `gh pr view 1` showed CLOSED at 2026-09-14T18:13:06Z. CI run 34879457353 on head `917cb7d` failed: checkout, `npm ci`, `tsc -b` and lint passed; `npm test` reported 704 tests, 689 passed, 15 failed, all at `tests/workspace-flights.test.mjs:24`; build and memory validators were skipped. Before the fix that file passed 15/15 locally in Eastern and UTC time zones, which ruled out time zones. After the fix it passed 15/15 locally and `npx eslint` passed.
+- **Not done / left broken:** The CI run for the fix commit had not finished when this was written; G7.1.2 stays open until a passing run is confirmed. `npm run build` has still not run anywhere for these commits.
+- **Next agent should:** Check PR #2's latest CI run and record the result under G7.1.
 
 ### 2026-09-14 | Claude Code (Claude Opus 5) | Preserved pull request 1's plans as history
 - **Goal:** Apply the owner's choice for PR 1 (close it and keep its planning documents), and commit and push the pending memory updates.
