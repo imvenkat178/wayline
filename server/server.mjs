@@ -172,6 +172,33 @@ export function createApplication({
     "guardian-sweep": (jobStore) => runGuardian(jobStore),
     "push-deliver": (jobStore, payload) => deliverPush(jobStore, payload),
   };
+  // ROADMAP G2.4: liveness only says the process answers; readiness also proves the database
+  // answers, its schema is migrated, and every background job lane is still draining.
+  const requiredColumns = {
+    users: ["id"],
+    sessions: ["user_agent", "last_seen_at"],
+    records: ["dedupe_hash"],
+    jobs: ["user_id", "lease_token"],
+    mfa: ["last_counter"],
+  };
+  function checkReadiness(now = Date.now()) {
+    const checks = {};
+    try {
+      store.db.prepare("SELECT 1").get();
+      checks.database = { ok: true };
+      const version = store.db.prepare("SELECT MAX(version) AS version FROM schema_version").get()?.version ?? null;
+      const missing = Object.entries(requiredColumns).flatMap(([table, columns]) => {
+        const present = new Set(store.db.prepare(`PRAGMA table_info(${table})`).all().map((column) => column.name));
+        return columns.filter((column) => !present.has(column)).map((column) => `${table}.${column}`);
+      });
+      checks.migrations = { ok: version === 1 && missing.length === 0, version, missing };
+    } catch {
+      checks.database = { ok: false };
+      checks.migrations = { ok: false };
+    }
+    checks.jobWorkers = workers.status(now);
+    return { ready: Object.values(checks).every((check) => check.ok), checks };
+  }
   travel.flightStatusProvider=flightStatusProvider;
   travel.bookingAdapter=bookingAdapter;
   travel.checkoutProvider=checkoutProvider;
@@ -191,6 +218,16 @@ export function createApplication({
       rateLimit(`ip:${req.socket.remoteAddress}`, 360);
       const origin = process.env.PUBLIC_ORIGIN ?? `http://${req.headers.host}`;
       const url = new URL(req.url, origin);
+      if (url.pathname === "/api/health/live")
+        return send(res, 200, { status: "live", uptimeSeconds: Math.floor(process.uptime()), requestId });
+      if (url.pathname === "/api/health/ready") {
+        const readiness = checkReadiness();
+        return send(res, readiness.ready ? 200 : 503, {
+          status: readiness.ready ? "ready" : "not ready",
+          checks: readiness.checks,
+          requestId,
+        });
+      }
       if (url.pathname === "/api/health")
         return send(res, 200, {
           ok: true,

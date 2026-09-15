@@ -72,7 +72,7 @@ This exact two-terminal setup used to fail every mutating request (login, journe
 
 | Service | Role | Data |
 | --- | --- | --- |
-| `app` | Wayline server in production mode, non-root, health-checked on `/api/health` | Volumes `wayline-data` (database, keys, VAPID keys) and `wayline-backups` |
+| `app` | Wayline server in production mode, non-root, health-checked on `/api/health/ready` (database, migrations and job workers; `/api/health/live` only confirms the process answers) | Volumes `wayline-data` (database, keys, VAPID keys) and `wayline-backups` |
 | `otp` | OpenTripPlanner serving the saved Boston graph on the internal network | Volume `otp-graph` |
 | `otp-data`, `otp-build` | One-time setup jobs (profile `setup`), run with `docker compose run` | Volume `otp-graph` |
 
