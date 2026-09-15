@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { DomainError, connectionGraph, leaveNow } from "../domain/journeys.mjs";
 import { cities } from "../catalog.mjs";
 import { pushPublicKey } from "../push.mjs";
+import { decodeFeed, gtfsRtAlerts, gtfsRtVehicles, realtimeSource } from "./gtfsRealtime.mjs";
 const cache = new Map(),
   inflight = new Map(),
   health = new Map();
@@ -138,6 +139,7 @@ export async function mbtaPaginated(
 }
 export async function mbtaVehicles() {
   return cached("MBTA vehicles", 15000, async () => {
+    if (realtimeSource() === "gtfs-rt") return gtfsRtVehicles();
     // Sorted by id (a stable key), not updated_at: updated_at changes as vehicles report new
     // positions, and paginating by offset against a sort key that keeps shifting between page
     // fetches can skip or duplicate rows across pages. Completeness (feature 13) requires a
@@ -180,6 +182,7 @@ export async function mbtaVehicles() {
 }
 export async function mbtaAlerts() {
   return cached("MBTA alerts", 30000, async () => {
+    if (realtimeSource() === "gtfs-rt") return gtfsRtAlerts();
     const { rows, coverageLimited } = await mbtaPaginated("/alerts", { limit: 40 });
     return {
       source: "MBTA V3",
@@ -216,17 +219,12 @@ export async function gtfsRealtime(id) {
   const source = configuredSources().find((s) => s.id === id);
   if (!source) throw new DomainError("Transit source not configured.", 404);
   return cached(`GTFS-RT ${id}`, 15000, async () => {
-    const module = await import("gtfs-realtime-bindings");
-    const proto = (module.default ?? module).transit_realtime;
     const bytes = await fetchBounded(source.url, {
       headers: source.apiKeyEnv
         ? { Authorization: `Bearer ${process.env[source.apiKeyEnv] ?? ""}` }
         : {},
     });
-    const feed = proto.FeedMessage.toObject(proto.FeedMessage.decode(bytes), {
-      longs: Number,
-      enums: String,
-    });
+    const feed = decodeFeed(bytes);
     return {
       source: { id: source.id, name: source.name, kind: source.kind },
       timestamp: feed.header.timestamp,

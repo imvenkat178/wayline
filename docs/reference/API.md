@@ -28,7 +28,7 @@ For the conversation and protected-booking sequences in more depth, see [WORKFLO
 | Method | Path | Purpose | Notes |
 | --- | --- | --- | --- |
 | GET | `/api/health` | Service status: version, uptime, assistant mode and provider status | No session |
-| GET | `/api/bootstrap` | Session, CSRF token, signed-in user, cities, states, capabilities, journey transitions, operator links, pilot flag, Web Push public key and MFA status | Creates a guest session when none exists; 20 guest sessions per address per hour |
+| GET | `/api/bootstrap` | Session, CSRF token, signed-in user, cities, states, capabilities, journey transitions, operator links, pilot flag, configured map style URL, Web Push public key and MFA status | Creates a guest session when none exists; 20 guest sessions per address per hour |
 | GET | `/api/shared/:token` | Read a journey or comparison someone shared | No session; 60 per address per minute |
 | POST | `/api/shopping/webhooks/duffel` | Duffel webhook events that wake booking reconciliation | No session or CSRF. `X-Duffel-Signature: t=…,v1=…` is an HMAC-SHA256 of `t.` plus the raw body with `DUFFEL_WEBHOOK_SECRET`, within 300 seconds; body at most 1 MB; 120 per address per minute; `503` when the secret is unset |
 | POST | `/api/commerce/webhook` | Sandbox settlement events that reconcile a sandbox order | No session or CSRF. `X-Sandbox-Signature` HMAC-SHA256 over the raw body with `SANDBOX_WEBHOOK_SECRET`; body at most 100 KB; 120 per address per minute; `401 INVALID_SIGNATURE` on a bad signature |

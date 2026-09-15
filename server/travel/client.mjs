@@ -29,7 +29,7 @@ export class TravelClient {
       );
     this.connecting = (async () => {
       const env = { ...getDefaultEnvironment() };
-      for (const k of ["ENABLE_EXTERNAL_FEEDS", "OTP_GRAPHQL_URL", "MBTA_API_KEY", "DUFFEL_ACCESS_TOKEN", "DUFFEL_LIVE_ENABLED", "DUFFEL_BACKGROUND_SHOPPING_ALLOWED", "DUFFEL_PRICE_HISTORY_ALLOWED"])
+      for (const k of ["ENABLE_EXTERNAL_FEEDS", "OTP_GRAPHQL_URL", "MBTA_API_KEY", "MBTA_REALTIME_SOURCE", "DUFFEL_ACCESS_TOKEN", "DUFFEL_LIVE_ENABLED", "DUFFEL_BACKGROUND_SHOPPING_ALLOWED", "DUFFEL_PRICE_HISTORY_ALLOWED"])
         if (process.env[k]) env[k] = process.env[k];
       const transport = new StdioClientTransport({
         command: process.execPath,
@@ -143,6 +143,7 @@ export class TravelClient {
         travelers: 1,
         bags: 0,
       }),
+      this.call("schedule"),
     ]);
     const vehicles = results[1];
     const route = results[4];

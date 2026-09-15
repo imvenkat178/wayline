@@ -89,6 +89,31 @@ export async function otpPlan(input) {
       "Live Boston schedules. Supported single subway rides use the published standard adult tariff; other fares remain unknown and cannot be verified against your budget. No tickets are issued.",
   };
 }
+// The date range the loaded graph has GTFS schedules for (ROADMAP G11.3).
+export async function otpServiceWindow() {
+  if (!process.env.OTP_GRAPHQL_URL)
+    throw new DomainError("Boston routing is not configured.", 503, "PROVIDER_REQUIRED");
+  const bytes = await requestRouting({
+    method: "POST",
+    timeoutMs: 8000,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ query: "{ serviceTimeRange { start end } feeds { feedId } }" }),
+  });
+  let r;
+  try {
+    r = JSON.parse(bytes.toString());
+  } catch {
+    throw new DomainError("Boston routing returned an unreadable response.", 502, "OTP_SCHEMA_ERROR");
+  }
+  const range = r.data?.serviceTimeRange;
+  if (r.errors?.length || !Number.isFinite(range?.start) || !Number.isFinite(range?.end))
+    throw new DomainError("Boston routing did not report its schedule dates.", 502, "OTP_SCHEMA_ERROR");
+  return {
+    start: new Date(range.start * 1000).toISOString(),
+    end: new Date(range.end * 1000).toISOString(),
+    feeds: (r.data.feeds ?? []).map((feed) => feed.feedId),
+  };
+}
 async function requestRouting(options) {
   const deadline = Date.now() + options.timeoutMs;
   for (let attempt = 0; attempt < 2; attempt++) {

@@ -110,6 +110,17 @@ export const definitions = {
     }),
     description: "Read MBTA service alerts and affected entities.",
   },
+  schedule: {
+    input: z.object({}),
+    output: envelope.extend({
+      start: time,
+      end: time,
+      feeds: z.array(z.string()),
+      daysRemaining: z.number().int(),
+      status: z.enum(["connected", "expiring", "expired"]),
+    }),
+    description: "Read the date range the Boston routing graph has GTFS schedules for.",
+  },
   weather: {
     input: z.object({ lat: z.number().min(41).max(43.5), lon: z.number().min(-73.6).max(-69) }),
     output: envelope.extend({

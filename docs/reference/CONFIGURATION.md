@@ -34,6 +34,7 @@ Values are strings. A flag described as "`true` to enable" is on only for the ex
 | `ENABLE_EXTERNAL_FEEDS` | on unless `false` | `false` blocks every external feed and supplier call (`503 FEED_DISABLED`) | `server/adapters/providers.mjs`, `server/travel/providers.mjs`, `server/shopping/` |
 | `OTP_GRAPHQL_URL` | unset | OpenTripPlanner GraphQL endpoint for Boston routing. Unset, trip search returns `503 PROVIDER_REQUIRED`. Set, the server also schedules live journey refresh every 60 seconds and a travel connection probe every 5 minutes | `server/travel/routing.mjs`, `server/server.mjs`, `server/adapters/providers.mjs`, `scripts/start-local.mjs` |
 | `MBTA_API_KEY` | unset | Sent as `x-api-key` to the MBTA V3 API for higher rate limits | `server/travel/providers.mjs`, `server/adapters/providers.mjs` |
+| `MBTA_REALTIME_SOURCE` | `v3-api` | `gtfs-rt` reads MBTA vehicles, predictions and alerts from the GTFS-Realtime protobuf feeds at `cdn.mbta.com/realtime/` instead of the V3 JSON API; any other value keeps the V3 API | `server/adapters/gtfsRealtime.mjs` |
 | `TRANSIT_SOURCES_FILE` | unset | Path to a JSON array of at most 200 GTFS-Realtime sources, each `{id, name, url, kind}` with `kind` one of `vehicles`, `updates`, `alerts`, an HTTPS `url` without credentials, and optional `apiKeyEnv` naming another variable that holds a bearer token | `server/adapters/providers.mjs` |
 | `GBFS_URL` | unset | GBFS discovery endpoint for bike and scooter availability | `server/adapters/providers.mjs` |
 | `GBFS_ALLOWED_HOSTS` | unset | Comma-separated extra hosts that GBFS feeds may be fetched from | `server/adapters/providers.mjs` |
@@ -41,7 +42,14 @@ Values are strings. A flag described as "`true` to enable" is on only for the ex
 | `GEOCODER_USER_AGENT` | unset | Identifying user agent with a contact address. Geocoding is unavailable until it is set | `server/adapters/providers.mjs` |
 | `VALHALLA_URL` | unset | Valhalla street routing endpoint for `POST /api/route` | `server/adapters/providers.mjs` |
 
-The private travel service (an MCP child process) receives only `ENABLE_EXTERNAL_FEEDS`, `OTP_GRAPHQL_URL`, `MBTA_API_KEY`, `DUFFEL_ACCESS_TOKEN`, `DUFFEL_LIVE_ENABLED`, `DUFFEL_BACKGROUND_SHOPPING_ALLOWED` and `DUFFEL_PRICE_HISTORY_ALLOWED` from the parent environment (`server/travel/client.mjs`).
+The private travel service (an MCP child process) receives only `ENABLE_EXTERNAL_FEEDS`, `OTP_GRAPHQL_URL`, `MBTA_API_KEY`, `MBTA_REALTIME_SOURCE`, `DUFFEL_ACCESS_TOKEN`, `DUFFEL_LIVE_ENABLED`, `DUFFEL_BACKGROUND_SHOPPING_ALLOWED` and `DUFFEL_PRICE_HISTORY_ALLOWED` from the parent environment (`server/travel/client.mjs`).
+
+## Maps
+
+| Variable | Default | Effect | Read in |
+| --- | --- | --- | --- |
+| `MAP_STYLE_URL` | unset | HTTPS URL of a MapLibre style (for example a vector tile provider's style). The web app loads it instead of the OpenStreetMap raster style, and its origin is added to the Content Security Policy. Non-HTTPS values are ignored | `server/securityPolicy.mjs` |
+| `MAP_TILE_ORIGINS` | unset | Comma-separated HTTPS origins the style loads tiles, glyphs or sprites from, added to the Content Security Policy's `img-src` and `connect-src`. Invalid or non-HTTPS entries are ignored | `server/securityPolicy.mjs` |
 
 ## AI assistant
 

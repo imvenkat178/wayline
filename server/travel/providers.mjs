@@ -2,7 +2,8 @@ import { DuffelAdapter } from "../shopping/duffel.mjs";
 import { fetchBounded, mbtaVehicles, mbtaAlerts } from "../adapters/providers.mjs";
 import { DomainError } from "../domain/journeys.mjs";
 import { cities } from "../catalog.mjs";
-import { otpPlan } from "./routing.mjs";
+import { otpPlan, otpServiceWindow } from "./routing.mjs";
+import { MBTA_REALTIME_FEEDS, loadFeed, normalizePredictions, realtimeSource } from "../adapters/gtfsRealtime.mjs";
 const cache = new Map(),
   pending = new Map(),
   states = new Map();
@@ -14,11 +15,12 @@ export function travelHealth() {
       "MBTA vehicles",
       "MBTA disruptions",
       "Boston routing",
+      "Boston schedule data",
       "NWS weather",
     ].map((name) => ({
       name,
       status:
-        name === "Boston routing" && !process.env.OTP_GRAPHQL_URL
+        ["Boston routing", "Boston schedule data"].includes(name) && !process.env.OTP_GRAPHQL_URL
           ? "not configured"
           : "not checked",
       lastSuccess: null,
@@ -123,8 +125,36 @@ export async function resolvePlace(value) {
   if (data.places.length === 1) return data.places[0];
   throw new DomainError("Choose an exact Boston station or map location.", 400, "PLACE_REQUIRED");
 }
+// One TripUpdates download serves every trip's predictions for 15 seconds.
+let tripUpdates = { at: 0, feed: null, pending: null };
+async function tripUpdatesFeed() {
+  if (tripUpdates.feed && Date.now() - tripUpdates.at < 15000) return tripUpdates.feed;
+  tripUpdates.pending ??= loadFeed(MBTA_REALTIME_FEEDS.tripUpdates)
+    .then((feed) => {
+      tripUpdates = { at: Date.now(), feed, pending: null };
+      return feed;
+    })
+    .finally(() => {
+      tripUpdates.pending = null;
+    });
+  return tripUpdates.pending;
+}
+// A routing graph only has schedules for its GTFS service window; warn a week before it ends.
+export function scheduleStatus(end, now = Date.now()) {
+  const days = (Date.parse(end) - now) / 86400000;
+  return { daysRemaining: Math.floor(days), status: days < 0 ? "expired" : days < 7 ? "expiring" : "connected" };
+}
+export async function schedule() {
+  const value = await cached("Boston schedule data", "schedule", 3600000, otpServiceWindow);
+  const current = scheduleStatus(value.end);
+  const state = states.get("Boston schedule data");
+  if (state?.status === "connected")
+    states.set("Boston schedule data", { ...state, status: current.status, validUntil: value.end, daysRemaining: current.daysRemaining });
+  return { ...value, ...current };
+}
 export async function predictions({ tripId }) {
   return cached("MBTA predictions", "prediction:" + tripId, 15000, async () => {
+    if (realtimeSource() === "gtfs-rt") return { predictions: normalizePredictions(await tripUpdatesFeed(), tripId) };
     const r = await mbta(
       "/predictions?filter[trip]=" + encodeURIComponent(tripId) + "&page[limit]=100",
     );
@@ -182,6 +212,7 @@ export async function runTravelTool(name, args) {
   if (name === "vehicles") return cached("MBTA vehicles", "vehicles", 15000, mbtaVehicles);
   if (name === "disruptions") return cached("MBTA disruptions", "disruptions", 30000, mbtaAlerts);
   if (name === "weather") return nwsWeather(args);
+  if (name === "schedule") return schedule();
   if (name === "search")
     return cached("Boston routing", "route:" + JSON.stringify(args), 15000, async () =>
       otpPlan({ ...args, from: await resolvePlace(args.from), to: await resolvePlace(args.to) }),

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import type { Journey } from "../types";
+import { AppContext } from "../context";
 import { Button, Badge, Icon } from "./ui";
 import { journeyBounds, legGeometry } from "../geometry";
 import { journeyMapStyle, mapTileRequest } from "../mapStyle";
@@ -34,6 +35,8 @@ export function JourneyMap({
   selectRef.current = onLegSelect;
   const selectedRef = useRef(selectedLeg);
   selectedRef.current = selectedLeg;
+  // A configured vector style (MAP_STYLE_URL) replaces the default OpenStreetMap raster style.
+  const styleUrl = useContext(AppContext)?.boot?.mapStyleUrl ?? null;
   useEffect(() => {
     if (!geographic || offline || !host.current) return;
     let cancelled = false;
@@ -46,7 +49,7 @@ export function JourneyMap({
         if (cancelled || !host.current) return;
         map = new lib.Map({
           container: host.current,
-          style: journeyMapStyle(),
+          style: styleUrl ?? journeyMapStyle(),
           transformRequest: mapTileRequest,
           attributionControl: { compact: false },
           center: journey?.fromCoords ?? [-71.06, 42.35],
@@ -162,20 +165,83 @@ export function JourneyMap({
                 tracking: l.tracking,
               })) ??
             [];
-          for (const v of matched) {
-            const stale =
-              !v.tracking.observedAt || Date.now() - Date.parse(v.tracking.observedAt) > 120000;
-            const text = document.createElement("div");
-            text.textContent =
-              (stale ? "Last observed vehicle" : "Live vehicle") +
-              " · " +
-              (v.tracking.observedAt
-                ? new Date(v.tracking.observedAt).toLocaleTimeString()
-                : "time unknown");
-            new lib.Marker({ color: stale ? "#9f967f" : "#087466" })
-              .setLngLat([v.lon, v.lat])
-              .setPopup(new lib.Popup().setDOMContent(text))
-              .addTo(map);
+          // Vehicles render from one clustered GeoJSON source (ROADMAP G11.4). A feed can list
+          // hundreds of vehicles, and a DOM marker per vehicle made the map slow to pan and zoom.
+          if (matched.length) {
+            const now = Date.now();
+            map.addSource("vehicles", {
+              type: "geojson",
+              cluster: true,
+              clusterRadius: 40,
+              clusterMaxZoom: 14,
+              data: {
+                type: "FeatureCollection",
+                features: matched.map((v) => ({
+                  type: "Feature" as const,
+                  properties: {
+                    stale: !v.tracking.observedAt || now - Date.parse(v.tracking.observedAt) > 120000,
+                    observedAt: v.tracking.observedAt ?? "",
+                  },
+                  geometry: { type: "Point" as const, coordinates: [v.lon, v.lat] },
+                })),
+              },
+            });
+            map.addLayer({
+              id: "vehicle-clusters",
+              type: "circle",
+              source: "vehicles",
+              filter: ["has", "point_count"],
+              paint: {
+                "circle-color": "#087466",
+                "circle-opacity": 0.85,
+                "circle-stroke-color": "#fffaf4",
+                "circle-stroke-width": 2,
+                "circle-radius": ["step", ["get", "point_count"], 12, 10, 16, 50, 22],
+              },
+            });
+            map.addLayer({
+              id: "vehicle-points",
+              type: "circle",
+              source: "vehicles",
+              filter: ["!", ["has", "point_count"]],
+              paint: {
+                "circle-color": ["case", ["get", "stale"], "#9f967f", "#087466"],
+                "circle-radius": 6,
+                "circle-stroke-color": "#fffaf4",
+                "circle-stroke-width": 2,
+              },
+            });
+            map.on("click", "vehicle-clusters", (e) => {
+              const feature = e.features?.[0];
+              const source = map?.getSource("vehicles") as import("maplibre-gl").GeoJSONSource | undefined;
+              if (!feature || !source || !map) return;
+              const center = (feature.geometry as { coordinates: [number, number] }).coordinates;
+              void source
+                .getClusterExpansionZoom(feature.properties.cluster_id)
+                .then((zoom) => map?.easeTo({ center, zoom }));
+            });
+            map.on("click", "vehicle-points", (e) => {
+              const feature = e.features?.[0];
+              if (!feature || !map) return;
+              const { stale, observedAt } = feature.properties as { stale: boolean; observedAt: string };
+              const text = document.createElement("div");
+              text.textContent =
+                (stale ? "Last observed vehicle" : "Live vehicle") +
+                " · " +
+                (observedAt ? new Date(observedAt).toLocaleTimeString() : "time unknown");
+              new lib.Popup()
+                .setLngLat((feature.geometry as { coordinates: [number, number] }).coordinates)
+                .setDOMContent(text)
+                .addTo(map);
+            });
+            for (const layer of ["vehicle-clusters", "vehicle-points"]) {
+              map.on("mouseenter", layer, () => {
+                if (map) map.getCanvas().style.cursor = "pointer";
+              });
+              map.on("mouseleave", layer, () => {
+                if (map) map.getCanvas().style.cursor = "";
+              });
+            }
           }
         });
       } catch {
@@ -191,7 +257,7 @@ export function JourneyMap({
       map?.remove();
       mapRef.current = null;
     };
-  }, [geographic, offline, journey, vehicles]);
+  }, [geographic, offline, journey, vehicles, styleUrl]);
   useEffect(() => {
     const map = mapRef.current;
     if (map?.getLayer("selected"))

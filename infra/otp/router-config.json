@@ -8,6 +8,18 @@
       "frequency": "30s",
       "url": "https://cdn.mbta.com/realtime/TripUpdates.pb",
       "feedId": "mbta-ma-us"
+    },
+    {
+      "type": "vehicle-positions",
+      "frequency": "30s",
+      "url": "https://cdn.mbta.com/realtime/VehiclePositions.pb",
+      "feedId": "mbta-ma-us"
+    },
+    {
+      "type": "real-time-alerts",
+      "frequency": "60s",
+      "url": "https://cdn.mbta.com/realtime/Alerts.pb",
+      "feedId": "mbta-ma-us"
     }
   ]
 }

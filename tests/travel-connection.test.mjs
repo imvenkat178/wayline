@@ -86,14 +86,14 @@ test("connection probes share in-flight work and bound repeated requests", async
   travel.call = async () => { calls++; await gate; return { vehicles: [], journeys: [] }; };
   const a = travel.probe(), b = travel.probe();
   assert.equal(a, b);
-  assert.equal(calls, 5);
+  assert.equal(calls, 6);
   assert.ok(travel.probing);
   finish();
   await a;
   assert.equal(travel.probing, null);
   assert.ok(travel.lastChecked);
   await travel.probe();
-  assert.equal(calls, 5);
+  assert.equal(calls, 6);
   await travel.close();
 });
 

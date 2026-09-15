@@ -81,6 +81,7 @@ export interface Capability {
 }
 export interface Bootstrap {
   pilot?: boolean;
+  mapStyleUrl?: string | null;
   user: User;
   csrf: string;
   cities: City[];

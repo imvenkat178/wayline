@@ -41,6 +41,7 @@ import { journeyRoutes } from "./journey-routes.mjs";
 import { commerceRoutes } from "./commerce-routes.mjs";
 import { runGuardian } from "./guardian.mjs";
 import { pushPublicKey } from "./push.mjs";
+import { mapStyleUrl } from "./securityPolicy.mjs";
 import QRCode from "qrcode";
 export async function handleApi(ctx) {
   const {
@@ -69,6 +70,7 @@ export async function handleApi(ctx) {
       csrf: session.csrf,
       cities,
       pilot: process.env.WAYLINE_BOSTON_PILOT === "true",
+      mapStyleUrl: mapStyleUrl(),
       states,
       capabilities: commercialCapabilities(),
       transitions,
